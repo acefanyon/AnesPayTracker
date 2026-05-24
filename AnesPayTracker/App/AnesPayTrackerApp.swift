@@ -20,12 +20,11 @@ struct AnesPayTrackerApp: App {
                 isStoredInMemoryOnly: false,
                 cloudKitDatabase: .automatic
             )
-            modelContainer = try ModelContainer(for: schema, configurations: [config])
+            let container = try ModelContainer(for: schema, configurations: [config])
+            modelContainer = container
             
             // Seed on first launch
-            Task { @MainActor in
-                SeedData.insertIfNeeded(into: modelContainer.mainContext)
-            }
+            SeedData.insertIfNeeded(into: container.mainContext)
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }

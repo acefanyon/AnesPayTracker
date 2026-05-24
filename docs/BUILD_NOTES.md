@@ -142,3 +142,93 @@ xcodebuild \
   -destination 'platform=macOS,variant=Mac Catalyst' \
   build
 ```
+
+## 2026-05-23 20:58 MST — Xcode installed; iOS and Mac Catalyst builds verified
+
+Environment:
+
+```text
+Xcode 26.5
+Build version 17F42
+Developer directory: /Applications/Xcode.app/Contents/Developer
+```
+
+Project discovery succeeded:
+
+```text
+Target: AnesPayTracker
+Scheme: AnesPayTracker
+Build configurations: Debug, Release
+```
+
+Fixes made before successful builds:
+
+1. Updated Xcode project file references so the project points to the real Swift file locations under folders such as `App`, `Model`, `Engine`, and `Views`.
+2. Fixed `AnesPayTrackerApp.swift` initialization so seed data is inserted using the newly-created local `ModelContainer` value instead of capturing `self` before initialization completed.
+3. Replaced the unsupported `DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER` build setting with a conditional Mac Catalyst bundle identifier:
+
+```text
+PRODUCT_BUNDLE_IDENTIFIER = com.anespay.tracker;
+"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.com.anespay.tracker;
+```
+
+Verified iOS Simulator build:
+
+```bash
+xcodebuild \
+  -project AnesPayTracker.xcodeproj \
+  -scheme AnesPayTracker \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  build
+```
+
+Result:
+
+```text
+** BUILD SUCCEEDED **
+```
+
+Verified Mac Catalyst build, unsigned for local compiler verification:
+
+```bash
+xcodebuild \
+  -project AnesPayTracker.xcodeproj \
+  -scheme AnesPayTracker \
+  -destination 'platform=macOS,variant=Mac Catalyst' \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+Result:
+
+```text
+** BUILD SUCCEEDED **
+```
+
+Why `CODE_SIGNING_ALLOWED=NO` was used:
+
+- A normal Mac Catalyst build now reaches the signing step, but this machine/project does not yet have an Apple Development Team selected.
+- Disabling signing lets Hermes verify the code compiles and links as a Mac Catalyst app.
+- For normal Xcode Run/Archive workflows, select a Development Team in Xcode's Signing & Capabilities tab.
+
+Local generated Mac app bundle from the successful unsigned build:
+
+```text
+/Users/jasonvargas/Library/Developer/Xcode/DerivedData/AnesPayTracker-dhixpulmbnioqnbwrqpfbtohgfaq/Build/Products/Debug-maccatalyst/AnesPayTracker.app
+```
+
+Remaining warnings seen in the successful iOS build:
+
+```text
+Models.swift:224:9: warning: will never be executed
+ReportView.swift:54:17: warning: variable 'comps' was never mutated; consider changing to 'let' constant
+StreakEngine.swift:151:17: warning: variable 'comps' was never mutated; consider changing to 'let' constant
+StreakEngine.swift:169:17: warning: variable 'comps' was never mutated; consider changing to 'let' constant
+```
+
+Recommended next work:
+
+1. Select an Apple Development Team in Xcode so Mac Catalyst can build/run normally without `CODE_SIGNING_ALLOWED=NO`.
+2. Launch the app on iPhone Simulator and as Mac Catalyst to check runtime behavior, not just compile success.
+3. Fix the remaining Swift warnings.
+4. Add tests around pay/streak calculation logic before broader UI polish.
