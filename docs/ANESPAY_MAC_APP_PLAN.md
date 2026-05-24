@@ -366,6 +366,24 @@ Xcode tasks:
 
 ## Immediate Next Step
 
-Install/select full Xcode, then run the baseline iOS build and Catalyst build commands. The first actual implementation task should be based on the compile errors produced by those commands.
+Full Xcode is now installed and both iOS Simulator and Mac Catalyst compile/link verification have succeeded. The next implementation phase should use the runtime feedback backlog as the source of truth:
 
-Because this project is SwiftUI/Xcode-based and this machine currently only has Command Line Tools selected, Hermes cannot honestly verify build success until full Xcode is installed and selected.
+```text
+docs/RUNTIME_FEEDBACK_BACKLOG.md
+```
+
+Recommended next implementation order:
+
+1. Fix sheet/pop-up scrolling and ambiguous controls.
+2. Expand employer/pay rule setup for per-hour/per-day rates, customizable bonus types, and configurable streak bonuses.
+3. Add employer filtering and reconciliation workflow to Pay Periods.
+4. Add calendar week view and improve calendar visual scale/employer summary.
+5. Add CSV export alongside PDF export.
+6. Add tests or a documented manual calculation checklist before broad money-logic changes.
+
+Continue verifying with both:
+
+```bash
+xcodebuild -project AnesPayTracker.xcodeproj -scheme AnesPayTracker -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodebuild -project AnesPayTracker.xcodeproj -scheme AnesPayTracker -destination 'platform=macOS,variant=Mac Catalyst' CODE_SIGNING_ALLOWED=NO build
+```
