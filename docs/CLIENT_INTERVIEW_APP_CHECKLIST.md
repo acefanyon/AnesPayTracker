@@ -57,6 +57,59 @@ Implementation note:
 
 ---
 
+### CI-002 — Sticky or delayed scrolling when editing a shift from Calendar
+
+Status: captured, investigated at source level, not fixed yet
+Priority: High if reproducible outside simulator; Medium if simulator-only
+Area: Calendar → Shift Detail → Edit Shift
+Likely files:
+
+- `AnesPayTracker/Views/Review/CalendarView.swift`
+- `AnesPayTracker/Views/Review/ShiftDetailView.swift`
+- `AnesPayTracker/Views/Entry/AddShiftView.swift`
+
+Observation:
+
+- Client noticed sticking or delayed scrolling when scrolling down while editing a shift from the Calendar.
+- It is not yet clear whether this is true stickiness, delayed input handling, a simulator artifact, or a Mac Catalyst nested-sheet behavior.
+
+Source-level investigation notes:
+
+- Calendar presents Shift Detail with `.sheet(item: $selectedShift)`.
+- Shift Detail currently opens Edit Shift with another `.sheet(isPresented: $showEdit)` containing `AddShiftView(editingShift: shift)`.
+- That means the Calendar edit path is effectively a sheet opened from inside another sheet.
+- `AddShiftView` already uses `ScrollView`, full-height framing, bottom padding, and `CatalystFriendlyScrollDismiss()`, so the most likely app-level cause is not the old `Form` layout.
+- A plausible app-level root cause is nested modal presentation on Mac Catalyst/simulator: Calendar sheet → Shift Detail sheet → Edit Shift sheet.
+- It may also be worsened by animated expandable sections in Add/Edit Shift, especially Notes, Source Note, custom bonuses, and keyboard/focus handling.
+
+Why it matters:
+
+- Editing a shift is a high-frequency correction workflow.
+- If scrolling sticks while editing pay data, the user may think the app is frozen or unreliable.
+
+Proposed behavior options to test before implementing:
+
+1. Reproduce on actual Mac Catalyst build, not only iOS Simulator.
+2. Reproduce on iOS Simulator directly from Add Shift and from Calendar → Shift Detail → Edit to compare.
+3. If the problem mainly occurs in Calendar → Shift Detail → Edit, avoid nested sheets by changing the edit flow to one of:
+   - dismiss Shift Detail and open Edit Shift as a single top-level sheet, or
+   - replace nested edit sheet with in-place edit mode inside Shift Detail, or
+   - present edit using a full-screen/large modal style that does not stack sheet-on-sheet.
+4. If the problem occurs everywhere in Add/Edit Shift, simplify `AddShiftView` scroll behavior further and reduce animated expanding sections.
+
+Acceptance criteria:
+
+- From Calendar, user can open a shift, tap Edit, scroll to the bottom of Edit Shift smoothly, and reach Notes/Source Note/Save controls.
+- Same behavior works in Mac Catalyst and iOS Simulator.
+- If delay is simulator-only, document that result and verify real Mac Catalyst is acceptable.
+- No regression to pay calculation checks or builds.
+
+Recommended next implementation step:
+
+- Do a focused runtime reproduction pass before changing code. If reproduced specifically in the Calendar edit path, prioritize removing the nested sheet flow.
+
+---
+
 ## Pending interview notes to add
 
 Add additional client clarifications below as they come in, then promote them into the runtime backlog before coding larger changes.

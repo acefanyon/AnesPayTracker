@@ -72,6 +72,9 @@ Client interview follow-up captured 2026-05-25:
 - Shift Detail has an odd, non-functional label/control in the upper-left corner.
 - Added detailed checklist item in `docs/CLIENT_INTERVIEW_APP_CHECKLIST.md` as `CI-001`.
 - Initial fix: Shift Detail now removes the upper-left cancellation toolbar control and uses clear upper-right `Edit` and `Done` actions instead.
+- Sticky or delayed scrolling was reported while editing a shift from Calendar.
+- Added detailed checklist item in `docs/CLIENT_INTERVIEW_APP_CHECKLIST.md` as `CI-002`.
+- Source-level investigation suggests a likely app-level risk in the Calendar edit path: Calendar presents Shift Detail as a sheet, then Shift Detail presents Edit Shift as another sheet. This nested sheet flow should be runtime-tested before changing code; if confirmed, prioritize removing the nested modal flow.
 
 Implemented:
 
