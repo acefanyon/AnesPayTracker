@@ -354,7 +354,7 @@ struct AddSiteSheet: View {
                     SiteEditorCard(site: $draft, onDelete: { dismiss() })
                         .padding(24)
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .modifier(CatalystFriendlyScrollDismiss())
                 
                 Divider()
                 
@@ -412,7 +412,7 @@ struct AddStreakRuleSheet: View {
                     StreakRuleEditorCard(rule: $draft, onDelete: { dismiss() })
                         .padding(24)
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .modifier(CatalystFriendlyScrollDismiss())
                 
                 Divider()
                 

@@ -7,9 +7,9 @@ struct AddShiftView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Site.name) private var allSites: [Site]
-    
+
     var editingShift: Shift? = nil
-    
+
     // Form state
     @State private var selectedSite: Site?
     @State private var date: Date = Date()
@@ -29,7 +29,7 @@ struct AddShiftView: View {
     @State private var showStreakAlert: Bool = false
     @State private var streakAlertText: String = ""
     @State private var isSaving: Bool = false
-    
+
     // Recently used sites (last 5 unique)
     private var recentSites: [Site] {
         let sorted = allSites.sorted {
@@ -39,14 +39,14 @@ struct AddShiftView: View {
         }
         return Array(sorted.prefix(5))
     }
-    
+
     private var remainingSites: [Site] {
         let recentIDs = Set(recentSites.map(\.id))
         return allSites.filter { !recentIDs.contains($0.id) }
     }
-    
+
     private var payUnit: PayUnit { selectedSite?.payUnit ?? .perDay }
-    
+
     private var computedBase: Decimal {
         guard let site = selectedSite else { return 0 }
         switch payUnit {
@@ -54,14 +54,14 @@ struct AddShiftView: View {
         case .perHour: return site.baseAmount * Decimal(hoursWorked)
         }
     }
-    
+
     private var computedTotal: Decimal {
         computedBase
         + (hasSplash ? splashAmount : 0)
         + (hasBonusSplash ? bonusSplashAmount : 0)
         + customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -71,11 +71,12 @@ struct AddShiftView: View {
                         PayPreviewBanner(
                             base: computedBase,
                             splash: hasSplash ? splashAmount : 0,
-                            bonusSplash: hasBonusSplash ? bonusSplashAmount : 0
+                            bonusSplash: hasBonusSplash ? bonusSplashAmount : 0,
+                            customBonus: customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    
+
                     VStack(spacing: 24) {
                         // Site picker
                         SitePickerSection(
@@ -83,22 +84,22 @@ struct AddShiftView: View {
                             recentSites: recentSites,
                             remainingSites: remainingSites
                         )
-                        
+
                         if selectedSite != nil {
                             // Date
                             DatePickerRow(date: $date)
-                            
+
                             Divider()
-                            
+
                             // Duration
                             if payUnit == .perDay {
                                 DayFractionPicker(selection: $dayFraction)
                             } else {
                                 HoursEntry(hoursWorked: $hoursWorked)
                             }
-                            
+
                             Divider()
-                            
+
                             // Splash
                             SplashSection(
                                 hasSplash: $hasSplash,
@@ -107,14 +108,14 @@ struct AddShiftView: View {
                                 bonusSplashAmount: $bonusSplashAmount,
                                 defaultSplash: selectedSite?.defaultSplashAmount
                             )
-                            
+
                             if !customBonuses.isEmpty {
                                 Divider()
                                 CustomBonusesSection(customBonuses: $customBonuses)
                             }
-                            
+
                             Divider()
-                            
+
                             // Notes
                             ExpandableSection(
                                 label: "Notes",
@@ -124,7 +125,7 @@ struct AddShiftView: View {
                                     .frame(height: 80)
                                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
                             }
-                            
+
                             // Source note
                             ExpandableSection(
                                 label: "Source Note",
@@ -173,14 +174,17 @@ struct AddShiftView: View {
         .onChange(of: selectedSite?.id) { _, _ in
             syncCustomBonusesForSelectedSite()
         }
+        .onChange(of: hoursWorked) { oldValue, newValue in
+            syncPerHourCustomBonusQuantities(from: oldValue, to: newValue)
+        }
     }
-    
+
     // MARK: - Save
-    
+
     private func saveShift() {
         guard let site = selectedSite else { return }
         isSaving = true
-        
+
         let shift: Shift
         if let existing = editingShift {
             // Record edit history
@@ -192,7 +196,7 @@ struct AddShiftView: View {
             shift = Shift()
             modelContext.insert(shift)
         }
-        
+
         shift.site = site
         shift.date = date
         shift.payUnit = site.payUnit
@@ -204,7 +208,7 @@ struct AddShiftView: View {
         shift.customBonuses = customBonuses
             .filter { $0.isEnabled && !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity) }
-        
+
         if hasSourceNote && !sourceContactName.isEmpty {
             shift.sourceNote = SourceNote(
                 contactName: sourceContactName,
@@ -215,12 +219,12 @@ struct AddShiftView: View {
             shift.sourceNote = nil
         }
         shift.notes = notes.isEmpty ? nil : notes
-        
+
         // Recompute streaks for employer
         if let employer = site.employer {
             StreakEngine.recomputeStreaks(for: employer)
         }
-        
+
         // Calendar sync
         let calSync = CalendarSyncManager.shared
         if calSync.isOptedIn {
@@ -230,9 +234,9 @@ struct AddShiftView: View {
                 shift.calendarEventID = calSync.addEvent(for: shift)
             }
         }
-        
+
         try? modelContext.save()
-        
+
         // Check streak trigger
         if let bonus = shift.streakBonusAmount, bonus > 0, editingShift == nil {
             streakAlertText = "This shift triggered a streak bonus of \(bonus.formatted(.currency(code: "USD")))! It's been added to your total."
@@ -241,7 +245,7 @@ struct AddShiftView: View {
             dismiss()
         }
     }
-    
+
 
     private func syncCustomBonusesForSelectedSite() {
         guard let bonusTypes = selectedSite?.employer?.customBonusTypes else { return }
@@ -262,8 +266,17 @@ struct AddShiftView: View {
             }
             return false
         }
+        syncPerHourCustomBonusQuantities(from: hoursWorked, to: hoursWorked)
     }
-    
+
+    private func syncPerHourCustomBonusQuantities(from oldValue: Double, to newValue: Double) {
+        for index in customBonuses.indices where customBonuses[index].payUnit == .perHour {
+            if !customBonuses[index].isEnabled || customBonuses[index].quantity == oldValue {
+                customBonuses[index].quantity = newValue
+            }
+        }
+    }
+
     private func buildEditSummary(_ shift: Shift) -> String {
         var changes: [String] = []
         if shift.date != date { changes.append("date changed") }
@@ -271,7 +284,7 @@ struct AddShiftView: View {
         if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }
         return changes.isEmpty ? "Minor edit" : changes.joined(separator: ", ")
     }
-    
+
     private func populateIfEditing() {
         guard let shift = editingShift else { return }
         selectedSite = shift.site
@@ -301,15 +314,16 @@ struct PayPreviewBanner: View {
     let base: Decimal
     let splash: Decimal
     let bonusSplash: Decimal
-    
-    var total: Decimal { base + splash + bonusSplash }
-    
+    let customBonus: Decimal
+
+    var total: Decimal { base + splash + bonusSplash + customBonus }
+
     var body: some View {
         VStack(spacing: 6) {
             Text(total.formatted(.currency(code: "USD")))
                 .font(.system(size: 40, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.accent)
-            
+
             HStack(spacing: 16) {
                 if base > 0 {
                     MiniPayItem(label: "Base", amount: base)
@@ -319,6 +333,9 @@ struct PayPreviewBanner: View {
                 }
                 if bonusSplash > 0 {
                     MiniPayItem(label: "Bonus", amount: bonusSplash)
+                }
+                if customBonus > 0 {
+                    MiniPayItem(label: "Custom", amount: customBonus)
                 }
             }
             .font(.footnote)
@@ -347,7 +364,7 @@ struct SitePickerSection: View {
     @Binding var selectedSite: Site?
     let recentSites: [Site]
     let remainingSites: [Site]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Site")
@@ -355,10 +372,10 @@ struct SitePickerSection: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
                 .tracking(0.5)
-            
+
             if !recentSites.isEmpty {
                 Text("Recent").font(.caption).foregroundStyle(.tertiary)
-                
+
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     ForEach(recentSites) { site in
                         SiteTile(site: site, isSelected: selectedSite?.id == site.id) {
@@ -367,7 +384,7 @@ struct SitePickerSection: View {
                     }
                 }
             }
-            
+
             if !remainingSites.isEmpty {
                 if !recentSites.isEmpty {
                     Text("All Sites").font(.caption).foregroundStyle(.tertiary).padding(.top, 4)
@@ -388,7 +405,7 @@ struct SiteTile: View {
     let site: Site
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 4) {
@@ -416,13 +433,13 @@ struct SiteTile: View {
 
 struct DayFractionPicker: View {
     @Binding var selection: DayFraction
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Day Fraction")
                 .font(.subheadline).foregroundStyle(.secondary)
                 .textCase(.uppercase).tracking(0.5)
-            
+
             HStack(spacing: 10) {
                 ForEach(DayFraction.allCases, id: \.self) { fraction in
                     Button {
@@ -448,13 +465,13 @@ struct DayFractionPicker: View {
 struct HoursEntry: View {
     @Binding var hoursWorked: Double
     @State private var rawText: String = ""
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Hours Worked")
                 .font(.subheadline).foregroundStyle(.secondary)
                 .textCase(.uppercase).tracking(0.5)
-            
+
             HStack(spacing: 16) {
                 Button {
                     hoursWorked = max(0.25, hoursWorked - 0.25)
@@ -465,12 +482,12 @@ struct HoursEntry: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Decrease hours")
-                
+
                 Text(hoursWorked.formatted())
                     .font(.system(size: 40, weight: .bold, design: .rounded))
                     .frame(minWidth: 80)
                     .multilineTextAlignment(.center)
-                
+
                 Button {
                     hoursWorked += 0.25
                 } label: {
@@ -490,7 +507,7 @@ struct HoursEntry: View {
 
 struct DatePickerRow: View {
     @Binding var date: Date
-    
+
     var body: some View {
         HStack {
             Text("Date")
@@ -513,7 +530,7 @@ struct DraftAppliedCustomBonus: Identifiable {
     var amount: Decimal
     var quantity: Double
     var isEnabled: Bool
-    
+
     init(sourceID: UUID?, name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, isEnabled: Bool) {
         self.sourceID = sourceID
         self.name = name
@@ -522,7 +539,7 @@ struct DraftAppliedCustomBonus: Identifiable {
         self.quantity = quantity
         self.isEnabled = isEnabled
     }
-    
+
     init(applied: AppliedCustomBonus) {
         self.sourceID = nil
         self.name = applied.name
@@ -531,13 +548,13 @@ struct DraftAppliedCustomBonus: Identifiable {
         self.quantity = applied.quantity
         self.isEnabled = true
     }
-    
+
     var totalAmount: Decimal { amount * Decimal(quantity) }
 }
 
 struct CustomBonusesSection: View {
     @Binding var customBonuses: [DraftAppliedCustomBonus]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Custom Bonuses")
@@ -545,7 +562,7 @@ struct CustomBonusesSection: View {
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
                 .tracking(0.5)
-            
+
             ForEach($customBonuses) { $bonus in
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -558,7 +575,7 @@ struct CustomBonusesSection: View {
                         Spacer()
                         Toggle("", isOn: $bonus.isEnabled)
                     }
-                    
+
                     if bonus.isEnabled {
                         CurrencyField(value: $bonus.amount, placeholder: "Amount")
                         if bonus.payUnit == .perHour {
@@ -584,7 +601,7 @@ struct SplashSection: View {
     @Binding var hasBonusSplash: Bool
     @Binding var bonusSplashAmount: Decimal
     let defaultSplash: Decimal?
-    
+
     var body: some View {
         VStack(spacing: 16) {
             VStack(spacing: 8) {
@@ -602,13 +619,13 @@ struct SplashSection: View {
                         }
                     ))
                 }
-                
+
                 if hasSplash {
                     CurrencyField(value: $splashAmount, placeholder: "Amount")
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
-            
+
             VStack(spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -618,7 +635,7 @@ struct SplashSection: View {
                     Spacer()
                     Toggle("", isOn: $hasBonusSplash)
                 }
-                
+
                 if hasBonusSplash {
                     CurrencyField(value: $bonusSplashAmount, placeholder: "Amount")
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -634,7 +651,7 @@ struct ExpandableSection<Content: View>: View {
     let label: String
     @Binding var isExpanded: Bool
     @ViewBuilder let content: Content
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Button {
@@ -650,7 +667,7 @@ struct ExpandableSection<Content: View>: View {
                 }
             }
             .buttonStyle(.plain)
-            
+
             if isExpanded {
                 content
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -665,19 +682,19 @@ struct SourceNoteFields: View {
     @Binding var contactName: String
     @Binding var contactedOn: Date
     @Binding var channel: SourceNote.ContactChannel
-    
+
     var body: some View {
         VStack(spacing: 12) {
             TextField("Who told you (e.g. Tanya)", text: $contactName)
                 .textFieldStyle(.roundedBorder)
-            
+
             HStack {
                 Text("When").foregroundStyle(.secondary)
                 Spacer()
                 DatePicker("", selection: $contactedOn, displayedComponents: .date)
                     .labelsHidden()
             }
-            
+
             HStack {
                 Text("How").foregroundStyle(.secondary)
                 Spacer()

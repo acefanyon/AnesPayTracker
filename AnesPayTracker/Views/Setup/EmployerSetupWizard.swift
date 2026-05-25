@@ -6,7 +6,7 @@ import SwiftData
 struct EmployerSetupWizard: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var step: WizardStep = .employerInfo
     @State private var employerName = ""
     @State private var payCadence: PayCadence = .biweekly
@@ -15,102 +15,118 @@ struct EmployerSetupWizard: View {
     @State private var sites: [DraftSite] = [DraftSite()]
     @State private var streakRules: [DraftStreakRule] = []
     @State private var customBonusTypes: [DraftCustomBonusType] = []
-    
+
     @State private var newContactName = ""
     @State private var newContactRole = ""
-    
+
     enum WizardStep: Int, CaseIterable {
         case employerInfo = 0
         case sites = 1
-        case streakRules = 2
-        case review = 3
-        
+        case customBonuses = 2
+        case streakRules = 3
+        case review = 4
+
         var title: String {
             switch self {
             case .employerInfo: return "Employer Info"
             case .sites: return "Sites & Rates"
+            case .customBonuses: return "Custom Bonuses"
             case .streakRules: return "Streak Rules"
             case .review: return "Review"
             }
         }
     }
-    
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Progress
-                WizardProgressBar(currentStep: step.rawValue, totalSteps: WizardStep.allCases.count)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                
-                // Step title
-                Text(step.title)
-                    .font(.title2.bold())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                    .padding(.bottom, 8)
-                
-                Divider()
-                
+            ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 24) {
-                        switch step {
-                        case .employerInfo:
-                            EmployerInfoStep(
-                                name: $employerName,
-                                payCadence: $payCadence,
-                                customCadenceDays: $customCadenceDays,
-                                contactPersons: $contactPersons,
-                                customBonusTypes: $customBonusTypes
-                            )
-                        case .sites:
-                            SitesStep(sites: $sites)
-                        case .streakRules:
-                            StreakRulesStep(rules: $streakRules)
-                        case .review:
-                            WizardReviewStep(
-                                employerName: employerName,
-                                payCadence: payCadence,
-                                sites: sites,
-                                streakRules: streakRules,
-                                customBonusTypes: customBonusTypes
-                            )
+                    VStack(spacing: 0) {
+                        Color.clear
+                            .frame(height: 0)
+                            .id("wizard-top")
+
+                        // Progress
+                        WizardProgressBar(currentStep: step.rawValue, totalSteps: WizardStep.allCases.count)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 8)
+
+                        // Step title
+                        Text(step.title)
+                            .font(.title2.bold())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+
+                        Divider()
+
+                        VStack(spacing: 16) {
+                            switch step {
+                            case .employerInfo:
+                                EmployerInfoStep(
+                                    name: $employerName,
+                                    payCadence: $payCadence,
+                                    customCadenceDays: $customCadenceDays,
+                                    contactPersons: $contactPersons
+                                )
+                            case .sites:
+                                SitesStep(sites: $sites)
+                            case .customBonuses:
+                                CustomBonusesStep(customBonusTypes: $customBonusTypes)
+                            case .streakRules:
+                                StreakRulesStep(rules: $streakRules)
+                            case .review:
+                                WizardReviewStep(
+                                    employerName: employerName,
+                                    payCadence: payCadence,
+                                    sites: sites,
+                                    streakRules: streakRules,
+                                    customBonusTypes: customBonusTypes
+                                )
+                            }
                         }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .padding(.bottom, 160)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
-                    .padding(24)
-                    .padding(.bottom, 96)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .modifier(CatalystFriendlyScrollDismiss())
-                
-                Divider()
-                
-                // Navigation buttons
-                HStack(spacing: 16) {
-                    if step.rawValue > 0 {
-                        Button("Back") {
-                            withAnimation { step = WizardStep(rawValue: step.rawValue - 1) ?? .employerInfo }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(step == .review ? "Save Employer" : "Next") {
-                        if step == .review {
-                            saveEmployer()
-                        } else {
-                            withAnimation { step = WizardStep(rawValue: step.rawValue + 1) ?? .review }
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(step == .employerInfo && employerName.trimmingCharacters(in: .whitespaces).isEmpty)
+                .onChange(of: step) { _, _ in
+                    proxy.scrollTo("wizard-top", anchor: .top)
                 }
-                .padding(24)
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    HStack(spacing: 16) {
+                        if step.rawValue > 0 {
+                            Button("Back") {
+                                goBack()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
+                        }
+
+                        Spacer()
+
+                        Button(step == .review ? "Save Employer" : "Next") {
+                            if step == .review {
+                                saveEmployer()
+                            } else {
+                                goNext()
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(step == .employerInfo && employerName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .background(.regularMaterial)
+                }
             }
             .navigationTitle("Add Employer")
             .navigationBarTitleDisplayMode(.inline)
@@ -118,7 +134,7 @@ struct EmployerSetupWizard: View {
                 ToolbarItem(placement: .cancellationAction) {
                     if step.rawValue > 0 {
                         ModalBackButton {
-                            withAnimation { step = WizardStep(rawValue: step.rawValue - 1) ?? .employerInfo }
+                            goBack()
                         }
                     } else {
                         ModalCancelButton { dismiss() }
@@ -127,18 +143,26 @@ struct EmployerSetupWizard: View {
             }
         }
     }
-    
+
+    private func goBack() {
+        step = WizardStep(rawValue: step.rawValue - 1) ?? .employerInfo
+    }
+
+    private func goNext() {
+        step = WizardStep(rawValue: step.rawValue + 1) ?? .review
+    }
+
     private func saveEmployer() {
         let employer = Employer(
             name: employerName.trimmingCharacters(in: .whitespaces),
             payCadence: payCadence,
             customCadenceDays: payCadence == .custom ? customCadenceDays : nil
         )
-        
+
         employer.contactPersons = contactPersons.map {
             ContactPerson(name: $0.name, role: $0.role.isEmpty ? nil : $0.role)
         }
-        
+
         let siteObjects = sites.compactMap { draft -> Site? in
             guard !draft.name.isEmpty else { return nil }
             let site = Site(
@@ -151,7 +175,7 @@ struct EmployerSetupWizard: View {
             return site
         }
         employer.sites = siteObjects
-        
+
         let ruleObjects = streakRules.map { draft -> StreakRule in
             let rule = StreakRule(
                 requiredDays: draft.requiredDays,
@@ -163,7 +187,7 @@ struct EmployerSetupWizard: View {
             return rule
         }
         employer.streakRules = ruleObjects
-        
+
         let customBonusObjects = customBonusTypes.compactMap { draft -> CustomBonusType? in
             let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { return nil }
@@ -176,7 +200,7 @@ struct EmployerSetupWizard: View {
             return bonus
         }
         employer.customBonusTypes = customBonusObjects
-        
+
         modelContext.insert(employer)
         for site in siteObjects { modelContext.insert(site) }
         for rule in ruleObjects { modelContext.insert(rule) }
@@ -191,14 +215,14 @@ struct EmployerSetupWizard: View {
 struct WizardProgressBar: View {
     let currentStep: Int
     let totalSteps: Int
-    
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.secondary.opacity(0.2))
                     .frame(height: 6)
-                
+
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.accent)
                     .frame(width: geo.size.width * CGFloat(currentStep + 1) / CGFloat(totalSteps), height: 6)
@@ -248,12 +272,11 @@ struct EmployerInfoStep: View {
     @Binding var payCadence: PayCadence
     @Binding var customCadenceDays: Int
     @Binding var contactPersons: [DraftContact]
-    @Binding var customBonusTypes: [DraftCustomBonusType]
-    
+
     @State private var showAddContact = false
     @State private var newName = ""
     @State private var newRole = ""
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             WizardField(label: "Employer Name") {
@@ -261,7 +284,7 @@ struct EmployerInfoStep: View {
                     .textFieldStyle(.roundedBorder)
                     .font(.title3)
             }
-            
+
             WizardField(label: "Pay Cadence") {
                 Picker("Pay Cadence", selection: $payCadence) {
                     ForEach(PayCadence.allCases, id: \.self) {
@@ -269,7 +292,7 @@ struct EmployerInfoStep: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                
+
                 if payCadence == .custom {
                     HStack {
                         Text("Every")
@@ -278,29 +301,7 @@ struct EmployerInfoStep: View {
                     .font(.title3)
                 }
             }
-            
 
-            WizardField(label: "Custom Bonus Types (optional)") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Add named bonus choices that should be available when entering a shift for this employer, such as Call Back, Weekend, Holiday, or Trauma.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    
-                    ForEach($customBonusTypes) { $bonus in
-                        CustomBonusTypeEditorCard(bonus: $bonus) {
-                            customBonusTypes.removeAll { $0.id == bonus.id }
-                        }
-                    }
-                    
-                    Button {
-                        customBonusTypes.append(DraftCustomBonusType())
-                    } label: {
-                        Label("Add Custom Bonus", systemImage: "plus.circle")
-                            .font(.body)
-                    }
-                }
-            }
-            
             WizardField(label: "Contacts (optional)") {
                 VStack(spacing: 8) {
                     ForEach($contactPersons) { $contact in
@@ -322,7 +323,7 @@ struct EmployerInfoStep: View {
                         .padding(12)
                         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
                     }
-                    
+
                     Button {
                         showAddContact = true
                     } label: {
@@ -338,10 +339,65 @@ struct EmployerInfoStep: View {
     }
 }
 
+struct CustomBonusesStep: View {
+    @Binding var customBonusTypes: [DraftCustomBonusType]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Optional: create named bonus buttons that will appear later when you enter a shift for this employer.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+
+            if customBonusTypes.isEmpty {
+                Button {
+                    customBonusTypes.append(DraftCustomBonusType())
+                } label: {
+                    Label("Add Custom Bonus", systemImage: "plus.circle.fill")
+                        .font(.title3.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("No custom bonuses yet")
+                        .font(.headline)
+                    Text("Examples: Call Back, Weekend, Holiday, Trauma. You can skip this screen if this employer does not use extra named bonuses.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            } else {
+                HStack {
+                    Text("Custom bonus types")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        customBonusTypes.append(DraftCustomBonusType())
+                    } label: {
+                        Label("Add Another", systemImage: "plus.circle")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                }
+
+                ForEach($customBonusTypes) { $bonus in
+                    CustomBonusTypeEditorCard(bonus: $bonus) {
+                        customBonusTypes.removeAll { $0.id == bonus.id }
+                    }
+                }
+            }
+        }
+    }
+}
+
 struct CustomBonusTypeEditorCard: View {
     @Binding var bonus: DraftCustomBonusType
     let onDelete: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -354,13 +410,13 @@ struct CustomBonusTypeEditorCard: View {
                 }
                 .buttonStyle(.plain)
             }
-            
+
             Picker("How this bonus pays", selection: $bonus.payUnit) {
                 Text("Per Day / Flat").tag(PayUnit.perDay)
                 Text("Per Hour").tag(PayUnit.perHour)
             }
             .pickerStyle(.segmented)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text(bonus.payUnit == .perHour ? "Default Rate Per Hour" : "Default Amount")
                     .font(.subheadline)
@@ -378,9 +434,9 @@ struct AddContactSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var role = ""
-    
+
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -391,7 +447,7 @@ struct AddContactSheet: View {
                                 .textFieldStyle(.roundedBorder)
                                 .font(.title3)
                         }
-                        
+
                         WizardField(label: "Role (optional)") {
                             TextField("Role", text: $role)
                                 .textFieldStyle(.roundedBorder)
@@ -401,10 +457,10 @@ struct AddContactSheet: View {
                     .padding(24)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .scrollDismissesKeyboard(.interactively)
-                
+                .modifier(CatalystFriendlyScrollDismiss())
+
                 Divider()
-                
+
                 HStack(spacing: 12) {
                     Button(role: .cancel) { dismiss() } label: {
                         Label("Cancel", systemImage: "xmark")
@@ -412,7 +468,7 @@ struct AddContactSheet: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
-                    
+
                     ModalFooterButton(
                         title: "Add Contact",
                         systemImage: "plus.circle",
@@ -439,18 +495,18 @@ struct AddContactSheet: View {
 
 struct SitesStep: View {
     @Binding var sites: [DraftSite]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Add the hospitals or surgical centers where you work.")
                 .foregroundStyle(.secondary)
-            
+
             ForEach($sites) { $site in
                 SiteEditorCard(site: $site, onDelete: {
                     sites.removeAll { $0.id == site.id }
                 })
             }
-            
+
             Button {
                 sites.append(DraftSite())
             } label: {
@@ -464,47 +520,48 @@ struct SitesStep: View {
 struct SiteEditorCard: View {
     @Binding var site: DraftSite
     let onDelete: () -> Void
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Site").font(.headline)
-                Spacer()
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                TextField("Site name", text: $site.name)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.body)
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .foregroundStyle(.red)
                 }
+                .buttonStyle(.plain)
             }
-            
-            TextField("Site name", text: $site.name)
-                .textFieldStyle(.roundedBorder)
-                .font(.title3)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Pay Unit").font(.subheadline).foregroundStyle(.secondary)
-                Picker("Pay Unit", selection: $site.payUnit) {
-                    Text("Per Day").tag(PayUnit.perDay)
-                    Text("Per Hour").tag(PayUnit.perHour)
+
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Pay Unit").font(.caption).foregroundStyle(.secondary)
+                    Picker("Pay Unit", selection: $site.payUnit) {
+                        Text("Per Day").tag(PayUnit.perDay)
+                        Text("Per Hour").tag(PayUnit.perHour)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(site.payUnit == .perDay ? "Base / day" : "Base / hour")
+                        .font(.caption).foregroundStyle(.secondary)
+                    CurrencyField(value: $site.baseAmount, placeholder: "0.00")
+                }
             }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text(site.payUnit == .perDay ? "Base Rate (per day)" : "Base Rate (per hour)")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                CurrencyField(value: $site.baseAmount, placeholder: "0.00")
-            }
-            
+
             Toggle("Default splash amount?", isOn: $site.hasDefaultSplash)
-            
+                .font(.body)
+
             if site.hasDefaultSplash {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Default Splash Amount").font(.subheadline).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Default Splash Amount").font(.caption).foregroundStyle(.secondary)
                     CurrencyField(value: $site.defaultSplashAmount, placeholder: "0.00")
                 }
             }
         }
-        .padding(16)
+        .padding(12)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
     }
 }
@@ -513,29 +570,42 @@ struct SiteEditorCard: View {
 
 struct StreakRulesStep: View {
     @Binding var rules: [DraftStreakRule]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Streak bonuses kick in when you hit a qualifying number of shifts. You can add multiple rules.")
                 .foregroundStyle(.secondary)
-            
-            ForEach($rules) { $rule in
-                StreakRuleEditorCard(rule: $rule, onDelete: {
-                    rules.removeAll { $0.id == rule.id }
-                })
-            }
-            
-            Button {
-                rules.append(DraftStreakRule())
-            } label: {
-                Label("Add Streak Rule", systemImage: "plus.circle")
-                    .font(.body)
-            }
-            
+
             if rules.isEmpty {
+                Button {
+                    rules.append(DraftStreakRule())
+                } label: {
+                    Label("Add Streak Rule", systemImage: "plus.circle")
+                        .font(.body)
+                }
+
                 Text("No streak rules — you can add them later in Settings.")
                     .foregroundStyle(.secondary)
                     .font(.footnote)
+            } else {
+                HStack {
+                    Text("Streak bonus rules")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        rules.append(DraftStreakRule())
+                    } label: {
+                        Label("Add Another", systemImage: "plus.circle")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                }
+
+                ForEach($rules) { $rule in
+                    StreakRuleEditorCard(rule: $rule, onDelete: {
+                        rules.removeAll { $0.id == rule.id }
+                    })
+                }
             }
         }
     }
@@ -544,47 +614,48 @@ struct StreakRulesStep: View {
 struct StreakRuleEditorCard: View {
     @Binding var rule: DraftStreakRule
     let onDelete: () -> Void
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Streak Rule").font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text("Streak Rule")
+                    .font(.headline)
                 Spacer()
                 Button(action: onDelete) {
                     Image(systemName: "trash").foregroundStyle(.red)
                 }
+                .buttonStyle(.plain)
             }
-            
-            HStack {
+
+            HStack(spacing: 12) {
                 Text("Work")
                 Stepper("\(rule.requiredDays) days", value: $rule.requiredDays, in: 2...30)
-                    .font(.title3)
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Window").font(.subheadline).foregroundStyle(.secondary)
-                Picker("Window", selection: $rule.windowType) {
-                    ForEach(StreakWindowType.allCases, id: \.self) {
-                        Text($0.rawValue).tag($0)
-                    }
-                }
-                .pickerStyle(.segmented)
-                
                 if rule.windowType == .rollingDays {
-                    HStack {
-                        Text("within")
-                        Stepper("\(rule.windowDays) days", value: $rule.windowDays, in: 1...90)
-                            .font(.title3)
-                    }
+                    Text("within")
+                    Stepper("\(rule.windowDays) days", value: $rule.windowDays, in: 1...90)
                 }
             }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Bonus Amount").font(.subheadline).foregroundStyle(.secondary)
-                CurrencyField(value: $rule.bonusAmount, placeholder: "0.00")
+            .font(.body)
+
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Window").font(.caption).foregroundStyle(.secondary)
+                    Picker("Window", selection: $rule.windowType) {
+                        ForEach(StreakWindowType.allCases, id: \.self) {
+                            Text($0.rawValue).tag($0)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Bonus Amount").font(.caption).foregroundStyle(.secondary)
+                    CurrencyField(value: $rule.bonusAmount, placeholder: "0.00")
+                }
             }
+
         }
-        .padding(16)
+        .padding(12)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
     }
 }
@@ -597,14 +668,14 @@ struct WizardReviewStep: View {
     let sites: [DraftSite]
     let streakRules: [DraftStreakRule]
     let customBonusTypes: [DraftCustomBonusType]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             ReviewRow(label: "Employer", value: employerName)
             ReviewRow(label: "Pay Cadence", value: payCadence.rawValue)
-            
+
             Divider()
-            
+
             Text("Sites").font(.headline)
             ForEach(sites.filter { !$0.name.isEmpty }) { site in
                 VStack(alignment: .leading, spacing: 4) {
@@ -617,7 +688,7 @@ struct WizardReviewStep: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
             }
-            
+
             if !customBonusTypes.isEmpty {
                 Divider()
                 Text("Custom Bonuses").font(.headline)
@@ -629,7 +700,7 @@ struct WizardReviewStep: View {
                         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
                 }
             }
-            
+
             if !streakRules.isEmpty {
                 Divider()
                 Text("Streak Rules").font(.headline)
@@ -648,7 +719,7 @@ struct WizardReviewStep: View {
 struct ReviewRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label).foregroundStyle(.secondary)
@@ -675,7 +746,7 @@ struct CatalystFriendlyScrollDismiss: ViewModifier {
 struct WizardField<Content: View>: View {
     let label: String
     @ViewBuilder let content: Content
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)

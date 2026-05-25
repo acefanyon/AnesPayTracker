@@ -85,11 +85,37 @@ Second implementation pass:
   - default amount/rate
 - Added shift-entry support for those employer custom bonuses so the user can toggle configured bonuses on a shift and include them in the total.
 
+Third implementation pass after Jason's follow-up:
+
+- Jason confirmed the upper-left buttons are clear and should be kept.
+- Moved custom bonus setup out of the crowded Employer Info screen into its own dedicated Add Employer wizard step.
+- Put a prominent Add Custom Bonus button at the top of that step so it is immediately visible instead of hidden below other fields.
+- Changed Employer Setup navigation from a fixed sibling footer to a bottom safe-area inset, with extra bottom padding, to reduce Mac Catalyst clipping and unreachable-bottom behavior.
+- Reset the wizard scroll position to the top when moving between steps so Back/Next does not preserve a confusing old scroll offset.
+- Removed interactive keyboard-dismiss behavior from Settings add-site/add-streak sheets on Mac Catalyst through the shared Catalyst-friendly scroll modifier.
+- Fixed Add Shift pay preview so enabled custom bonuses are included in the displayed total and shown as a Custom line item.
+- Verified both iOS Simulator and Mac Catalyst builds after these changes.
+- Automated runtime clicking was initially blocked by macOS Accessibility control, then re-run after permissions were granted.
+
+Fourth verification pass:
+
+- Rebuilt Mac Catalyst and iOS Simulator successfully.
+- Used macOS Accessibility automation to walk through the live Mac Catalyst UI:
+  - opened Settings → Add Employer
+  - entered `Hermes UI Test Employer`
+  - added site `Hermes Main OR` at `$1,000/day`
+  - confirmed the dedicated Custom Bonuses step appears between Sites and Streak Rules
+  - confirmed `Add Custom Bonus` is immediately visible before any backtracking
+  - added `Holiday` at `$250 flat/per day`
+  - confirmed the Review screen shows the employer, site, and `Holiday: $250.00 flat/per day`
+  - saved the employer
+  - opened Add Shift, selected `Hermes Main OR`, toggled `Holiday`, and confirmed the visible pay preview changed from `$1,000.00` to `$1,250.00` with a `CUSTOM $250.00` line item and `Adds $250.00`
+  - saved the shift successfully
+- Added a small safety fix so per-hour custom bonus quantities stay aligned with edited shift hours unless the user has manually overridden an enabled bonus quantity.
+
 Still needs manual runtime confirmation from Jason:
 
-- Confirm employer wizard screens now scroll all the way to the bottom.
-- Confirm scrolling feels less sticky/delayed on Mac Catalyst.
-- Confirm the custom bonus setup/shift-entry flow matches the intended contract workflow.
+- Confirm scrolling feels natural by hand on Mac Catalyst, especially with trackpad/mouse-wheel input.
 
 Problem:
 
