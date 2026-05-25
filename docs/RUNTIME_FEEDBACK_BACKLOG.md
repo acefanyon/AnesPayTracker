@@ -57,6 +57,21 @@ Acceptance criteria:
 
 ### Priority 1 — Fix blocking UX issues in sheets/pop-ups
 
+Status: Initial implementation committed in `2bb9369 fix: improve modal controls and scrolling`.
+
+Implemented:
+
+- Replaced ambiguous sheet toolbar controls with labeled icon controls for Cancel, Close, Back, Save, and Update.
+- Replaced field-heavy `Form` sheets for Add Contact, Add Site, and Add Streak Rule with explicit `ScrollView` layouts plus bottom action bars.
+- Added interactive keyboard dismissal to the field-heavy Add Shift and setup/settings sheets.
+- Changed Employer Setup wizard's upper-left control to a real Back control after the first step, while keeping Cancel only on the first step.
+- Verified both iOS Simulator and Mac Catalyst builds after the change.
+
+Still needs manual runtime confirmation from Jason:
+
+- Confirm scrolling no longer freezes inside text fields/pickers.
+- Confirm the upper-left controls are clear enough in Mac Catalyst.
+
 Problem:
 
 Sheets/pop-ups freeze when scrolling in fields, and the upper-left control is ambiguous.
