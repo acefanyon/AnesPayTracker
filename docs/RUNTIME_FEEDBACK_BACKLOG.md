@@ -53,6 +53,14 @@ Acceptance criteria:
 - There is a repeatable test path for pay calculations.
 - Full-day, half-day, hourly, bonus, and streak calculations can be verified automatically or with a documented manual test checklist if test target setup is deferred.
 
+Initial safety pass added 2026-05-25:
+
+- Added `scripts/verify_pay_calculation_cases.py`, a lightweight repeatable calculation oracle for the current `Shift.basePay`, `Shift.totalPay`, and `AppliedCustomBonus.totalAmount` formulas.
+- Added `docs/PAY_CALCULATION_SAFETY_CHECKLIST.md` with expected values and manual UI spot-check paths.
+- Current script covers full-day, half-day, quarter-day, three-quarter day, hourly, splash, bonus splash, flat/per-day custom bonus, per-hour custom bonus, combined streak/custom/bonus totals, and empty custom-bonus behavior.
+- Latest run: `python3 scripts/verify_pay_calculation_cases.py` passed all 10 checks.
+- Next improvement: convert the oracle/checklist into a formal XCTest target when project-file test-target setup is safe.
+
 ---
 
 ### Priority 1 — Fix blocking UX issues in sheets/pop-ups
