@@ -68,7 +68,7 @@ struct ShiftDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    ModalCloseButton { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Edit") { showEdit = true }

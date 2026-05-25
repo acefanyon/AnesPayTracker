@@ -109,7 +109,13 @@ struct EmployerSetupWizard: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    if step.rawValue > 0 {
+                        ModalBackButton {
+                            withAnimation { step = WizardStep(rawValue: step.rawValue - 1) ?? .employerInfo }
+                        }
+                    } else {
+                        ModalCancelButton { dismiss() }
+                    }
                 }
             }
         }
@@ -287,24 +293,56 @@ struct AddContactSheet: View {
     @State private var name = ""
     @State private var role = ""
     
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Contact") {
-                    TextField("Name", text: $name)
-                    TextField("Role (optional)", text: $role)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        WizardField(label: "Name") {
+                            TextField("Name", text: $name)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title3)
+                        }
+                        
+                        WizardField(label: "Role (optional)") {
+                            TextField("Role", text: $role)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title3)
+                        }
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .scrollDismissesKeyboard(.interactively)
+                
+                Divider()
+                
+                HStack(spacing: 12) {
+                    Button(role: .cancel) { dismiss() } label: {
+                        Label("Cancel", systemImage: "xmark")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    
+                    ModalFooterButton(
+                        title: "Add Contact",
+                        systemImage: "plus.circle",
+                        isDisabled: trimmedName.isEmpty
+                    ) {
+                        contactPersons.append(DraftContact(name: trimmedName, role: role.trimmingCharacters(in: .whitespacesAndNewlines)))
+                        dismiss()
+                    }
+                }
+                .padding(16)
             }
             .navigationTitle("Add Contact")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        contactPersons.append(DraftContact(name: name, role: role))
-                        dismiss()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                ToolbarItem(placement: .cancellationAction) {
+                    ModalCancelButton { dismiss() }
                 }
             }
         }

@@ -132,18 +132,20 @@ struct AddShiftView: View {
                     .padding(20)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle(editingShift == nil ? "Add Shift" : "Edit Shift")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    ModalCancelButton { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(editingShift == nil ? "Save" : "Update") {
+                    ModalSaveButton(
+                        title: editingShift == nil ? "Save" : "Update",
+                        isDisabled: selectedSite == nil || isSaving
+                    ) {
                         saveShift()
                     }
-                    .font(.body.bold())
-                    .disabled(selectedSite == nil || isSaving)
                 }
             }
             .alert("🎯 Streak Bonus!", isPresented: $showStreakAlert) {

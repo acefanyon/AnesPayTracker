@@ -345,19 +345,34 @@ struct AddSiteSheet: View {
     
     @State private var draft = DraftSite()
     
+    private var trimmedName: String { draft.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    
     var body: some View {
         NavigationStack {
-            Form {
-                SiteEditorCard(site: $draft, onDelete: { dismiss() })
-            }
-            .navigationTitle("Add Site")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+            VStack(spacing: 0) {
+                ScrollView {
+                    SiteEditorCard(site: $draft, onDelete: { dismiss() })
+                        .padding(24)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                
+                Divider()
+                
+                HStack(spacing: 12) {
+                    Button(role: .cancel) { dismiss() } label: {
+                        Label("Cancel", systemImage: "xmark")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    
+                    ModalFooterButton(
+                        title: "Save Site",
+                        systemImage: "checkmark",
+                        isDisabled: trimmedName.isEmpty
+                    ) {
                         let site = Site(
-                            name: draft.name,
+                            name: trimmedName,
                             payUnit: draft.payUnit,
                             baseAmount: draft.baseAmount,
                             defaultSplashAmount: draft.hasDefaultSplash ? draft.defaultSplashAmount : nil
@@ -367,7 +382,14 @@ struct AddSiteSheet: View {
                         try? modelContext.save()
                         dismiss()
                     }
-                    .disabled(draft.name.isEmpty)
+                }
+                .padding(16)
+            }
+            .navigationTitle("Add Site")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    ModalCancelButton { dismiss() }
                 }
             }
         }
@@ -385,15 +407,24 @@ struct AddStreakRuleSheet: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                StreakRuleEditorCard(rule: $draft, onDelete: { dismiss() })
-            }
-            .navigationTitle("Add Streak Rule")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+            VStack(spacing: 0) {
+                ScrollView {
+                    StreakRuleEditorCard(rule: $draft, onDelete: { dismiss() })
+                        .padding(24)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                
+                Divider()
+                
+                HStack(spacing: 12) {
+                    Button(role: .cancel) { dismiss() } label: {
+                        Label("Cancel", systemImage: "xmark")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    
+                    ModalFooterButton(title: "Save Streak Rule", systemImage: "checkmark") {
                         let rule = StreakRule(
                             requiredDays: draft.requiredDays,
                             windowType: draft.windowType,
@@ -405,6 +436,14 @@ struct AddStreakRuleSheet: View {
                         try? modelContext.save()
                         dismiss()
                     }
+                }
+                .padding(16)
+            }
+            .navigationTitle("Add Streak Rule")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    ModalCancelButton { dismiss() }
                 }
             }
         }

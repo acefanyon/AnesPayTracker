@@ -134,3 +134,73 @@ struct AddShiftButton: View {
         .accessibilityLabel("Add Shift")
     }
 }
+
+// MARK: - Shared Modal Controls
+
+struct ModalCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("Close", systemImage: "xmark")
+        }
+        .accessibilityLabel("Close")
+    }
+}
+
+struct ModalCancelButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(role: .cancel, action: action) {
+            Label("Cancel", systemImage: "xmark")
+        }
+        .accessibilityLabel("Cancel")
+    }
+}
+
+struct ModalBackButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("Back", systemImage: "chevron.left")
+        }
+        .accessibilityLabel("Back")
+    }
+}
+
+struct ModalSaveButton: View {
+    let title: String
+    var systemImage: String = "checkmark"
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+        }
+        .font(.body.bold())
+        .disabled(isDisabled)
+        .accessibilityLabel(title)
+    }
+}
+
+struct ModalFooterButton: View {
+    let title: String
+    let systemImage: String
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.body.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .disabled(isDisabled)
+    }
+}
