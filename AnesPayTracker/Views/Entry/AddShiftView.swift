@@ -15,10 +15,6 @@ struct AddShiftView: View {
     @State private var date: Date = Date()
     @State private var dayFraction: DayFraction = .full
     @State private var hoursWorked: Double = 8.0
-    @State private var hasSplash: Bool = false
-    @State private var splashAmount: Decimal = 0
-    @State private var hasBonusSplash: Bool = false
-    @State private var bonusSplashAmount: Decimal = 0
     @State private var customBonuses: [DraftAppliedCustomBonus] = []
     @State private var notes: String = ""
     @State private var showNotes: Bool = false
@@ -57,8 +53,6 @@ struct AddShiftView: View {
 
     private var computedTotal: Decimal {
         computedBase
-        + (hasSplash ? splashAmount : 0)
-        + (hasBonusSplash ? bonusSplashAmount : 0)
         + customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
 
@@ -70,8 +64,6 @@ struct AddShiftView: View {
                     if selectedSite != nil {
                         PayPreviewBanner(
                             base: computedBase,
-                            splash: hasSplash ? splashAmount : 0,
-                            bonusSplash: hasBonusSplash ? bonusSplashAmount : 0,
                             customBonus: customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -100,19 +92,11 @@ struct AddShiftView: View {
 
                             Divider()
 
-                            // Splash
-                            SplashSection(
-                                hasSplash: $hasSplash,
-                                splashAmount: $splashAmount,
-                                hasBonusSplash: $hasBonusSplash,
-                                bonusSplashAmount: $bonusSplashAmount,
-                                defaultSplash: selectedSite?.defaultSplashAmount
+                            // Bonuses
+                            CustomBonusesSection(
+                                customBonuses: $customBonuses,
+                                defaultQuantity: payUnit == .perHour ? hoursWorked : 1
                             )
-
-                            if !customBonuses.isEmpty {
-                                Divider()
-                                CustomBonusesSection(customBonuses: $customBonuses)
-                            }
 
                             Divider()
 
@@ -203,8 +187,8 @@ struct AddShiftView: View {
         shift.dayFraction = site.payUnit == .perDay ? dayFraction : nil
         shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
         shift.baseAmount = site.baseAmount
-        shift.splashAmount = hasSplash ? splashAmount : nil
-        shift.bonusSplashAmount = hasBonusSplash ? bonusSplashAmount : nil
+        shift.splashAmount = nil
+        shift.bonusSplashAmount = nil
         shift.customBonuses = customBonuses
             .filter { $0.isEnabled && !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity) }
@@ -291,11 +275,13 @@ struct AddShiftView: View {
         date = shift.date
         dayFraction = shift.dayFraction ?? .full
         hoursWorked = shift.hoursWorked ?? 8.0
-        hasSplash = shift.splashAmount != nil
-        splashAmount = shift.splashAmount ?? 0
-        hasBonusSplash = shift.bonusSplashAmount != nil
-        bonusSplashAmount = shift.bonusSplashAmount ?? 0
         customBonuses = (shift.customBonuses ?? []).map { DraftAppliedCustomBonus(applied: $0) }
+        if let splash = shift.splashAmount, splash > 0 {
+            customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Splash Bonus", payUnit: .perDay, amount: splash, quantity: 1, isEnabled: true))
+        }
+        if let bonusSplash = shift.bonusSplashAmount, bonusSplash > 0 {
+            customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Bonus Splash", payUnit: .perDay, amount: bonusSplash, quantity: 1, isEnabled: true))
+        }
         syncCustomBonusesForSelectedSite()
         notes = shift.notes ?? ""
         showNotes = !notes.isEmpty
@@ -312,11 +298,9 @@ struct AddShiftView: View {
 
 struct PayPreviewBanner: View {
     let base: Decimal
-    let splash: Decimal
-    let bonusSplash: Decimal
     let customBonus: Decimal
 
-    var total: Decimal { base + splash + bonusSplash + customBonus }
+    var total: Decimal { base + customBonus }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -328,14 +312,8 @@ struct PayPreviewBanner: View {
                 if base > 0 {
                     MiniPayItem(label: "Base", amount: base)
                 }
-                if splash > 0 {
-                    MiniPayItem(label: "Splash", amount: splash)
-                }
-                if bonusSplash > 0 {
-                    MiniPayItem(label: "Bonus", amount: bonusSplash)
-                }
                 if customBonus > 0 {
-                    MiniPayItem(label: "Custom", amount: customBonus)
+                    MiniPayItem(label: "Bonuses", amount: customBonus)
                 }
             }
             .font(.footnote)
@@ -554,32 +532,87 @@ struct DraftAppliedCustomBonus: Identifiable {
 
 struct CustomBonusesSection: View {
     @Binding var customBonuses: [DraftAppliedCustomBonus]
+    let defaultQuantity: Double
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Custom Bonuses")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.5)
+            HStack {
+                Text("Bonuses")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+                Spacer()
+                Button {
+                    customBonuses.append(DraftAppliedCustomBonus(
+                        sourceID: nil,
+                        name: "One-time Bonus",
+                        payUnit: .perDay,
+                        amount: 0,
+                        quantity: 1,
+                        isEnabled: true
+                    ))
+                } label: {
+                    Label("Add One-Time Bonus", systemImage: "plus.circle")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .accessibilityLabel("Add custom bonus")
+            }
+
+            if customBonuses.isEmpty {
+                Text("No saved employer bonuses yet. Use Add One-Time Bonus for a high-need or last-minute bonus on this shift.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            }
 
             ForEach($customBonuses) { $bonus in
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(bonus.name).font(.body.bold())
-                            Text(bonus.payUnit == .perHour ? "Per-hour custom bonus" : "Flat / per-day custom bonus")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if bonus.sourceID == nil {
+                                TextField("Bonus name", text: $bonus.name)
+                                    .textFieldStyle(.roundedBorder)
+                            } else {
+                                Text(bonus.name).font(.body.bold())
+                            }
+                            Text(bonus.payUnit == .perHour ? "Per-hour bonus" : "Flat / per-day bonus")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Toggle("", isOn: $bonus.isEnabled)
+                        if bonus.sourceID == nil {
+                            Button(role: .destructive) {
+                                customBonuses.removeAll { $0.id == bonus.id }
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Remove custom bonus")
+                        } else {
+                            Toggle("", isOn: $bonus.isEnabled)
+                        }
                     }
 
                     if bonus.isEnabled {
+                        if bonus.sourceID == nil {
+                            Picker("How this bonus pays", selection: $bonus.payUnit) {
+                                Text("Flat").tag(PayUnit.perDay)
+                                Text("Per Hour").tag(PayUnit.perHour)
+                            }
+                            .pickerStyle(.segmented)
+                        }
                         CurrencyField(value: $bonus.amount, placeholder: "Amount")
                         if bonus.payUnit == .perHour {
                             Stepper("Hours: \(bonus.quantity.formatted())", value: $bonus.quantity, in: 0.25...24, step: 0.25)
+                                .onAppear {
+                                    if bonus.quantity == 1, defaultQuantity > 1 {
+                                        bonus.quantity = defaultQuantity
+                                    }
+                                }
                         }
                         Text("Adds \(bonus.totalAmount.formatted(.currency(code: "USD")))")
                             .font(.footnote.bold())
@@ -588,58 +621,6 @@ struct CustomBonusesSection: View {
                 }
                 .padding(12)
                 .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-            }
-        }
-    }
-}
-
-// MARK: - Splash Section
-
-struct SplashSection: View {
-    @Binding var hasSplash: Bool
-    @Binding var splashAmount: Decimal
-    @Binding var hasBonusSplash: Bool
-    @Binding var bonusSplashAmount: Decimal
-    let defaultSplash: Decimal?
-
-    var body: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Splash Bonus").font(.body.bold())
-                        Text("High-need day flat bonus").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Toggle("", isOn: Binding(
-                        get: { hasSplash },
-                        set: { val in
-                            hasSplash = val
-                            if val && splashAmount == 0, let def = defaultSplash { splashAmount = def }
-                        }
-                    ))
-                }
-
-                if hasSplash {
-                    CurrencyField(value: $splashAmount, placeholder: "Amount")
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
-
-            VStack(spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Bonus Splash").font(.body.bold())
-                        Text("Last-minute / hard-to-fill").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Toggle("", isOn: $hasBonusSplash)
-                }
-
-                if hasBonusSplash {
-                    CurrencyField(value: $bonusSplashAmount, placeholder: "Amount")
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
             }
         }
     }

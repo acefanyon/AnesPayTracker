@@ -11,16 +11,16 @@ final class Employer {
     var payCadence: PayCadence
     var customCadenceDays: Int?
     var createdAt: Date
-    
+
     @Relationship(deleteRule: .cascade, inverse: \Site.employer)
     var sites: [Site]
-    
+
     @Relationship(deleteRule: .cascade, inverse: \StreakRule.employer)
     var streakRules: [StreakRule]
-    
+
     @Relationship(deleteRule: .cascade, inverse: \CustomBonusType.employer)
     var customBonusTypes: [CustomBonusType]
-    
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -51,7 +51,7 @@ final class CustomBonusType {
     var payUnit: PayUnit
     var defaultAmount: Decimal
     var createdAt: Date
-    
+
     init(
         id: UUID = UUID(),
         employer: Employer? = nil,
@@ -78,7 +78,7 @@ final class ContactPerson {
     var role: String?
     var phone: String?
     var email: String?
-    
+
     init(id: UUID = UUID(), name: String, role: String? = nil, phone: String? = nil, email: String? = nil) {
         self.id = id
         self.name = name
@@ -97,19 +97,17 @@ final class Site {
     var employer: Employer?
     var payUnit: PayUnit
     var baseAmount: Decimal
-    var defaultSplashAmount: Decimal?
     var createdAt: Date
-    
+
     @Relationship(deleteRule: .cascade, inverse: \Shift.site)
     var shifts: [Shift]
-    
+
     init(
         id: UUID = UUID(),
         name: String,
         employer: Employer? = nil,
         payUnit: PayUnit = .perDay,
         baseAmount: Decimal = 0,
-        defaultSplashAmount: Decimal? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -117,11 +115,10 @@ final class Site {
         self.employer = employer
         self.payUnit = payUnit
         self.baseAmount = baseAmount
-        self.defaultSplashAmount = defaultSplashAmount
         self.createdAt = createdAt
         self.shifts = []
     }
-    
+
     var initials: String {
         let words = name.split(separator: " ")
         if words.count >= 2 {
@@ -153,7 +150,7 @@ final class Shift {
     var calendarEventID: String?
     var createdAt: Date
     var lastEditedAt: Date?
-    
+
     init(
         id: UUID = UUID(),
         site: Site? = nil,
@@ -192,7 +189,7 @@ final class Shift {
         self.createdAt = createdAt
         self.lastEditedAt = nil
     }
-    
+
     var basePay: Decimal {
         switch payUnit {
         case .perDay:
@@ -201,15 +198,19 @@ final class Shift {
             return baseAmount * Decimal(hoursWorked ?? 0)
         }
     }
-    
-    var totalPay: Decimal {
-        basePay
-        + (splashAmount ?? 0)
+
+    var bonusPay: Decimal {
+        (splashAmount ?? 0)
         + (bonusSplashAmount ?? 0)
         + (customBonuses ?? []).reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
+
+    var totalPay: Decimal {
+        basePay
+        + bonusPay
         + (streakBonusAmount ?? 0)
     }
-    
+
     var isEdited: Bool { lastEditedAt != nil }
     var hasStreakBonus: Bool { (streakBonusAmount ?? 0) > 0 }
 }
@@ -226,7 +227,7 @@ final class StreakRule {
     var bonusAmount: Decimal
     var isActive: Bool
     var createdAt: Date
-    
+
     init(
         id: UUID = UUID(),
         employer: Employer? = nil,
@@ -246,7 +247,7 @@ final class StreakRule {
         self.isActive = isActive
         self.createdAt = createdAt
     }
-    
+
     var description: String {
         let window: String
         switch windowType {
@@ -267,7 +268,7 @@ struct SourceNote: Codable {
     var contactName: String
     var contactedOn: Date
     var channel: ContactChannel
-    
+
     enum ContactChannel: String, Codable, CaseIterable {
         case text = "Text"
         case email = "Email"
@@ -288,7 +289,7 @@ struct AppliedCustomBonus: Codable, Identifiable {
     var payUnit: PayUnit
     var amount: Decimal
     var quantity: Double
-    
+
     var totalAmount: Decimal {
         switch payUnit {
         case .perDay:
@@ -318,7 +319,7 @@ enum DayFraction: String, Codable, CaseIterable {
     case half = "½"
     case threeQuarter = "¾"
     case full = "Full"
-    
+
     var multiplier: Decimal {
         switch self {
         case .quarter: return Decimal(0.25)
@@ -327,9 +328,9 @@ enum DayFraction: String, Codable, CaseIterable {
         case .full: return Decimal(1.0)
         }
     }
-    
+
     var label: String { rawValue }
-    
+
     var accessibilityLabel: String {
         switch self {
         case .quarter: return "Quarter Day"

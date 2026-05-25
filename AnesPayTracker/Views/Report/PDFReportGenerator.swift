@@ -77,7 +77,7 @@ struct PDFReportGenerator {
                     ("Site", 120, .left),
                     ("Duration", 60, .right),
                     ("Base", 72, .right),
-                    ("Splash", 60, .right),
+                    ("Bonuses", 60, .right),
                     ("Streak", 60, .right),
                     ("Total", 72, .right)
                 ]
@@ -111,7 +111,7 @@ struct PDFReportGenerator {
                 ]
                 
                 var totalBase: Decimal = 0
-                var totalSplash: Decimal = 0
+                var totalBonus: Decimal = 0
                 var totalStreak: Decimal = 0
                 var grandTotal: Decimal = 0
                 
@@ -133,7 +133,7 @@ struct PDFReportGenerator {
                         ("\(shift.site?.name ?? "—")\(shift.hasStreakBonus ? " 🎯" : "")", 120, .left, rowBoldAttrs),
                         (durationText(shift), 60, .right, rowAttrs),
                         (shift.basePay.formatted(.currency(code: "USD")), 72, .right, rowAttrs),
-                        (shift.splashAmount.map { $0 > 0 ? $0.formatted(.currency(code: "USD")) : "—" } ?? "—", 60, .right, rowAttrs),
+                        (shift.bonusPay > 0 ? shift.bonusPay.formatted(.currency(code: "USD")) : "—", 60, .right, rowAttrs),
                         ((shift.streakBonusAmount ?? 0) > 0 ? (shift.streakBonusAmount!.formatted(.currency(code: "USD"))) : "—", 60, .right, rowAttrs),
                         (shift.totalPay.formatted(.currency(code: "USD")), 72, .right, accentAttrs)
                     ]
@@ -148,7 +148,7 @@ struct PDFReportGenerator {
                     yOffset += 22
                     
                     totalBase += shift.basePay
-                    totalSplash += shift.splashAmount ?? 0
+                    totalBonus += shift.bonusPay
                     totalStreak += shift.streakBonusAmount ?? 0
                     grandTotal += shift.totalPay
                 }
@@ -177,7 +177,7 @@ struct PDFReportGenerator {
                     ("", 120, .left, totAttrs),
                     ("", 60, .right, totAttrs),
                     (totalBase.formatted(.currency(code: "USD")), 72, .right, totAttrs),
-                    (totalSplash > 0 ? totalSplash.formatted(.currency(code: "USD")) : "—", 60, .right, totAttrs),
+                    (totalBonus > 0 ? totalBonus.formatted(.currency(code: "USD")) : "—", 60, .right, totAttrs),
                     (totalStreak > 0 ? totalStreak.formatted(.currency(code: "USD")) : "—", 60, .right, totAttrs),
                     (grandTotal.formatted(.currency(code: "USD")), 72, .right, totAccentAttrs)
                 ]

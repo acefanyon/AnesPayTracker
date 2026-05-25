@@ -28,8 +28,7 @@ struct ReportView: View {
     }
     
     var totalBase: Decimal { filteredShifts.reduce(0) { $0 + $1.basePay } }
-    var totalSplash: Decimal { filteredShifts.reduce(0) { $0 + ($1.splashAmount ?? 0) } }
-    var totalBonusSplash: Decimal { filteredShifts.reduce(0) { $0 + ($1.bonusSplashAmount ?? 0) } }
+    var totalBonus: Decimal { filteredShifts.reduce(0) { $0 + $1.bonusPay } }
     var totalStreak: Decimal { filteredShifts.reduce(0) { $0 + ($1.streakBonusAmount ?? 0) } }
     var grandTotal: Decimal { filteredShifts.reduce(0) { $0 + $1.totalPay } }
     
@@ -91,8 +90,7 @@ struct ReportView: View {
                         ReportSummaryCard(
                             shiftCount: filteredShifts.count,
                             totalBase: totalBase,
-                            totalSplash: totalSplash,
-                            totalBonusSplash: totalBonusSplash,
+                            totalBonus: totalBonus,
                             totalStreak: totalStreak,
                             grandTotal: grandTotal
                         )
@@ -251,8 +249,7 @@ struct ReportFiltersCard: View {
 struct ReportSummaryCard: View {
     let shiftCount: Int
     let totalBase: Decimal
-    let totalSplash: Decimal
-    let totalBonusSplash: Decimal
+    let totalBonus: Decimal
     let totalStreak: Decimal
     let grandTotal: Decimal
     
@@ -272,11 +269,8 @@ struct ReportSummaryCard: View {
             
             HStack(spacing: 0) {
                 SummaryCol(label: "Base", amount: totalBase)
-                if totalSplash > 0 {
-                    SummaryCol(label: "Splash", amount: totalSplash)
-                }
-                if totalBonusSplash > 0 {
-                    SummaryCol(label: "Bonus\nSplash", amount: totalBonusSplash)
+                if totalBonus > 0 {
+                    SummaryCol(label: "Bonuses", amount: totalBonus)
                 }
                 if totalStreak > 0 {
                     SummaryCol(label: "🎯 Streak", amount: totalStreak)

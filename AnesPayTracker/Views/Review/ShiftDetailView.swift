@@ -6,27 +6,27 @@ import SwiftData
 struct ShiftDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+
     let shift: Shift
-    
+
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var showEditHistory = false
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
                     // Header: total pay + site
                     ShiftDetailHeader(shift: shift)
-                    
+
                     VStack(spacing: 20) {
                         // Pay breakdown
                         PayBreakdownCard(shift: shift)
-                        
+
                         // Meta info
                         ShiftMetaCard(shift: shift)
-                        
+
                         // Notes
                         if let notes = shift.notes, !notes.isEmpty {
                             InfoCard(title: "Notes") {
@@ -35,12 +35,12 @@ struct ShiftDetailView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        
+
                         // Source note
                         if let sn = shift.sourceNote {
                             SourceNoteCard(sourceNote: sn)
                         }
-                        
+
                         // Edit history
                         if shift.isEdited {
                             EditHistoryCard(
@@ -49,7 +49,7 @@ struct ShiftDetailView: View {
                                 isExpanded: $showEditHistory
                             )
                         }
-                        
+
                         // Delete button
                         Button(role: .destructive) {
                             showDeleteConfirm = true
@@ -85,11 +85,11 @@ struct ShiftDetailView: View {
             }
         }
     }
-    
+
     private func deleteShift() {
         let calSync = CalendarSyncManager.shared
         calSync.removeEvent(for: shift)
-        
+
         if let employer = shift.site?.employer {
             modelContext.delete(shift)
             try? modelContext.save()
@@ -107,13 +107,13 @@ struct ShiftDetailView: View {
 
 struct ShiftDetailHeader: View {
     let shift: Shift
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Text(shift.totalPay.formatted(.currency(code: "USD")))
                 .font(.system(size: 48, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.accent)
-            
+
             HStack(spacing: 8) {
                 Text(shift.site?.name ?? "Unknown Site")
                     .font(.title3.bold())
@@ -123,13 +123,13 @@ struct ShiftDetailHeader: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
-            
+
             if shift.isEdited {
                 Label("Edited", systemImage: "pencil.circle")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
-            
+
             if shift.hasStreakBonus {
                 Label("Streak bonus triggered on this shift", systemImage: "target")
                     .font(.footnote.bold())
@@ -149,7 +149,7 @@ struct ShiftDetailHeader: View {
 
 struct PayBreakdownCard: View {
     let shift: Shift
-    
+
     var body: some View {
         InfoCard(title: "Pay Breakdown") {
             VStack(spacing: 0) {
@@ -168,22 +168,29 @@ struct PayBreakdownCard: View {
                         isBase: true
                     )
                 }
-                
+
                 if let splash = shift.splashAmount, splash > 0 {
                     Divider()
                     BreakdownRow(label: "Splash Bonus", value: splash)
                 }
-                
+
                 if let bonus = shift.bonusSplashAmount, bonus > 0 {
                     Divider()
                     BreakdownRow(label: "Bonus Splash", value: bonus)
                 }
-                
+
+                ForEach(shift.customBonuses ?? []) { bonus in
+                    if bonus.totalAmount > 0 {
+                        Divider()
+                        BreakdownRow(label: bonus.name, value: bonus.totalAmount)
+                    }
+                }
+
                 if let streak = shift.streakBonusAmount, streak > 0 {
                     Divider()
                     BreakdownRow(label: "🎯 Streak Bonus", value: streak, highlight: true)
                 }
-                
+
                 Divider()
                 BreakdownRow(label: "Total", value: shift.totalPay, isTotal: true)
             }
@@ -197,7 +204,7 @@ struct BreakdownRow: View {
     var isBase: Bool = false
     var isTotal: Bool = false
     var highlight: Bool = false
-    
+
     var body: some View {
         HStack {
             Text(label)
@@ -216,7 +223,7 @@ struct BreakdownRow: View {
 
 struct ShiftMetaCard: View {
     let shift: Shift
-    
+
     var body: some View {
         InfoCard(title: "Details") {
             VStack(spacing: 0) {
@@ -240,7 +247,7 @@ struct ShiftMetaCard: View {
 struct MetaRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label).foregroundStyle(.secondary)
@@ -255,7 +262,7 @@ struct MetaRow: View {
 
 struct SourceNoteCard: View {
     let sourceNote: SourceNote
-    
+
     var body: some View {
         InfoCard(title: "Source Note") {
             VStack(spacing: 0) {
@@ -275,7 +282,7 @@ struct EditHistoryCard: View {
     let editHistory: [EditRecord]
     let lastEditedAt: Date?
     @Binding var isExpanded: Bool
-    
+
     var body: some View {
         InfoCard(title: "Edit History") {
             VStack(spacing: 0) {
@@ -295,7 +302,7 @@ struct EditHistoryCard: View {
                     }
                 }
                 .buttonStyle(.plain)
-                
+
                 if isExpanded {
                     Divider()
                     ForEach(editHistory.reversed()) { record in
@@ -321,7 +328,7 @@ struct EditHistoryCard: View {
 struct InfoCard<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)

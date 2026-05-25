@@ -110,6 +110,56 @@ Recommended next implementation step:
 
 ---
 
+### CI-003 — Bonuses should be named and shift-specific, not default site splash bonuses
+
+Status: implemented
+Priority: High workflow fit
+Area: Employer setup, Add/Edit Shift, reports, pay calculation
+Likely files:
+
+- `AnesPayTracker/Model/Models.swift`
+- `AnesPayTracker/Views/Setup/EmployerSetupWizard.swift`
+- `AnesPayTracker/Views/Settings/SettingsView.swift`
+- `AnesPayTracker/Views/Entry/AddShiftView.swift`
+- `AnesPayTracker/Views/Review/ShiftDetailView.swift`
+- `AnesPayTracker/Views/Report/ReportView.swift`
+- `AnesPayTracker/Views/Report/PDFReportGenerator.swift`
+
+Observation:
+
+- The app should not presume that certain sites have a default splash bonus.
+- Employers should support named bonus types.
+- Add/Edit Shift should also support adding a named one-time bonus on the fly for high-need or hard-to-fill shifts.
+
+Why it matters:
+
+- Real bonuses may be temporary, negotiated, or assigned only to a specific shift.
+- Named bonuses are clearer than generic splash/bonus-splash fields when reviewing pay.
+
+Implemented behavior:
+
+- Removed default site splash configuration from the active data model and site setup flows.
+- Kept employer-level named custom bonus types.
+- Added `Add One-Time Bonus` in Add/Edit Shift for ad hoc high-need bonuses.
+- New shift saves store enabled named bonuses in `customBonuses` and clear the legacy splash fields.
+- Pay preview, Shift Detail, Pay Period totals, Report totals, PDF reports, and calendar notes now surface named/custom bonus totals.
+
+Acceptance criteria:
+
+- Employer/site setup no longer asks for a default splash bonus.
+- Employer setup still lets the user define named bonus types.
+- Add/Edit Shift lets the user add, name, and price a one-time bonus without predefining it on the employer.
+- Shift totals include named employer bonuses and one-time bonuses exactly once.
+- Build and verification scripts pass.
+
+Verification:
+
+- `python3 scripts/verify_bonus_entry_flow.py`
+- `python3 scripts/verify_pay_calculation_cases.py`
+- `xcodebuild -project AnesPayTracker.xcodeproj -scheme AnesPayTracker -destination 'platform=macOS,variant=Mac Catalyst' build`
+
+---
+
 ## Pending interview notes to add
 
 Add additional client clarifications below as they come in, then promote them into the runtime backlog before coding larger changes.

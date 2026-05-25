@@ -254,25 +254,6 @@ struct SiteDetailSettings: View {
                     ), placeholder: "0.00")
                     .frame(width: 120)
                 }
-                
-                HStack {
-                    Toggle("Default Splash", isOn: Binding(
-                        get: { site.defaultSplashAmount != nil },
-                        set: { val in site.defaultSplashAmount = val ? 0 : nil }
-                    ))
-                }
-                
-                if site.defaultSplashAmount != nil {
-                    HStack {
-                        Text("Default Splash Amount")
-                        Spacer()
-                        CurrencyField(value: Binding(
-                            get: { site.defaultSplashAmount ?? 0 },
-                            set: { site.defaultSplashAmount = $0 }
-                        ), placeholder: "0.00")
-                        .frame(width: 120)
-                    }
-                }
             }
             
             Section {
@@ -374,8 +355,7 @@ struct AddSiteSheet: View {
                         let site = Site(
                             name: trimmedName,
                             payUnit: draft.payUnit,
-                            baseAmount: draft.baseAmount,
-                            defaultSplashAmount: draft.hasDefaultSplash ? draft.defaultSplashAmount : nil
+                            baseAmount: draft.baseAmount
                         )
                         site.employer = employer
                         modelContext.insert(site)
@@ -527,7 +507,7 @@ struct TextSizeSettings: View {
                         .foregroundStyle(Color.accent)
                     Text("Riverside Surgical · Full Day")
                         .font(.title3)
-                    Text("Base $1,800 + Splash $350 + Streak $500")
+                    Text("Base $1,800 + High Need Bonus $350 + Streak $500")
                         .font(.body)
                         .foregroundStyle(.secondary)
                     Text("Logged 3 days ago")

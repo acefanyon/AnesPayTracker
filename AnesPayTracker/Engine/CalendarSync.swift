@@ -150,6 +150,9 @@ final class CalendarSyncManager {
         if let bonus = shift.bonusSplashAmount, bonus > 0 {
             lines.append("Bonus splash: \(bonus.formatted(.currency(code: "USD")))")
         }
+        for bonus in shift.customBonuses ?? [] where bonus.totalAmount > 0 {
+            lines.append("\(bonus.name): \(bonus.totalAmount.formatted(.currency(code: "USD")))")
+        }
         if let streak = shift.streakBonusAmount, streak > 0 {
             lines.append("🎯 Streak bonus: \(streak.formatted(.currency(code: "USD")))")
         }

@@ -168,8 +168,7 @@ struct EmployerSetupWizard: View {
             let site = Site(
                 name: draft.name,
                 payUnit: draft.payUnit,
-                baseAmount: draft.baseAmount,
-                defaultSplashAmount: draft.hasDefaultSplash ? draft.defaultSplashAmount : nil
+                baseAmount: draft.baseAmount
             )
             site.employer = employer
             return site
@@ -246,8 +245,6 @@ struct DraftSite: Identifiable {
     var name: String = ""
     var payUnit: PayUnit = .perDay
     var baseAmount: Decimal = 0
-    var hasDefaultSplash: Bool = false
-    var defaultSplashAmount: Decimal = 0
 }
 
 struct DraftStreakRule: Identifiable {
@@ -551,15 +548,6 @@ struct SiteEditorCard: View {
                 }
             }
 
-            Toggle("Default splash amount?", isOn: $site.hasDefaultSplash)
-                .font(.body)
-
-            if site.hasDefaultSplash {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Default Splash Amount").font(.caption).foregroundStyle(.secondary)
-                    CurrencyField(value: $site.defaultSplashAmount, placeholder: "0.00")
-                }
-            }
         }
         .padding(12)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))

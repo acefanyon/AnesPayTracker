@@ -64,8 +64,7 @@ struct PayPeriodView: View {
         let shifts: [Shift]
         
         var totalBase: Decimal { shifts.reduce(0) { $0 + $1.basePay } }
-        var totalSplash: Decimal { shifts.reduce(0) { $0 + ($1.splashAmount ?? 0) } }
-        var totalBonusSplash: Decimal { shifts.reduce(0) { $0 + ($1.bonusSplashAmount ?? 0) } }
+        var totalBonus: Decimal { shifts.reduce(0) { $0 + $1.bonusPay } }
         var totalStreak: Decimal { shifts.reduce(0) { $0 + ($1.streakBonusAmount ?? 0) } }
         var grandTotal: Decimal { shifts.reduce(0) { $0 + $1.totalPay } }
         
@@ -247,13 +246,9 @@ struct PayPeriodTotalsRow: View {
     var body: some View {
         HStack(spacing: 0) {
             TotalColumn(label: "Base", amount: period.totalBase)
-            if period.totalSplash > 0 {
+            if period.totalBonus > 0 {
                 Divider()
-                TotalColumn(label: "Splash", amount: period.totalSplash)
-            }
-            if period.totalBonusSplash > 0 {
-                Divider()
-                TotalColumn(label: "Bonus\nSplash", amount: period.totalBonusSplash)
+                TotalColumn(label: "Bonuses", amount: period.totalBonus)
             }
             if period.totalStreak > 0 {
                 Divider()
