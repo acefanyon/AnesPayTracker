@@ -67,6 +67,12 @@ Initial safety pass added 2026-05-25:
 
 Status: Initial implementation committed in `2bb9369 fix: improve modal controls and scrolling`.
 
+Client interview follow-up captured 2026-05-25:
+
+- Shift Detail has an odd, non-functional label/control in the upper-left corner.
+- Added detailed checklist item in `docs/CLIENT_INTERVIEW_APP_CHECKLIST.md` as `CI-001`.
+- Initial fix: Shift Detail now removes the upper-left cancellation toolbar control and uses clear upper-right `Edit` and `Done` actions instead.
+
 Implemented:
 
 - Replaced ambiguous sheet toolbar controls with labeled icon controls for Cancel, Close, Back, Save, and Update.

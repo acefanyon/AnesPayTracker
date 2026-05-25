@@ -67,11 +67,9 @@ struct ShiftDetailView: View {
             .navigationTitle("Shift Detail")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    ModalCloseButton { dismiss() }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .confirmationAction) {
                     Button("Edit") { showEdit = true }
+                    Button("Done") { dismiss() }
                 }
             }
             .sheet(isPresented: $showEdit) {
