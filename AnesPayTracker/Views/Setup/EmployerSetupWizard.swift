@@ -14,6 +14,7 @@ struct EmployerSetupWizard: View {
     @State private var contactPersons: [DraftContact] = []
     @State private var sites: [DraftSite] = [DraftSite()]
     @State private var streakRules: [DraftStreakRule] = []
+    @State private var customBonusTypes: [DraftCustomBonusType] = []
     
     @State private var newContactName = ""
     @State private var newContactRole = ""
@@ -60,7 +61,8 @@ struct EmployerSetupWizard: View {
                                 name: $employerName,
                                 payCadence: $payCadence,
                                 customCadenceDays: $customCadenceDays,
-                                contactPersons: $contactPersons
+                                contactPersons: $contactPersons,
+                                customBonusTypes: $customBonusTypes
                             )
                         case .sites:
                             SitesStep(sites: $sites)
@@ -71,12 +73,17 @@ struct EmployerSetupWizard: View {
                                 employerName: employerName,
                                 payCadence: payCadence,
                                 sites: sites,
-                                streakRules: streakRules
+                                streakRules: streakRules,
+                                customBonusTypes: customBonusTypes
                             )
                         }
                     }
                     .padding(24)
+                    .padding(.bottom, 96)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .modifier(CatalystFriendlyScrollDismiss())
                 
                 Divider()
                 
@@ -157,9 +164,23 @@ struct EmployerSetupWizard: View {
         }
         employer.streakRules = ruleObjects
         
+        let customBonusObjects = customBonusTypes.compactMap { draft -> CustomBonusType? in
+            let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+            let bonus = CustomBonusType(
+                employer: employer,
+                name: name,
+                payUnit: draft.payUnit,
+                defaultAmount: draft.defaultAmount
+            )
+            return bonus
+        }
+        employer.customBonusTypes = customBonusObjects
+        
         modelContext.insert(employer)
         for site in siteObjects { modelContext.insert(site) }
         for rule in ruleObjects { modelContext.insert(rule) }
+        for bonus in customBonusObjects { modelContext.insert(bonus) }
         try? modelContext.save()
         dismiss()
     }
@@ -213,6 +234,13 @@ struct DraftStreakRule: Identifiable {
     var bonusAmount: Decimal = 0
 }
 
+struct DraftCustomBonusType: Identifiable {
+    var id = UUID()
+    var name: String = ""
+    var payUnit: PayUnit = .perDay
+    var defaultAmount: Decimal = 0
+}
+
 // MARK: - Step 1: Employer Info
 
 struct EmployerInfoStep: View {
@@ -220,6 +248,7 @@ struct EmployerInfoStep: View {
     @Binding var payCadence: PayCadence
     @Binding var customCadenceDays: Int
     @Binding var contactPersons: [DraftContact]
+    @Binding var customBonusTypes: [DraftCustomBonusType]
     
     @State private var showAddContact = false
     @State private var newName = ""
@@ -247,6 +276,28 @@ struct EmployerInfoStep: View {
                         Stepper("\(customCadenceDays) days", value: $customCadenceDays, in: 1...365)
                     }
                     .font(.title3)
+                }
+            }
+            
+
+            WizardField(label: "Custom Bonus Types (optional)") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Add named bonus choices that should be available when entering a shift for this employer, such as Call Back, Weekend, Holiday, or Trauma.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    
+                    ForEach($customBonusTypes) { $bonus in
+                        CustomBonusTypeEditorCard(bonus: $bonus) {
+                            customBonusTypes.removeAll { $0.id == bonus.id }
+                        }
+                    }
+                    
+                    Button {
+                        customBonusTypes.append(DraftCustomBonusType())
+                    } label: {
+                        Label("Add Custom Bonus", systemImage: "plus.circle")
+                            .font(.body)
+                    }
                 }
             }
             
@@ -284,6 +335,41 @@ struct EmployerInfoStep: View {
         .sheet(isPresented: $showAddContact) {
             AddContactSheet(contactPersons: $contactPersons)
         }
+    }
+}
+
+struct CustomBonusTypeEditorCard: View {
+    @Binding var bonus: DraftCustomBonusType
+    let onDelete: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                TextField("Bonus name", text: $bonus.name)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.title3)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            Picker("How this bonus pays", selection: $bonus.payUnit) {
+                Text("Per Day / Flat").tag(PayUnit.perDay)
+                Text("Per Hour").tag(PayUnit.perHour)
+            }
+            .pickerStyle(.segmented)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(bonus.payUnit == .perHour ? "Default Rate Per Hour" : "Default Amount")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                CurrencyField(value: $bonus.defaultAmount, placeholder: "0.00")
+            }
+        }
+        .padding(14)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -510,6 +596,7 @@ struct WizardReviewStep: View {
     let payCadence: PayCadence
     let sites: [DraftSite]
     let streakRules: [DraftStreakRule]
+    let customBonusTypes: [DraftCustomBonusType]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -529,6 +616,18 @@ struct WizardReviewStep: View {
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+            }
+            
+            if !customBonusTypes.isEmpty {
+                Divider()
+                Text("Custom Bonuses").font(.headline)
+                ForEach(customBonusTypes.filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { bonus in
+                    Text("\(bonus.name): \(bonus.defaultAmount.formatted(.currency(code: "USD"))) \(bonus.payUnit == .perHour ? "per hour" : "flat/per day")")
+                        .font(.footnote)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                }
             }
             
             if !streakRules.isEmpty {
@@ -556,6 +655,18 @@ struct ReviewRow: View {
             Spacer()
             Text(value).bold()
         }
+    }
+}
+
+
+struct CatalystFriendlyScrollDismiss: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if targetEnvironment(macCatalyst)
+        content
+        #else
+        content.scrollDismissesKeyboard(.interactively)
+        #endif
     }
 }
 

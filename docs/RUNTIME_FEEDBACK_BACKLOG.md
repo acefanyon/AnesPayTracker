@@ -67,10 +67,29 @@ Implemented:
 - Changed Employer Setup wizard's upper-left control to a real Back control after the first step, while keeping Cancel only on the first step.
 - Verified both iOS Simulator and Mac Catalyst builds after the change.
 
+Latest follow-up from Jason:
+
+- Scrolling is improved but still sticky/delayed.
+- Some employer screens still do not allow scrolling far enough to see the bottom.
+- The clearer upper-left pop-up buttons are good and should be kept.
+- Add Employer still needs custom bonus setup.
+
+Second implementation pass:
+
+- Kept the clearer upper-left Cancel/Back controls.
+- Added extra bottom scroll room and full-height scroll containers to Employer Setup and Add Shift so bottom content is reachable above footer/action areas.
+- Stopped applying interactive keyboard-dismiss scrolling on Mac Catalyst; Catalyst now uses plain scrolling while iOS keeps interactive keyboard dismissal.
+- Added employer-level custom bonus types to Add Employer:
+  - custom bonus name
+  - per-day/flat or per-hour unit
+  - default amount/rate
+- Added shift-entry support for those employer custom bonuses so the user can toggle configured bonuses on a shift and include them in the total.
+
 Still needs manual runtime confirmation from Jason:
 
-- Confirm scrolling no longer freezes inside text fields/pickers.
-- Confirm the upper-left controls are clear enough in Mac Catalyst.
+- Confirm employer wizard screens now scroll all the way to the bottom.
+- Confirm scrolling feels less sticky/delayed on Mac Catalyst.
+- Confirm the custom bonus setup/shift-entry flow matches the intended contract workflow.
 
 Problem:
 

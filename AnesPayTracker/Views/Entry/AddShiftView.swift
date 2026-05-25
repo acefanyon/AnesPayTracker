@@ -19,6 +19,7 @@ struct AddShiftView: View {
     @State private var splashAmount: Decimal = 0
     @State private var hasBonusSplash: Bool = false
     @State private var bonusSplashAmount: Decimal = 0
+    @State private var customBonuses: [DraftAppliedCustomBonus] = []
     @State private var notes: String = ""
     @State private var showNotes: Bool = false
     @State private var hasSourceNote: Bool = false
@@ -55,7 +56,10 @@ struct AddShiftView: View {
     }
     
     private var computedTotal: Decimal {
-        computedBase + (hasSplash ? splashAmount : 0) + (hasBonusSplash ? bonusSplashAmount : 0)
+        computedBase
+        + (hasSplash ? splashAmount : 0)
+        + (hasBonusSplash ? bonusSplashAmount : 0)
+        + customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
     
     var body: some View {
@@ -104,6 +108,11 @@ struct AddShiftView: View {
                                 defaultSplash: selectedSite?.defaultSplashAmount
                             )
                             
+                            if !customBonuses.isEmpty {
+                                Divider()
+                                CustomBonusesSection(customBonuses: $customBonuses)
+                            }
+                            
                             Divider()
                             
                             // Notes
@@ -130,9 +139,12 @@ struct AddShiftView: View {
                         }
                     }
                     .padding(20)
+                    .padding(.bottom, 96)
                 }
+                .frame(maxWidth: .infinity, alignment: .top)
             }
-            .scrollDismissesKeyboard(.interactively)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .modifier(CatalystFriendlyScrollDismiss())
             .navigationTitle(editingShift == nil ? "Add Shift" : "Edit Shift")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -154,7 +166,13 @@ struct AddShiftView: View {
                 Text(streakAlertText)
             }
         }
-        .onAppear { populateIfEditing() }
+        .onAppear {
+            populateIfEditing()
+            syncCustomBonusesForSelectedSite()
+        }
+        .onChange(of: selectedSite?.id) { _, _ in
+            syncCustomBonusesForSelectedSite()
+        }
     }
     
     // MARK: - Save
@@ -183,6 +201,9 @@ struct AddShiftView: View {
         shift.baseAmount = site.baseAmount
         shift.splashAmount = hasSplash ? splashAmount : nil
         shift.bonusSplashAmount = hasBonusSplash ? bonusSplashAmount : nil
+        shift.customBonuses = customBonuses
+            .filter { $0.isEnabled && !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity) }
         
         if hasSourceNote && !sourceContactName.isEmpty {
             shift.sourceNote = SourceNote(
@@ -221,6 +242,28 @@ struct AddShiftView: View {
         }
     }
     
+
+    private func syncCustomBonusesForSelectedSite() {
+        guard let bonusTypes = selectedSite?.employer?.customBonusTypes else { return }
+        for bonusType in bonusTypes where !customBonuses.contains(where: { $0.sourceID == bonusType.id }) {
+            customBonuses.append(DraftAppliedCustomBonus(
+                sourceID: bonusType.id,
+                name: bonusType.name,
+                payUnit: bonusType.payUnit,
+                amount: bonusType.defaultAmount,
+                quantity: bonusType.payUnit == .perHour ? hoursWorked : 1,
+                isEnabled: false
+            ))
+        }
+        let validIDs = Set(bonusTypes.map(\.id))
+        customBonuses.removeAll { draft in
+            if let sourceID = draft.sourceID {
+                return !validIDs.contains(sourceID)
+            }
+            return false
+        }
+    }
+    
     private func buildEditSummary(_ shift: Shift) -> String {
         var changes: [String] = []
         if shift.date != date { changes.append("date changed") }
@@ -239,6 +282,8 @@ struct AddShiftView: View {
         splashAmount = shift.splashAmount ?? 0
         hasBonusSplash = shift.bonusSplashAmount != nil
         bonusSplashAmount = shift.bonusSplashAmount ?? 0
+        customBonuses = (shift.customBonuses ?? []).map { DraftAppliedCustomBonus(applied: $0) }
+        syncCustomBonusesForSelectedSite()
         notes = shift.notes ?? ""
         showNotes = !notes.isEmpty
         if let sn = shift.sourceNote {
@@ -455,6 +500,78 @@ struct DatePickerRow: View {
             DatePicker("", selection: $date, displayedComponents: .date)
                 .labelsHidden()
                 .font(.title3)
+        }
+    }
+}
+
+
+struct DraftAppliedCustomBonus: Identifiable {
+    var id = UUID()
+    var sourceID: UUID?
+    var name: String
+    var payUnit: PayUnit
+    var amount: Decimal
+    var quantity: Double
+    var isEnabled: Bool
+    
+    init(sourceID: UUID?, name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, isEnabled: Bool) {
+        self.sourceID = sourceID
+        self.name = name
+        self.payUnit = payUnit
+        self.amount = amount
+        self.quantity = quantity
+        self.isEnabled = isEnabled
+    }
+    
+    init(applied: AppliedCustomBonus) {
+        self.sourceID = nil
+        self.name = applied.name
+        self.payUnit = applied.payUnit
+        self.amount = applied.amount
+        self.quantity = applied.quantity
+        self.isEnabled = true
+    }
+    
+    var totalAmount: Decimal { amount * Decimal(quantity) }
+}
+
+struct CustomBonusesSection: View {
+    @Binding var customBonuses: [DraftAppliedCustomBonus]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Custom Bonuses")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .tracking(0.5)
+            
+            ForEach($customBonuses) { $bonus in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(bonus.name).font(.body.bold())
+                            Text(bonus.payUnit == .perHour ? "Per-hour custom bonus" : "Flat / per-day custom bonus")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $bonus.isEnabled)
+                    }
+                    
+                    if bonus.isEnabled {
+                        CurrencyField(value: $bonus.amount, placeholder: "Amount")
+                        if bonus.payUnit == .perHour {
+                            Stepper("Hours: \(bonus.quantity.formatted())", value: $bonus.quantity, in: 0.25...24, step: 0.25)
+                        }
+                        Text("Adds \(bonus.totalAmount.formatted(.currency(code: "USD")))")
+                            .font(.footnote.bold())
+                            .foregroundStyle(Color.accent)
+                    }
+                }
+                .padding(12)
+                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            }
         }
     }
 }

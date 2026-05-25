@@ -13,6 +13,7 @@ struct AnesPayTrackerApp: App {
                 Site.self,
                 Shift.self,
                 StreakRule.self,
+                CustomBonusType.self,
                 ContactPerson.self,
             ])
             let config = ModelConfiguration(
