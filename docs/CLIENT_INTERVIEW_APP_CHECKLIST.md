@@ -160,6 +160,60 @@ Verification:
 
 ---
 
+### CI-004 — Bonus payout reports need payout-period filtering separate from shift earnings
+
+Status: implemented
+Priority: High reporting/trust fit
+Area: Reports, employer bonus setup, Add/Edit Shift, PDF export
+Likely files:
+
+- `AnesPayTracker/Model/Models.swift`
+- `AnesPayTracker/Views/Setup/EmployerSetupWizard.swift`
+- `AnesPayTracker/Views/Entry/AddShiftView.swift`
+- `AnesPayTracker/Views/Report/ReportView.swift`
+- `AnesPayTracker/Views/Report/PDFReportGenerator.swift`
+
+Observation:
+
+- It is useful to see what was earned on each shift date, but real pay components do not always pay synchronously.
+- Some employer bonuses are paid monthly with a month delay.
+- Streak bonuses are usually determined and paid quarterly.
+- Calendar quarters are January-March, April-June, July-September, and October-December.
+
+Why it matters:
+
+- Reports that only group by shift/service date can overstate what should actually be expected in a given pay month or quarter.
+- The user needs to reconcile bonus payouts separately from regular shift pay.
+- Bonus payout reports should still be filterable by employer and site/location.
+
+Implemented behavior:
+
+- Added `BonusPayoutSchedule` for service-date, next monthly payout, and next quarterly payout behavior.
+- Employer custom bonus setup and Add/Edit Shift now expose a `When paid` picker.
+- Applied custom bonuses persist their payout schedule.
+- Reports now have an `Earnings` vs `Bonus Payouts` mode selector.
+- Bonus payout reports support This Month, Last Month, This Quarter, Last Quarter, and Custom ranges.
+- Bonus payout rows include employer and site/location data and can be filtered/broken down by those dimensions.
+- Streak bonuses are included in bonus payout reporting as quarterly payouts.
+- PDF export now supports a dedicated `Bonus Payout Report` with payout date, service date, schedule, and amount.
+
+Acceptance criteria:
+
+- User can report bonuses by payout month, payout quarter, or custom payout date range.
+- Bonus payout reports can be filtered by employer and site/location.
+- Bonus payout reports show a breakdown by employer and by site/location.
+- Regular earnings reports by shift date remain available.
+- Build and verification scripts pass.
+
+Verification:
+
+- `python3 scripts/verify_bonus_payout_reports.py`
+- `python3 scripts/verify_bonus_entry_flow.py`
+- `python3 scripts/verify_pay_calculation_cases.py`
+- `xcodebuild -project AnesPayTracker.xcodeproj -scheme AnesPayTracker -destination 'platform=macOS,variant=Mac Catalyst' build`
+
+---
+
 ## Pending interview notes to add
 
 Add additional client clarifications below as they come in, then promote them into the runtime backlog before coding larger changes.

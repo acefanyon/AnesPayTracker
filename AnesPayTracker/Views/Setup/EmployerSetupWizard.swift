@@ -194,7 +194,8 @@ struct EmployerSetupWizard: View {
                 employer: employer,
                 name: name,
                 payUnit: draft.payUnit,
-                defaultAmount: draft.defaultAmount
+                defaultAmount: draft.defaultAmount,
+                payoutSchedule: draft.payoutSchedule
             )
             return bonus
         }
@@ -260,6 +261,7 @@ struct DraftCustomBonusType: Identifiable {
     var name: String = ""
     var payUnit: PayUnit = .perDay
     var defaultAmount: Decimal = 0
+    var payoutSchedule: BonusPayoutSchedule = .serviceDate
 }
 
 // MARK: - Step 1: Employer Info
@@ -420,6 +422,13 @@ struct CustomBonusTypeEditorCard: View {
                     .foregroundStyle(.secondary)
                 CurrencyField(value: $bonus.defaultAmount, placeholder: "0.00")
             }
+
+            Picker("When paid", selection: $bonus.payoutSchedule) {
+                ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
+                    Text(schedule.rawValue).tag(schedule)
+                }
+            }
+            .pickerStyle(.menu)
         }
         .padding(14)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
@@ -681,7 +690,7 @@ struct WizardReviewStep: View {
                 Divider()
                 Text("Custom Bonuses").font(.headline)
                 ForEach(customBonusTypes.filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { bonus in
-                    Text("\(bonus.name): \(bonus.defaultAmount.formatted(.currency(code: "USD"))) \(bonus.payUnit == .perHour ? "per hour" : "flat/per day")")
+                    Text("\(bonus.name): \(bonus.defaultAmount.formatted(.currency(code: "USD"))) \(bonus.payUnit == .perHour ? "per hour" : "flat/per day") · paid: \(bonus.payoutSchedule.shortLabel)")
                         .font(.footnote)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)

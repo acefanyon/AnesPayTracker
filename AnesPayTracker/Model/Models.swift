@@ -50,6 +50,7 @@ final class CustomBonusType {
     var name: String
     var payUnit: PayUnit
     var defaultAmount: Decimal
+    var payoutSchedule: BonusPayoutSchedule
     var createdAt: Date
 
     init(
@@ -58,6 +59,7 @@ final class CustomBonusType {
         name: String,
         payUnit: PayUnit = .perDay,
         defaultAmount: Decimal = 0,
+        payoutSchedule: BonusPayoutSchedule = .serviceDate,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -65,6 +67,7 @@ final class CustomBonusType {
         self.name = name
         self.payUnit = payUnit
         self.defaultAmount = defaultAmount
+        self.payoutSchedule = payoutSchedule
         self.createdAt = createdAt
     }
 }
@@ -289,6 +292,7 @@ struct AppliedCustomBonus: Codable, Identifiable {
     var payUnit: PayUnit
     var amount: Decimal
     var quantity: Double
+    var payoutSchedule: BonusPayoutSchedule = .serviceDate
 
     var totalAmount: Decimal {
         switch payUnit {
@@ -345,4 +349,51 @@ enum StreakWindowType: String, Codable, CaseIterable {
     case rollingDays = "Rolling Days"
     case calendarMonth = "Calendar Month"
     case payPeriod = "Pay Period"
+}
+
+
+enum BonusPayoutSchedule: String, Codable, CaseIterable {
+    case serviceDate = "Service Date"
+    case nextMonthlyPayout = "Next Monthly Payout"
+    case nextQuarterlyPayout = "Next Quarterly Payout"
+
+    var shortLabel: String {
+        switch self {
+        case .serviceDate: return "Service date"
+        case .nextMonthlyPayout: return "Monthly + delay"
+        case .nextQuarterlyPayout: return "Quarterly"
+        }
+    }
+
+    func payoutDate(for serviceDate: Date, calendar: Calendar = .current) -> Date {
+        switch self {
+        case .serviceDate:
+            return serviceDate
+        case .nextMonthlyPayout:
+            var comps = calendar.dateComponents([.year, .month], from: serviceDate)
+            comps.month = (comps.month ?? 1) + 1
+            comps.day = 1
+            return calendar.date(from: comps) ?? serviceDate
+        case .nextQuarterlyPayout:
+            let comps = calendar.dateComponents([.year, .month], from: serviceDate)
+            let month = comps.month ?? 1
+            var payout = DateComponents()
+            payout.year = comps.year
+            switch month {
+            case 1...3:
+                payout.month = 4
+            case 4...6:
+                payout.month = 7
+            case 7...9:
+                payout.month = 10
+            case 10...12:
+                payout.year = (comps.year ?? 0) + 1
+                payout.month = 1
+            default:
+                payout.month = month
+            }
+            payout.day = 1
+            return calendar.date(from: payout) ?? serviceDate
+        }
+    }
 }

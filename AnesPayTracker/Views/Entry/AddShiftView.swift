@@ -191,7 +191,7 @@ struct AddShiftView: View {
         shift.bonusSplashAmount = nil
         shift.customBonuses = customBonuses
             .filter { $0.isEnabled && !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity) }
+            .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity, payoutSchedule: $0.payoutSchedule) }
 
         if hasSourceNote && !sourceContactName.isEmpty {
             shift.sourceNote = SourceNote(
@@ -240,6 +240,7 @@ struct AddShiftView: View {
                 payUnit: bonusType.payUnit,
                 amount: bonusType.defaultAmount,
                 quantity: bonusType.payUnit == .perHour ? hoursWorked : 1,
+                payoutSchedule: bonusType.payoutSchedule,
                 isEnabled: false
             ))
         }
@@ -507,14 +508,16 @@ struct DraftAppliedCustomBonus: Identifiable {
     var payUnit: PayUnit
     var amount: Decimal
     var quantity: Double
+    var payoutSchedule: BonusPayoutSchedule
     var isEnabled: Bool
 
-    init(sourceID: UUID?, name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, isEnabled: Bool) {
+    init(sourceID: UUID?, name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, payoutSchedule: BonusPayoutSchedule = .serviceDate, isEnabled: Bool) {
         self.sourceID = sourceID
         self.name = name
         self.payUnit = payUnit
         self.amount = amount
         self.quantity = quantity
+        self.payoutSchedule = payoutSchedule
         self.isEnabled = isEnabled
     }
 
@@ -524,6 +527,7 @@ struct DraftAppliedCustomBonus: Identifiable {
         self.payUnit = applied.payUnit
         self.amount = applied.amount
         self.quantity = applied.quantity
+        self.payoutSchedule = applied.payoutSchedule
         self.isEnabled = true
     }
 
@@ -550,6 +554,7 @@ struct CustomBonusesSection: View {
                         payUnit: .perDay,
                         amount: 0,
                         quantity: 1,
+                        payoutSchedule: .serviceDate,
                         isEnabled: true
                     ))
                 } label: {
@@ -579,7 +584,7 @@ struct CustomBonusesSection: View {
                             } else {
                                 Text(bonus.name).font(.body.bold())
                             }
-                            Text(bonus.payUnit == .perHour ? "Per-hour bonus" : "Flat / per-day bonus")
+                            Text("\(bonus.payUnit == .perHour ? "Per-hour bonus" : "Flat / per-day bonus") · paid: \(bonus.payoutSchedule.shortLabel)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                         }
@@ -606,6 +611,12 @@ struct CustomBonusesSection: View {
                             .pickerStyle(.segmented)
                         }
                         CurrencyField(value: $bonus.amount, placeholder: "Amount")
+                        Picker("When paid", selection: $bonus.payoutSchedule) {
+                            ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
+                                Text(schedule.rawValue).tag(schedule)
+                            }
+                        }
+                        .pickerStyle(.menu)
                         if bonus.payUnit == .perHour {
                             Stepper("Hours: \(bonus.quantity.formatted())", value: $bonus.quantity, in: 0.25...24, step: 0.25)
                                 .onAppear {
