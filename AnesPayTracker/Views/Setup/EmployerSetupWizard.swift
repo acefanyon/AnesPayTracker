@@ -3,21 +3,89 @@ import SwiftData
 
 // MARK: - Employer Setup Wizard
 
+enum EmployerWizardMode: Equatable {
+    case create
+    case edit
+    case duplicateVersion
+
+    var navigationTitle: String {
+        switch self {
+        case .create:
+            return "Add Employer"
+        case .edit:
+            return "Edit Employer"
+        case .duplicateVersion:
+            return "New Employer Version"
+        }
+    }
+
+    var primaryButtonTitle: String {
+        switch self {
+        case .create:
+            return "Save Employer"
+        case .edit:
+            return "Save Changes"
+        case .duplicateVersion:
+            return "Create Version"
+        }
+    }
+}
+
 struct EmployerSetupWizard: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var step: WizardStep = .employerInfo
-    @State private var employerName = ""
-    @State private var payCadence: PayCadence = .biweekly
-    @State private var customCadenceDays = 14
-    @State private var contactPersons: [DraftContact] = []
-    @State private var sites: [DraftSite] = [DraftSite()]
-    @State private var streakRules: [DraftStreakRule] = []
-    @State private var customBonusTypes: [DraftCustomBonusType] = []
+    let mode: EmployerWizardMode
+    let sourceEmployer: Employer?
 
-    @State private var newContactName = ""
-    @State private var newContactRole = ""
+    @State private var step: WizardStep = .employerInfo
+    @State private var employerName: String
+    @State private var payCadence: PayCadence
+    @State private var customCadenceDays: Int
+    @State private var defaultOnCallAmount: Decimal
+    @State private var contactPersons: [DraftContact]
+    @State private var sites: [DraftSite]
+    @State private var streakRules: [DraftStreakRule]
+    @State private var customBonusTypes: [DraftCustomBonusType]
+
+    init(mode: EmployerWizardMode = .create, sourceEmployer: Employer? = nil) {
+        self.mode = mode
+        self.sourceEmployer = sourceEmployer
+
+        let name: String
+        if mode == .duplicateVersion, let sourceEmployer {
+            name = EmployerSetupWizard.nextEmployerVersionName(from: sourceEmployer.name)
+        } else {
+            name = sourceEmployer?.name ?? ""
+        }
+
+        _employerName = State(initialValue: name)
+        _payCadence = State(initialValue: sourceEmployer?.payCadence ?? .biweekly)
+        _customCadenceDays = State(initialValue: sourceEmployer?.customCadenceDays ?? 14)
+        _defaultOnCallAmount = State(initialValue: sourceEmployer?.defaultOnCallAmount ?? 0)
+        _contactPersons = State(initialValue: sourceEmployer?.contactPersons.map { DraftContact(contact: $0) } ?? [])
+
+        let seededSites = sourceEmployer?.sites.sorted { $0.createdAt < $1.createdAt }.map { DraftSite(site: $0) } ?? [DraftSite()]
+        _sites = State(initialValue: seededSites.isEmpty ? [DraftSite()] : seededSites)
+
+        _streakRules = State(initialValue: sourceEmployer?.streakRules.sorted { $0.createdAt < $1.createdAt }.map { DraftStreakRule(rule: $0) } ?? [])
+        _customBonusTypes = State(initialValue: sourceEmployer?.customBonusTypes.sorted { $0.createdAt < $1.createdAt }.map { DraftCustomBonusType(bonus: $0) } ?? [])
+    }
+
+    private var isEditingExistingEmployer: Bool {
+        mode == .edit && sourceEmployer != nil
+    }
+
+    private var historyProtectionMessage: String {
+        switch mode {
+        case .create:
+            return ""
+        case .edit:
+            return "These edits update employer defaults and setup metadata only. Saved shifts keep their own pay snapshots, and reconciled history is not recomputed automatically."
+        case .duplicateVersion:
+            return "This creates a second employer record prefilled from the current one so future rule changes can start fresh without touching historical shifts."
+        }
+    }
 
     enum WizardStep: Int, CaseIterable {
         case employerInfo = 0
@@ -62,24 +130,36 @@ struct EmployerSetupWizard: View {
                         Divider()
 
                         VStack(spacing: 16) {
+                            if !historyProtectionMessage.isEmpty {
+                                Text(historyProtectionMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                            }
+
                             switch step {
                             case .employerInfo:
                                 EmployerInfoStep(
                                     name: $employerName,
                                     payCadence: $payCadence,
                                     customCadenceDays: $customCadenceDays,
+                                    defaultOnCallAmount: $defaultOnCallAmount,
                                     contactPersons: $contactPersons
                                 )
                             case .sites:
-                                SitesStep(sites: $sites)
+                                SitesStep(sites: $sites, isEditingExistingEmployer: isEditingExistingEmployer)
                             case .customBonuses:
-                                CustomBonusesStep(customBonusTypes: $customBonusTypes)
+                                CustomBonusesStep(customBonusTypes: $customBonusTypes, isEditingExistingEmployer: isEditingExistingEmployer)
                             case .streakRules:
-                                StreakRulesStep(rules: $streakRules)
+                                StreakRulesStep(rules: $streakRules, isEditingExistingEmployer: isEditingExistingEmployer)
                             case .review:
                                 WizardReviewStep(
+                                    mode: mode,
                                     employerName: employerName,
                                     payCadence: payCadence,
+                                    defaultOnCallAmount: defaultOnCallAmount,
                                     sites: sites,
                                     streakRules: streakRules,
                                     customBonusTypes: customBonusTypes
@@ -112,7 +192,7 @@ struct EmployerSetupWizard: View {
 
                         Spacer()
 
-                        Button(step == .review ? "Save Employer" : "Next") {
+                        Button(step == .review ? mode.primaryButtonTitle : "Next") {
                             if step == .review {
                                 saveEmployer()
                             } else {
@@ -128,7 +208,7 @@ struct EmployerSetupWizard: View {
                     .background(.regularMaterial)
                 }
             }
-            .navigationTitle("Add Employer")
+            .navigationTitle(mode.navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -153,60 +233,207 @@ struct EmployerSetupWizard: View {
     }
 
     private func saveEmployer() {
-        let employer = Employer(
-            name: employerName.trimmingCharacters(in: .whitespaces),
-            payCadence: payCadence,
-            customCadenceDays: payCadence == .custom ? customCadenceDays : nil
-        )
-
-        employer.contactPersons = contactPersons.map {
-            ContactPerson(name: $0.name, role: $0.role.isEmpty ? nil : $0.role)
-        }
-
-        let siteObjects = sites.compactMap { draft -> Site? in
-            guard !draft.name.isEmpty else { return nil }
-            let site = Site(
-                name: draft.name,
-                payUnit: draft.payUnit,
-                baseAmount: draft.baseAmount
+        switch mode {
+        case .create, .duplicateVersion:
+            let employer = Employer(
+                name: employerName.trimmingCharacters(in: .whitespacesAndNewlines),
+                payCadence: payCadence,
+                customCadenceDays: payCadence == .custom ? customCadenceDays : nil,
+                defaultOnCallAmount: defaultOnCallAmount
             )
-            site.employer = employer
-            return site
-        }
-        employer.sites = siteObjects
 
-        let ruleObjects = streakRules.map { draft -> StreakRule in
-            let rule = StreakRule(
-                requiredDays: draft.requiredDays,
-                windowType: draft.windowType,
-                windowDays: draft.windowType == .rollingDays ? draft.windowDays : nil,
-                bonusAmount: draft.bonusAmount
-            )
-            rule.employer = employer
-            return rule
+            syncEmployer(employer, allowDeletes: true, insertNewObjects: true)
+            modelContext.insert(employer)
+        case .edit:
+            guard let sourceEmployer else { return }
+            syncEmployer(sourceEmployer, allowDeletes: false, insertNewObjects: true)
         }
-        employer.streakRules = ruleObjects
 
-        let customBonusObjects = customBonusTypes.compactMap { draft -> CustomBonusType? in
-            let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { return nil }
-            let bonus = CustomBonusType(
-                employer: employer,
-                name: name,
-                payUnit: draft.payUnit,
-                defaultAmount: draft.defaultAmount,
-                payoutSchedule: draft.payoutSchedule
-            )
-            return bonus
-        }
-        employer.customBonusTypes = customBonusObjects
-
-        modelContext.insert(employer)
-        for site in siteObjects { modelContext.insert(site) }
-        for rule in ruleObjects { modelContext.insert(rule) }
-        for bonus in customBonusObjects { modelContext.insert(bonus) }
         try? modelContext.save()
         dismiss()
+    }
+
+    private func syncEmployer(_ employer: Employer, allowDeletes: Bool, insertNewObjects: Bool) {
+        employer.name = employerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        employer.payCadence = payCadence
+        employer.customCadenceDays = payCadence == .custom ? customCadenceDays : nil
+        employer.defaultOnCallAmount = defaultOnCallAmount
+
+        syncContacts(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
+        syncSites(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
+        syncStreakRules(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
+        syncCustomBonuses(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
+    }
+
+    private func syncContacts(for employer: Employer, allowDeletes: Bool, insertNewObjects: Bool) {
+        var retainedIDs = Set<UUID>()
+        var updatedContacts: [ContactPerson] = []
+
+        for draft in contactPersons {
+            let trimmedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedName.isEmpty else { continue }
+
+            if let sourceID = draft.sourceID,
+               let existing = employer.contactPersons.first(where: { $0.id == sourceID }) {
+                existing.name = trimmedName
+                existing.role = draft.trimmedRole
+                retainedIDs.insert(existing.id)
+                updatedContacts.append(existing)
+            } else {
+                let contact = ContactPerson(name: trimmedName, role: draft.trimmedRole)
+                if insertNewObjects { modelContext.insert(contact) }
+                retainedIDs.insert(contact.id)
+                updatedContacts.append(contact)
+            }
+        }
+
+        if allowDeletes {
+            for contact in employer.contactPersons where !retainedIDs.contains(contact.id) {
+                modelContext.delete(contact)
+            }
+        } else {
+            for contact in employer.contactPersons where !retainedIDs.contains(contact.id) {
+                updatedContacts.append(contact)
+            }
+        }
+
+        employer.contactPersons = updatedContacts
+    }
+
+    private func syncSites(for employer: Employer, allowDeletes: Bool, insertNewObjects: Bool) {
+        var retainedIDs = Set<UUID>()
+        var updatedSites: [Site] = []
+
+        for draft in sites {
+            let trimmedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedName.isEmpty else { continue }
+
+            if let sourceID = draft.sourceID,
+               let existing = employer.sites.first(where: { $0.id == sourceID }) {
+                existing.name = trimmedName
+                existing.payUnit = draft.payUnit
+                existing.baseAmount = draft.baseAmount
+                retainedIDs.insert(existing.id)
+                updatedSites.append(existing)
+            } else {
+                let site = Site(name: trimmedName, employer: employer, payUnit: draft.payUnit, baseAmount: draft.baseAmount)
+                if insertNewObjects { modelContext.insert(site) }
+                retainedIDs.insert(site.id)
+                updatedSites.append(site)
+            }
+        }
+
+        if allowDeletes {
+            for site in employer.sites where !retainedIDs.contains(site.id) {
+                modelContext.delete(site)
+            }
+        } else {
+            for site in employer.sites where !retainedIDs.contains(site.id) {
+                updatedSites.append(site)
+            }
+        }
+
+        employer.sites = updatedSites
+    }
+
+    private func syncStreakRules(for employer: Employer, allowDeletes: Bool, insertNewObjects: Bool) {
+        var retainedIDs = Set<UUID>()
+        var updatedRules: [StreakRule] = []
+        let lastRuleIndex = streakRules.indices.last
+
+        for (index, draft) in streakRules.enumerated() {
+            if let sourceID = draft.sourceID,
+               let existing = employer.streakRules.first(where: { $0.id == sourceID }) {
+                existing.requiredDays = draft.requiredDays
+                existing.windowType = draft.windowType
+                existing.windowDays = draft.windowType == .rollingDays ? draft.windowDays : nil
+                existing.bonusAmount = draft.bonusAmount
+                existing.isActive = index == lastRuleIndex
+                retainedIDs.insert(existing.id)
+                updatedRules.append(existing)
+            } else {
+                let rule = StreakRule(
+                    requiredDays: draft.requiredDays,
+                    windowType: draft.windowType,
+                    windowDays: draft.windowType == .rollingDays ? draft.windowDays : nil,
+                    bonusAmount: draft.bonusAmount,
+                    isActive: index == lastRuleIndex
+                )
+                rule.employer = employer
+                if insertNewObjects { modelContext.insert(rule) }
+                retainedIDs.insert(rule.id)
+                updatedRules.append(rule)
+            }
+        }
+
+        if allowDeletes {
+            for rule in employer.streakRules where !retainedIDs.contains(rule.id) {
+                modelContext.delete(rule)
+            }
+        } else {
+            for rule in employer.streakRules where !retainedIDs.contains(rule.id) {
+                updatedRules.append(rule)
+            }
+        }
+
+        employer.streakRules = updatedRules
+        employer.keepOnlyNewestActiveStreakRule()
+    }
+
+    private func syncCustomBonuses(for employer: Employer, allowDeletes: Bool, insertNewObjects: Bool) {
+        var retainedIDs = Set<UUID>()
+        var updatedBonuses: [CustomBonusType] = []
+
+        for draft in customBonusTypes {
+            let trimmedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedName.isEmpty else { continue }
+
+            if let sourceID = draft.sourceID,
+               let existing = employer.customBonusTypes.first(where: { $0.id == sourceID }) {
+                existing.name = trimmedName
+                existing.payUnit = draft.payUnit
+                existing.defaultAmount = draft.defaultAmount
+                existing.payoutSchedule = draft.payoutSchedule
+                retainedIDs.insert(existing.id)
+                updatedBonuses.append(existing)
+            } else {
+                let bonus = CustomBonusType(
+                    employer: employer,
+                    name: trimmedName,
+                    payUnit: draft.payUnit,
+                    defaultAmount: draft.defaultAmount,
+                    payoutSchedule: draft.payoutSchedule
+                )
+                if insertNewObjects { modelContext.insert(bonus) }
+                retainedIDs.insert(bonus.id)
+                updatedBonuses.append(bonus)
+            }
+        }
+
+        if allowDeletes {
+            for bonus in employer.customBonusTypes where !retainedIDs.contains(bonus.id) {
+                modelContext.delete(bonus)
+            }
+        } else {
+            for bonus in employer.customBonusTypes where !retainedIDs.contains(bonus.id) {
+                updatedBonuses.append(bonus)
+            }
+        }
+
+        employer.customBonusTypes = updatedBonuses
+    }
+
+    private static func nextEmployerVersionName(from name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "New Employer Version" }
+
+        if let range = trimmed.range(of: #" v(\d+)$"#, options: .regularExpression),
+           let version = Int(trimmed[range].dropFirst(2)) {
+            let prefix = String(trimmed[..<range.lowerBound])
+            return "\(prefix) v\(version + 1)"
+        }
+
+        return "\(trimmed) v2"
     }
 }
 
@@ -237,31 +464,84 @@ struct WizardProgressBar: View {
 
 struct DraftContact: Identifiable {
     var id = UUID()
+    var sourceID: UUID? = nil
     var name: String = ""
     var role: String = ""
+
+    var trimmedRole: String? {
+        let trimmed = role.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    init(name: String = "", role: String = "") {
+        self.name = name
+        self.role = role
+    }
+
+    init(contact: ContactPerson) {
+        self.id = contact.id
+        self.sourceID = contact.id
+        self.name = contact.name
+        self.role = contact.role ?? ""
+    }
 }
 
 struct DraftSite: Identifiable {
     var id = UUID()
+    var sourceID: UUID? = nil
     var name: String = ""
     var payUnit: PayUnit = .perDay
     var baseAmount: Decimal = 0
+
+    init() {}
+
+    init(site: Site) {
+        self.id = site.id
+        self.sourceID = site.id
+        self.name = site.name
+        self.payUnit = site.payUnit
+        self.baseAmount = site.baseAmount
+    }
 }
 
 struct DraftStreakRule: Identifiable {
     var id = UUID()
+    var sourceID: UUID? = nil
     var requiredDays: Int = 4
     var windowType: StreakWindowType = .rollingDays
     var windowDays: Int = 14
     var bonusAmount: Decimal = 0
+
+    init() {}
+
+    init(rule: StreakRule) {
+        self.id = rule.id
+        self.sourceID = rule.id
+        self.requiredDays = rule.requiredDays
+        self.windowType = rule.windowType
+        self.windowDays = rule.windowDays ?? 14
+        self.bonusAmount = rule.bonusAmount
+    }
 }
 
 struct DraftCustomBonusType: Identifiable {
     var id = UUID()
+    var sourceID: UUID? = nil
     var name: String = ""
     var payUnit: PayUnit = .perDay
     var defaultAmount: Decimal = 0
     var payoutSchedule: BonusPayoutSchedule = .serviceDate
+
+    init() {}
+
+    init(bonus: CustomBonusType) {
+        self.id = bonus.id
+        self.sourceID = bonus.id
+        self.name = bonus.name
+        self.payUnit = bonus.payUnit
+        self.defaultAmount = bonus.defaultAmount
+        self.payoutSchedule = bonus.payoutSchedule
+    }
 }
 
 // MARK: - Step 1: Employer Info
@@ -270,6 +550,7 @@ struct EmployerInfoStep: View {
     @Binding var name: String
     @Binding var payCadence: PayCadence
     @Binding var customCadenceDays: Int
+    @Binding var defaultOnCallAmount: Decimal
     @Binding var contactPersons: [DraftContact]
 
     @State private var showAddContact = false
@@ -331,6 +612,15 @@ struct EmployerInfoStep: View {
                     }
                 }
             }
+
+            WizardField(label: "On-Call Default (optional)") {
+                VStack(alignment: .leading, spacing: 8) {
+                    CurrencyField(value: $defaultOnCallAmount, placeholder: "0.00")
+                    Text("If a shift is marked On-Call later, this default amount will prefill and stay editable per shift.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .sheet(isPresented: $showAddContact) {
             AddContactSheet(contactPersons: $contactPersons)
@@ -340,6 +630,7 @@ struct EmployerInfoStep: View {
 
 struct CustomBonusesStep: View {
     @Binding var customBonusTypes: [DraftCustomBonusType]
+    let isEditingExistingEmployer: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -384,7 +675,10 @@ struct CustomBonusesStep: View {
                 }
 
                 ForEach($customBonusTypes) { $bonus in
-                    CustomBonusTypeEditorCard(bonus: $bonus) {
+                    CustomBonusTypeEditorCard(
+                        bonus: $bonus,
+                        canDelete: !(isEditingExistingEmployer && bonus.sourceID != nil)
+                    ) {
                         customBonusTypes.removeAll { $0.id == bonus.id }
                     }
                 }
@@ -395,6 +689,7 @@ struct CustomBonusesStep: View {
 
 struct CustomBonusTypeEditorCard: View {
     @Binding var bonus: DraftCustomBonusType
+    let canDelete: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -403,11 +698,13 @@ struct CustomBonusTypeEditorCard: View {
                 TextField("Bonus name", text: $bonus.name)
                     .textFieldStyle(.roundedBorder)
                     .font(.title3)
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
+                if canDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
 
             Picker("How this bonus pays", selection: $bonus.payUnit) {
@@ -501,6 +798,7 @@ struct AddContactSheet: View {
 
 struct SitesStep: View {
     @Binding var sites: [DraftSite]
+    let isEditingExistingEmployer: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -508,9 +806,13 @@ struct SitesStep: View {
                 .foregroundStyle(.secondary)
 
             ForEach($sites) { $site in
-                SiteEditorCard(site: $site, onDelete: {
-                    sites.removeAll { $0.id == site.id }
-                })
+                SiteEditorCard(
+                    site: $site,
+                    canDelete: !(isEditingExistingEmployer && site.sourceID != nil),
+                    onDelete: {
+                        sites.removeAll { $0.id == site.id }
+                    }
+                )
             }
 
             Button {
@@ -525,6 +827,7 @@ struct SitesStep: View {
 
 struct SiteEditorCard: View {
     @Binding var site: DraftSite
+    let canDelete: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -533,11 +836,13 @@ struct SiteEditorCard: View {
                 TextField("Site name", text: $site.name)
                     .textFieldStyle(.roundedBorder)
                     .font(.body)
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
+                if canDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
 
             HStack(alignment: .top, spacing: 12) {
@@ -567,10 +872,11 @@ struct SiteEditorCard: View {
 
 struct StreakRulesStep: View {
     @Binding var rules: [DraftStreakRule]
+    let isEditingExistingEmployer: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Streak bonuses kick in when you hit a qualifying number of shifts. You can add multiple rules.")
+            Text("Streak bonuses kick in when you hit a qualifying number of shifts. Only one streak rule can be active per employer.")
                 .foregroundStyle(.secondary)
 
             if rules.isEmpty {
@@ -585,23 +891,21 @@ struct StreakRulesStep: View {
                     .foregroundStyle(.secondary)
                     .font(.footnote)
             } else {
-                HStack {
-                    Text("Streak bonus rules")
-                        .font(.headline)
-                    Spacer()
-                    Button {
-                        rules.append(DraftStreakRule())
-                    } label: {
-                        Label("Add Another", systemImage: "plus.circle")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
-                }
+                Text("Streak bonus rule")
+                    .font(.headline)
+
+                Text("If this employer needs a materially different streak setup later, prefer creating a new employer version rather than mutating historical behavior.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
 
                 ForEach($rules) { $rule in
-                    StreakRuleEditorCard(rule: $rule, onDelete: {
-                        rules.removeAll { $0.id == rule.id }
-                    })
+                    StreakRuleEditorCard(
+                        rule: $rule,
+                        canDelete: !(isEditingExistingEmployer && rule.sourceID != nil),
+                        onDelete: {
+                            rules.removeAll { $0.id == rule.id }
+                        }
+                    )
                 }
             }
         }
@@ -610,6 +914,7 @@ struct StreakRulesStep: View {
 
 struct StreakRuleEditorCard: View {
     @Binding var rule: DraftStreakRule
+    let canDelete: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -618,10 +923,12 @@ struct StreakRuleEditorCard: View {
                 Text("Streak Rule")
                     .font(.headline)
                 Spacer()
-                Button(action: onDelete) {
-                    Image(systemName: "trash").foregroundStyle(.red)
+                if canDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash").foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
 
             HStack(spacing: 12) {
@@ -660,16 +967,32 @@ struct StreakRuleEditorCard: View {
 // MARK: - Step 4: Review
 
 struct WizardReviewStep: View {
+    let mode: EmployerWizardMode
     let employerName: String
     let payCadence: PayCadence
+    let defaultOnCallAmount: Decimal
     let sites: [DraftSite]
     let streakRules: [DraftStreakRule]
     let customBonusTypes: [DraftCustomBonusType]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            if mode != .create {
+                Text(mode == .edit
+                     ? "Existing shifts keep their saved pay snapshots. This review only changes employer defaults, site settings, and future rule choices."
+                     : "This versioned copy starts future shifts on a new employer record while leaving the original employer history untouched.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            }
+
             ReviewRow(label: "Employer", value: employerName)
             ReviewRow(label: "Pay Cadence", value: payCadence.rawValue)
+            if defaultOnCallAmount > 0 {
+                ReviewRow(label: "On-Call Default", value: defaultOnCallAmount.formatted(.currency(code: "USD")))
+            }
 
             Divider()
 

@@ -279,6 +279,19 @@ struct BonusPayoutRow: Identifiable {
             ))
         }
 
+        if shift.hasOnCallBonus {
+            rows.append(BonusPayoutRow(
+                shiftID: shift.id,
+                serviceDate: shift.date,
+                payoutDate: BonusPayoutSchedule.serviceDate.payoutDate(for: shift.date),
+                employerName: employerName,
+                siteName: siteName,
+                bonusName: "On-Call Bonus",
+                amount: shift.onCallPay,
+                schedule: .serviceDate
+            ))
+        }
+
         if let splash = shift.splashAmount, splash > 0 {
             rows.append(BonusPayoutRow(shiftID: shift.id, serviceDate: shift.date, payoutDate: BonusPayoutSchedule.serviceDate.payoutDate(for: shift.date), employerName: employerName, siteName: siteName, bonusName: "Splash Bonus", amount: splash, schedule: .serviceDate))
         }
@@ -286,15 +299,16 @@ struct BonusPayoutRow: Identifiable {
             rows.append(BonusPayoutRow(shiftID: shift.id, serviceDate: shift.date, payoutDate: BonusPayoutSchedule.serviceDate.payoutDate(for: shift.date), employerName: employerName, siteName: siteName, bonusName: "Bonus Splash", amount: bonusSplash, schedule: .serviceDate))
         }
         if let streak = shift.streakBonusAmount, streak > 0 {
+            let payoutSchedule = shift.streakPayoutSchedule ?? .nextQuarterlyPayout
             rows.append(BonusPayoutRow(
                 shiftID: shift.id,
                 serviceDate: shift.date,
-                payoutDate: BonusPayoutSchedule.nextQuarterlyPayout.payoutDate(for: shift.date),
+                payoutDate: payoutSchedule.payoutDate(for: shift.date),
                 employerName: employerName,
                 siteName: siteName,
                 bonusName: "Streak Bonus",
                 amount: streak,
-                schedule: .nextQuarterlyPayout
+                schedule: payoutSchedule
             ))
         }
         return rows

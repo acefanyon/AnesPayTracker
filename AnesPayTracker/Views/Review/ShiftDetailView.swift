@@ -12,6 +12,7 @@ struct ShiftDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var showEditHistory = false
+    @State private var showCopiedAlert = false
 
     var body: some View {
         NavigationStack {
@@ -68,9 +69,19 @@ struct ShiftDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .confirmationAction) {
+                    Button {
+                        copyShift()
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
                     Button("Edit") { showEdit = true }
                     Button("Done") { dismiss() }
                 }
+            }
+            .alert("Shift copied", isPresented: $showCopiedAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Open another day and use Paste Copied Shift to reuse the editable fields on the new date.")
             }
             .sheet(isPresented: $showEdit) {
                 AddShiftView(editingShift: shift)
@@ -101,6 +112,11 @@ struct ShiftDetailView: View {
         }
         dismiss()
     }
+
+    private func copyShift() {
+        ShiftDraftClipboard.shared.copy(from: shift)
+        showCopiedAlert = true
+    }
 }
 
 // MARK: - Header
@@ -130,8 +146,17 @@ struct ShiftDetailHeader: View {
                     .foregroundStyle(.orange)
             }
 
+            if shift.isOnCall {
+                Label("On-Call", systemImage: "phone.badge.clock")
+                    .font(.footnote.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue, in: Capsule())
+            }
+
             if shift.hasStreakBonus {
-                Label("Streak bonus triggered on this shift", systemImage: "target")
+                Label("This shift is earning a deferred streak bonus", systemImage: "target")
                     .font(.footnote.bold())
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
@@ -150,20 +175,26 @@ struct ShiftDetailHeader: View {
 struct PayBreakdownCard: View {
     let shift: Shift
 
+    private var streakPayoutDetail: String {
+        let schedule = shift.streakPayoutSchedule ?? .nextQuarterlyPayout
+        let payoutDate = schedule.payoutDate(for: shift.date)
+        return "Earned on this shift, paid \(payoutDate.formatted(.dateTime.month(.abbreviated).day().year()))"
+    }
+
     var body: some View {
         InfoCard(title: "Pay Breakdown") {
             VStack(spacing: 0) {
                 switch shift.payUnit {
                 case .perDay:
                     BreakdownRow(
-                        label: "\(shift.site?.baseAmount.formatted(.currency(code: "USD")) ?? "$0") × \(shift.dayFraction?.label ?? "Full")",
+                        label: "\(shift.baseAmount.formatted(.currency(code: "USD"))) × \(shift.dayFraction?.label ?? "Full")",
                         value: shift.basePay,
                         isBase: true
                     )
                 case .perHour:
                     let hrs = shift.hoursWorked ?? 0
                     BreakdownRow(
-                        label: "\(shift.site?.baseAmount.formatted(.currency(code: "USD")) ?? "$0")/hr × \(hrs.formatted()) hrs",
+                        label: "\(shift.baseAmount.formatted(.currency(code: "USD")))/hr × \(hrs.formatted()) hrs",
                         value: shift.basePay,
                         isBase: true
                     )
@@ -179,6 +210,16 @@ struct PayBreakdownCard: View {
                     BreakdownRow(label: "Bonus Splash", value: bonus)
                 }
 
+                if shift.hasOnCallBonus {
+                    Divider()
+                    BreakdownRow(
+                        label: "On-Call Bonus",
+                        detail: "Paid with this shift on the service date",
+                        value: shift.onCallPay,
+                        highlight: true
+                    )
+                }
+
                 ForEach(shift.customBonuses ?? []) { bonus in
                     if bonus.totalAmount > 0 {
                         Divider()
@@ -188,7 +229,12 @@ struct PayBreakdownCard: View {
 
                 if let streak = shift.streakBonusAmount, streak > 0 {
                     Divider()
-                    BreakdownRow(label: "🎯 Streak Bonus", value: streak, highlight: true)
+                    BreakdownRow(
+                        label: "🎯 Streak Bonus",
+                        detail: streakPayoutDetail,
+                        value: streak,
+                        highlight: true
+                    )
                 }
 
                 Divider()
@@ -200,6 +246,7 @@ struct PayBreakdownCard: View {
 
 struct BreakdownRow: View {
     let label: String
+    var detail: String? = nil
     let value: Decimal
     var isBase: Bool = false
     var isTotal: Bool = false
@@ -207,9 +254,16 @@ struct BreakdownRow: View {
 
     var body: some View {
         HStack {
-            Text(label)
-                .font(isTotal ? .body.bold() : .body)
-                .foregroundStyle(highlight ? .orange : (isBase ? .secondary : .primary))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(isTotal ? .body.bold() : .body)
+                    .foregroundStyle(highlight ? .orange : (isBase ? .secondary : .primary))
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer()
             Text(value.formatted(.currency(code: "USD")))
                 .font(isTotal ? .title3.bold() : .body)
@@ -223,6 +277,22 @@ struct BreakdownRow: View {
 
 struct ShiftMetaCard: View {
     let shift: Shift
+
+    private var streakStatusText: String {
+        if shift.streakQualifiedForPayout, let amount = shift.streakPerDayBonusAmount {
+            let payoutDate = (shift.streakPayoutSchedule ?? .nextQuarterlyPayout).payoutDate(for: shift.date)
+            return "Earned +\(amount.formatted(.currency(code: "USD"))) on this shift, pays \(payoutDate.formatted(.dateTime.month(.abbreviated).day().year()))"
+        }
+
+        if let qualifiedCount = shift.streakQualifiedShiftCount {
+            if qualifiedCount == 0 {
+                return "No streak progress snapshot"
+            }
+            return "Counted as streak day \(qualifiedCount) for this quarter"
+        }
+
+        return "No streak progress snapshot"
+    }
 
     var body: some View {
         InfoCard(title: "Details") {
@@ -239,6 +309,10 @@ struct ShiftMetaCard: View {
                 case .perHour:
                     MetaRow(label: "Hours", value: "\(shift.hoursWorked?.formatted() ?? "0") hrs")
                 }
+                Divider()
+                MetaRow(label: "On-Call", value: shift.isOnCall ? shift.onCallPay.formatted(.currency(code: "USD")) : "No")
+                Divider()
+                MetaRow(label: "Streak Status", value: streakStatusText)
             }
         }
     }

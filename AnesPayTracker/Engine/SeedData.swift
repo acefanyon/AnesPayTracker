@@ -15,7 +15,8 @@ struct SeedData {
         let vap = Employer(
             name: "Valley Anesthesia Partners",
             contactPersons: [],
-            payCadence: .biweekly
+            payCadence: .biweekly,
+            defaultOnCallAmount: 250
         )
 
         let tanya = ContactPerson(name: "Tanya Reeves", role: "Scheduling Coordinator")
@@ -54,12 +55,16 @@ struct SeedData {
         )
         vap.customBonusTypes = [highNeedBonus, hardToFillBonus]
 
-        // Streak rule: 4 days in 14 rolling days → $500
+        // Streak rule: 12 days in calendar quarter → +$200/day on later quarter shifts, paid quarterly
         let streakRule = StreakRule(
-            requiredDays: 4,
-            windowType: .rollingDays,
-            windowDays: 14,
-            bonusAmount: 500,
+            requiredDays: 12,
+            windowType: .calendarQuarter,
+            windowDays: nil,
+            bonusAmount: 0,
+            postThresholdPerDayAmount: 200,
+            payoutSchedule: .nextQuarterlyPayout,
+            countsPartialDaysAsFullShift: true,
+            awardsOnShiftsAfterThreshold: true,
             isActive: true
         )
         streakRule.employer = vap
@@ -97,6 +102,8 @@ struct SeedData {
             payUnit: .perHour,
             hoursWorked: 8.0,
             baseAmount: 225,
+            isOnCall: true,
+            onCallAmount: 250,
             notes: "Cardiac anesthesia. Long but routine."
         )
 
@@ -128,7 +135,7 @@ struct SeedData {
             baseAmount: 225
         )
 
-        // Shift 5: Riverside, full day, 8 days ago — streak trigger
+        // Shift 5: Riverside, full day, 8 days ago — seeded legacy streak snapshot
         let shift5 = Shift(
             site: riverside,
             date: dateOffset(-8),
@@ -137,6 +144,10 @@ struct SeedData {
             baseAmount: 1800,
             streakBonusAmount: 500,
             streakRuleTriggeredID: streakRule.id,
+            streakQualifiedShiftCount: 4,
+            streakPerDayBonusAmount: 200,
+            streakPayoutSchedule: .nextQuarterlyPayout,
+            streakQualifiedForPayout: true,
             customBonuses: [
                 AppliedCustomBonus(name: "High Need Bonus", payUnit: .perDay, amount: 350, quantity: 1),
                 AppliedCustomBonus(name: "Hard-to-Fill Bonus", payUnit: .perDay, amount: 200, quantity: 1)

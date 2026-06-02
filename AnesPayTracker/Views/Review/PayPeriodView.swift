@@ -64,8 +64,10 @@ struct PayPeriodView: View {
         let shifts: [Shift]
         
         var totalBase: Decimal { shifts.reduce(0) { $0 + $1.basePay } }
+        var totalOnCall: Decimal { shifts.reduce(0) { $0 + $1.onCallPay } }
         var totalBonus: Decimal { shifts.reduce(0) { $0 + $1.bonusPay } }
         var totalStreak: Decimal { shifts.reduce(0) { $0 + ($1.streakBonusAmount ?? 0) } }
+        var totalImmediate: Decimal { totalBase + totalBonus }
         var grandTotal: Decimal { shifts.reduce(0) { $0 + $1.totalPay } }
         
         var label: String {
@@ -216,10 +218,10 @@ struct PayPeriodCard: View {
                         Button {
                             onSelectShift(shift)
                         } label: {
-                            PayPeriodShiftRow(shift: shift)
+                             PayBreakdownCard(shift: shift)
                         }
                         .buttonStyle(.plain)
-                        
+
                         if shift.id != period.shifts.last?.id {
                             Divider().padding(.leading, 16)
                         }
@@ -242,17 +244,25 @@ struct PayPeriodCard: View {
 
 struct PayPeriodTotalsRow: View {
     let period: PayPeriodView.PeriodGroup
+
+    private var otherBonusTotal: Decimal {
+        period.totalBonus - period.totalOnCall
+    }
     
     var body: some View {
         HStack(spacing: 0) {
             TotalColumn(label: "Base", amount: period.totalBase)
-            if period.totalBonus > 0 {
+            if period.totalOnCall > 0 {
                 Divider()
-                TotalColumn(label: "Bonuses", amount: period.totalBonus)
+                TotalColumn(label: "On-Call", amount: period.totalOnCall)
+            }
+            if otherBonusTotal > 0 {
+                Divider()
+                TotalColumn(label: period.totalOnCall > 0 ? "Other Bonuses" : "Bonuses", amount: otherBonusTotal)
             }
             if period.totalStreak > 0 {
                 Divider()
-                TotalColumn(label: "🎯 Streak", amount: period.totalStreak)
+                TotalColumn(label: "🎯 Deferred Streak", amount: period.totalStreak)
             }
             Divider()
             TotalColumn(label: "Total", amount: period.grandTotal, highlight: true)
@@ -285,6 +295,22 @@ struct TotalColumn: View {
 
 struct PayPeriodShiftRow: View {
     let shift: Shift
+
+    private var immediatePayText: String {
+        let immediatePay = shift.basePay + shift.bonusPay
+        return "Paid with shift: \(immediatePay.formatted(.currency(code: "USD")))"
+    }
+
+    private var onCallText: String? {
+        guard shift.isOnCall else { return nil }
+        return "On-call: \(shift.onCallPay.formatted(.currency(code: "USD")))"
+    }
+
+    private var deferredPayText: String? {
+        guard let streak = shift.streakBonusAmount, streak > 0 else { return nil }
+        let payoutDate = (shift.streakPayoutSchedule ?? .nextQuarterlyPayout).payoutDate(for: shift.date)
+        return "Quarterly streak: \(streak.formatted(.currency(code: "USD"))) on \(payoutDate.formatted(.dateTime.month(.abbreviated).day()))"
+    }
     
     var body: some View {
         HStack {
@@ -304,6 +330,19 @@ struct PayPeriodShiftRow: View {
                 Text(shift.date, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                Text(immediatePayText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if let onCallText {
+                    Text(onCallText)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                if let deferredPayText {
+                    Text(deferredPayText)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
             
             Spacer()

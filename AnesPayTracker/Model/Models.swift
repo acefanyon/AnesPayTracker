@@ -10,6 +10,7 @@ final class Employer {
     var contactPersons: [ContactPerson]
     var payCadence: PayCadence
     var customCadenceDays: Int?
+    var defaultOnCallAmount: Decimal
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Site.employer)
@@ -27,6 +28,7 @@ final class Employer {
         contactPersons: [ContactPerson] = [],
         payCadence: PayCadence = .biweekly,
         customCadenceDays: Int? = nil,
+        defaultOnCallAmount: Decimal = 0,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -34,10 +36,37 @@ final class Employer {
         self.contactPersons = contactPersons
         self.payCadence = payCadence
         self.customCadenceDays = customCadenceDays
+        self.defaultOnCallAmount = defaultOnCallAmount
         self.createdAt = createdAt
         self.sites = []
         self.streakRules = []
         self.customBonusTypes = []
+    }
+
+    var activeStreakRules: [StreakRule] {
+        streakRules
+            .filter { $0.isActive }
+            .sorted {
+                if $0.createdAt == $1.createdAt {
+                    return $0.id.uuidString > $1.id.uuidString
+                }
+                return $0.createdAt > $1.createdAt
+            }
+    }
+
+    var activeStreakRule: StreakRule? {
+        activeStreakRules.first
+    }
+
+    func activateOnlyStreakRule(_ selectedRule: StreakRule) {
+        for rule in streakRules {
+            rule.isActive = (rule.id == selectedRule.id)
+        }
+    }
+
+    func keepOnlyNewestActiveStreakRule() {
+        guard let activeRule = activeStreakRule else { return }
+        activateOnlyStreakRule(activeRule)
     }
 }
 
@@ -142,10 +171,16 @@ final class Shift {
     var dayFraction: DayFraction?
     var hoursWorked: Double?
     var baseAmount: Decimal
+    var isOnCall: Bool
+    var onCallAmount: Decimal?
     var splashAmount: Decimal?
     var bonusSplashAmount: Decimal?
     var streakBonusAmount: Decimal?
     var streakRuleTriggeredID: UUID?
+    var streakQualifiedShiftCount: Int?
+    var streakPerDayBonusAmount: Decimal?
+    var streakPayoutSchedule: BonusPayoutSchedule?
+    var streakQualifiedForPayout: Bool
     var customBonuses: [AppliedCustomBonus]?
     var notes: String?
     var sourceNote: SourceNote?
@@ -162,10 +197,16 @@ final class Shift {
         dayFraction: DayFraction? = .full,
         hoursWorked: Double? = nil,
         baseAmount: Decimal = 0,
+        isOnCall: Bool = false,
+        onCallAmount: Decimal? = nil,
         splashAmount: Decimal? = nil,
         bonusSplashAmount: Decimal? = nil,
         streakBonusAmount: Decimal? = nil,
         streakRuleTriggeredID: UUID? = nil,
+        streakQualifiedShiftCount: Int? = nil,
+        streakPerDayBonusAmount: Decimal? = nil,
+        streakPayoutSchedule: BonusPayoutSchedule? = nil,
+        streakQualifiedForPayout: Bool = false,
         customBonuses: [AppliedCustomBonus]? = nil,
         notes: String? = nil,
         sourceNote: SourceNote? = nil,
@@ -180,10 +221,16 @@ final class Shift {
         self.dayFraction = dayFraction
         self.hoursWorked = hoursWorked
         self.baseAmount = baseAmount
+        self.isOnCall = isOnCall
+        self.onCallAmount = onCallAmount
         self.splashAmount = splashAmount
         self.bonusSplashAmount = bonusSplashAmount
         self.streakBonusAmount = streakBonusAmount
         self.streakRuleTriggeredID = streakRuleTriggeredID
+        self.streakQualifiedShiftCount = streakQualifiedShiftCount
+        self.streakPerDayBonusAmount = streakPerDayBonusAmount
+        self.streakPayoutSchedule = streakPayoutSchedule
+        self.streakQualifiedForPayout = streakQualifiedForPayout
         self.customBonuses = customBonuses
         self.notes = notes
         self.sourceNote = sourceNote
@@ -203,9 +250,15 @@ final class Shift {
     }
 
     var bonusPay: Decimal {
+        onCallPay
+        +
         (splashAmount ?? 0)
         + (bonusSplashAmount ?? 0)
         + (customBonuses ?? []).reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
+
+    var onCallPay: Decimal {
+        isOnCall ? (onCallAmount ?? 0) : 0
     }
 
     var totalPay: Decimal {
@@ -215,7 +268,9 @@ final class Shift {
     }
 
     var isEdited: Bool { lastEditedAt != nil }
+    var hasOnCallBonus: Bool { isOnCall && (onCallAmount ?? 0) > 0 }
     var hasStreakBonus: Bool { (streakBonusAmount ?? 0) > 0 }
+    var hasDeferredStreakPayout: Bool { streakQualifiedForPayout && (streakPerDayBonusAmount ?? 0) > 0 }
 }
 
 // MARK: - Streak Rule
@@ -228,6 +283,10 @@ final class StreakRule {
     var windowType: StreakWindowType
     var windowDays: Int?
     var bonusAmount: Decimal
+    var postThresholdPerDayAmount: Decimal?
+    var payoutSchedule: BonusPayoutSchedule
+    var countsPartialDaysAsFullShift: Bool
+    var awardsOnShiftsAfterThreshold: Bool
     var isActive: Bool
     var createdAt: Date
 
@@ -238,6 +297,10 @@ final class StreakRule {
         windowType: StreakWindowType = .rollingDays,
         windowDays: Int? = 14,
         bonusAmount: Decimal = 0,
+        postThresholdPerDayAmount: Decimal? = nil,
+        payoutSchedule: BonusPayoutSchedule = .nextQuarterlyPayout,
+        countsPartialDaysAsFullShift: Bool = true,
+        awardsOnShiftsAfterThreshold: Bool = true,
         isActive: Bool = true,
         createdAt: Date = Date()
     ) {
@@ -247,21 +310,32 @@ final class StreakRule {
         self.windowType = windowType
         self.windowDays = windowDays
         self.bonusAmount = bonusAmount
+        self.postThresholdPerDayAmount = postThresholdPerDayAmount
+        self.payoutSchedule = payoutSchedule
+        self.countsPartialDaysAsFullShift = countsPartialDaysAsFullShift
+        self.awardsOnShiftsAfterThreshold = awardsOnShiftsAfterThreshold
         self.isActive = isActive
         self.createdAt = createdAt
     }
 
     var description: String {
-        let window: String
+        let rewardText: String
+        if let postThresholdPerDayAmount {
+            rewardText = "\(postThresholdPerDayAmount.formatted(.currency(code: "USD")))/day after threshold"
+        } else {
+            rewardText = bonusAmount.formatted(.currency(code: "USD"))
+        }
+
         switch windowType {
         case .rollingDays:
-            return "Work \(requiredDays) days in \(windowDays ?? 14) days → \(bonusAmount.formatted(.currency(code: "USD")))"
+            return "Work \(requiredDays) days in \(windowDays ?? 14) days → \(rewardText)"
         case .calendarMonth:
-            return "Work \(requiredDays) days in calendar month → \(bonusAmount.formatted(.currency(code: "USD")))"
+            return "Work \(requiredDays) days in calendar month → \(rewardText)"
+        case .calendarQuarter:
+            return "Work \(requiredDays) days in calendar quarter → \(rewardText)"
         case .payPeriod:
-            return "Work \(requiredDays) days in pay period → \(bonusAmount.formatted(.currency(code: "USD")))"
+            return "Work \(requiredDays) days in pay period → \(rewardText)"
         }
-        return window
     }
 }
 
@@ -348,6 +422,7 @@ enum DayFraction: String, Codable, CaseIterable {
 enum StreakWindowType: String, Codable, CaseIterable {
     case rollingDays = "Rolling Days"
     case calendarMonth = "Calendar Month"
+    case calendarQuarter = "Calendar Quarter"
     case payPeriod = "Pay Period"
 }
 

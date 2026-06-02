@@ -84,6 +84,8 @@ struct EmployerDetailSettings: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var employer: Employer
     
+    @State private var showEditEmployer = false
+    @State private var showDuplicateEmployerVersion = false
     @State private var showAddSite = false
     @State private var showAddStreak = false
     @State private var showDeleteConfirm = false
@@ -91,6 +93,24 @@ struct EmployerDetailSettings: View {
     
     var body: some View {
         List {
+            Section {
+                Button {
+                    showEditEmployer = true
+                } label: {
+                    Label("Open Full Employer Editor", systemImage: "square.and.pencil")
+                }
+
+                Button {
+                    showDuplicateEmployerVersion = true
+                } label: {
+                    Label("Create Versioned Copy", systemImage: "plus.square.on.square")
+                }
+            } header: {
+                Text("Employer-Wide Changes")
+            } footer: {
+                Text("Use the full editor for global default changes. Saved shifts keep their existing pay snapshots. If the new setup should only apply going forward, create a versioned copy instead of rewriting the original employer.")
+            }
+
             // Basic info
             Section("Info") {
                 HStack {
@@ -100,13 +120,13 @@ struct EmployerDetailSettings: View {
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Picker("Pay Cadence", selection: $employer.payCadence) {
                     ForEach(PayCadence.allCases, id: \.self) {
                         Text($0.rawValue).tag($0)
                     }
                 }
-                
+
                 if employer.payCadence == .custom {
                     HStack {
                         Text("Every")
@@ -120,6 +140,16 @@ struct EmployerDetailSettings: View {
                             in: 1...365
                         )
                     }
+                }
+
+                HStack {
+                    Text("Default On-Call Bonus")
+                    Spacer()
+                    CurrencyField(value: Binding(
+                        get: { employer.defaultOnCallAmount },
+                        set: { employer.defaultOnCallAmount = $0 }
+                    ), placeholder: "0.00")
+                    .frame(width: 120)
                 }
             }
             
@@ -172,13 +202,23 @@ struct EmployerDetailSettings: View {
             
             // Streak rules
             Section("Streak Rules") {
+                if employer.activeStreakRules.count > 1 {
+                    Text("Multiple active streak rules were found. The newest active rule will be used until you clean this up.")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("Only one streak rule should be active per employer. Keep older rules inactive for reference or future employer-versioning.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 ForEach(employer.streakRules) { rule in
                     NavigationLink {
                         StreakRuleSettings(rule: rule)
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(rule.description).font(.footnote)
-                            Text(rule.isActive ? "Active" : "Inactive")
+                            Text(rule.isActive ? "Active rule" : "Inactive archive")
                                 .font(.caption)
                                 .foregroundStyle(rule.isActive ? .green : .secondary)
                         }
@@ -218,6 +258,12 @@ struct EmployerDetailSettings: View {
         }
         .sheet(isPresented: $showAddStreak) {
             AddStreakRuleSheet(employer: employer)
+        }
+        .sheet(isPresented: $showEditEmployer) {
+            EmployerSetupWizard(mode: .edit, sourceEmployer: employer)
+        }
+        .sheet(isPresented: $showDuplicateEmployerVersion) {
+            EmployerSetupWizard(mode: .duplicateVersion, sourceEmployer: employer)
         }
     }
 }
@@ -275,10 +321,25 @@ struct SiteDetailSettings: View {
 
 struct StreakRuleSettings: View {
     @Bindable var rule: StreakRule
+    @Environment(\.modelContext) private var modelContext
+
+    private var activeBinding: Binding<Bool> {
+        Binding(
+            get: { rule.isActive },
+            set: { newValue in
+                if newValue {
+                    rule.employer?.activateOnlyStreakRule(rule)
+                } else {
+                    rule.isActive = false
+                }
+                try? modelContext.save()
+            }
+        )
+    }
     
     var body: some View {
         List {
-            Section("Rule") {
+            Section {
                 HStack {
                     Text("Required Days")
                     Spacer()
@@ -309,7 +370,11 @@ struct StreakRuleSettings: View {
                         .frame(width: 120)
                 }
                 
-                Toggle("Active", isOn: $rule.isActive)
+                Toggle("Active", isOn: activeBinding)
+            } header: {
+                Text("Rule")
+            } footer: {
+                Text("Only one streak rule can be active per employer. Turning this on automatically turns the others off.")
             }
         }
         .navigationTitle("Streak Rule")
@@ -332,7 +397,7 @@ struct AddSiteSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 ScrollView {
-                    SiteEditorCard(site: $draft, onDelete: { dismiss() })
+                    SiteEditorCard(site: $draft, canDelete: true, onDelete: { dismiss() })
                         .padding(24)
                 }
                 .modifier(CatalystFriendlyScrollDismiss())
@@ -389,7 +454,7 @@ struct AddStreakRuleSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 ScrollView {
-                    StreakRuleEditorCard(rule: $draft, onDelete: { dismiss() })
+                    StreakRuleEditorCard(rule: $draft, canDelete: true, onDelete: { dismiss() })
                         .padding(24)
                 }
                 .modifier(CatalystFriendlyScrollDismiss())
@@ -412,6 +477,7 @@ struct AddStreakRuleSheet: View {
                             bonusAmount: draft.bonusAmount
                         )
                         rule.employer = employer
+                        employer.activateOnlyStreakRule(rule)
                         modelContext.insert(rule)
                         try? modelContext.save()
                         dismiss()

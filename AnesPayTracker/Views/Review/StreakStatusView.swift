@@ -6,15 +6,15 @@ import SwiftData
 struct StreakStatusView: View {
     @Query private var employers: [Employer]
     @Query(sort: \Shift.date, order: .reverse) private var allShifts: [Shift]
-    
+
     @State private var selectedShift: Shift?
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     ForEach(employers) { employer in
-                        if !employer.streakRules.filter({ $0.isActive }).isEmpty {
+                        if employer.activeStreakRule != nil {
                             EmployerStreakSection(
                                 employer: employer,
                                 allShifts: allShifts,
@@ -22,8 +22,8 @@ struct StreakStatusView: View {
                             )
                         }
                     }
-                    
-                    if employers.allSatisfy({ $0.streakRules.filter({ $0.isActive }).isEmpty }) {
+
+                    if employers.allSatisfy({ $0.activeStreakRule == nil }) {
                         EmptyStateView(
                             icon: "flame",
                             title: "No streak rules",
@@ -48,27 +48,27 @@ struct EmployerStreakSection: View {
     let employer: Employer
     let allShifts: [Shift]
     let onSelectShift: (Shift) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(employer.name)
                 .font(.title3.bold())
                 .padding(.horizontal, 4)
-            
-            ForEach(employer.streakRules.filter { $0.isActive }) { rule in
+
+            if let rule = employer.activeStreakRule {
                 StreakRuleCard(
                     rule: rule,
                     progress: StreakEngine.progress(for: rule),
-                    triggeredShifts: triggeredShifts(for: rule),
+                    earnedShifts: earnedShifts(for: rule),
                     onSelectShift: onSelectShift
                 )
             }
         }
     }
-    
-    private func triggeredShifts(for rule: StreakRule) -> [Shift] {
+
+    private func earnedShifts(for rule: StreakRule) -> [Shift] {
         allShifts
-            .filter { $0.streakRuleTriggeredID == rule.id }
+            .filter { $0.streakRuleTriggeredID == rule.id && $0.streakQualifiedForPayout }
             .sorted { $0.date > $1.date }
     }
 }
@@ -78,46 +78,85 @@ struct EmployerStreakSection: View {
 struct StreakRuleCard: View {
     let rule: StreakRule
     let progress: StreakEngine.StreakProgress
-    let triggeredShifts: [Shift]
+    let earnedShifts: [Shift]
     let onSelectShift: (Shift) -> Void
-    
+
     @State private var showHistory = false
-    
+
+    private var perDayAmount: Decimal {
+        rule.postThresholdPerDayAmount ?? rule.bonusAmount
+    }
+
+    private var payoutText: String {
+        switch rule.payoutSchedule {
+        case .serviceDate:
+            return "Paid with the shift"
+        case .nextMonthlyPayout:
+            return "Paid at next monthly payout"
+        case .nextQuarterlyPayout:
+            return "Paid at next quarterly payout"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Rule summary
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(rule.description)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(rule.description)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text("\(progress.completedDays) of \(progress.requiredDays) days toward +\(perDayAmount.formatted(.currency(code: "USD")))/day")
+                            .font(.body.bold())
+                    }
                     Spacer()
-                    Text(rule.bonusAmount.formatted(.currency(code: "USD")))
+                    Text("+\(perDayAmount.formatted(.currency(code: "USD")))/day")
                         .font(.body.bold())
                         .foregroundStyle(Color.accent)
                 }
-                
-                // Progress bar
+
                 StreakProgressBar(
                     current: progress.completedDays,
                     required: progress.requiredDays
                 )
-                
-                // Status text
+
                 Text(progress.displayText)
                     .font(.body.bold())
                     .foregroundStyle(progress.isComplete ? .green : .primary)
+
+                HStack(spacing: 8) {
+                    StatusChip(
+                        label: progress.isEarning ? "Earning now" : (progress.isComplete ? "Threshold met" : "In progress"),
+                        systemImage: progress.isEarning ? "flame.fill" : (progress.isComplete ? "checkmark.circle.fill" : "calendar.badge.clock"),
+                        tint: progress.isEarning ? .green : (progress.isComplete ? .mint : .accentColor)
+                    )
+
+                    StatusChip(
+                        label: "\(progress.earnedBonusDays) earning day\(progress.earnedBonusDays == 1 ? "" : "s")",
+                        systemImage: "dollarsign.circle",
+                        tint: .orange
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(payoutText, systemImage: "clock.arrow.circlepath")
+                    if let deadline = progress.deadline {
+                        Label("Quarter resets after \(deadline.formatted(.dateTime.month(.abbreviated).day()))", systemImage: "calendar")
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
             .padding(16)
-            
-            if !triggeredShifts.isEmpty {
+
+            if !earnedShifts.isEmpty {
                 Divider()
-                
+
                 Button {
                     withAnimation { showHistory.toggle() }
                 } label: {
                     HStack {
-                        Text("History (\(triggeredShifts.count) earned)")
+                        Text("History (\(earnedShifts.count) earned)")
                             .font(.footnote.bold())
                         Spacer()
                         Image(systemName: showHistory ? "chevron.up" : "chevron.down")
@@ -128,18 +167,21 @@ struct StreakRuleCard: View {
                     .padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
-                
+
                 if showHistory {
                     Divider()
-                    ForEach(triggeredShifts) { shift in
+                    ForEach(earnedShifts) { shift in
                         Button {
                             onSelectShift(shift)
                         } label: {
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 3) {
                                     Text("🎯 \(shift.site?.name ?? "—")")
                                         .font(.footnote.bold())
                                     Text(shift.date, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day().year())
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("Paid quarterly later")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -161,15 +203,30 @@ struct StreakRuleCard: View {
     }
 }
 
+struct StatusChip: View {
+    let label: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label(label, systemImage: systemImage)
+            .font(.caption.bold())
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(tint.opacity(0.12), in: Capsule())
+    }
+}
+
 // MARK: - Progress Bar
 
 struct StreakProgressBar: View {
     let current: Int
     let required: Int
-    
+
     var fraction: Double { min(1.0, Double(current) / Double(max(1, required))) }
     var isComplete: Bool { current >= required }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             GeometryReader { geo in
@@ -177,7 +234,7 @@ struct StreakProgressBar: View {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color.secondary.opacity(0.15))
                         .frame(height: 10)
-                    
+
                     RoundedRectangle(cornerRadius: 6)
                         .fill(isComplete ? Color.green : Color.accent)
                         .frame(width: geo.size.width * fraction, height: 10)
@@ -185,7 +242,7 @@ struct StreakProgressBar: View {
                 }
             }
             .frame(height: 10)
-            
+
             HStack {
                 ForEach(0..<required, id: \.self) { i in
                     Circle()

@@ -1,6 +1,46 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Shift Draft Clipboard
+
+struct ShiftDraftSnapshot {
+    let siteID: UUID?
+    let dayFraction: DayFraction?
+    let hoursWorked: Double?
+    let isOnCall: Bool
+    let onCallAmount: Decimal?
+    let notes: String?
+    let customBonuses: [AppliedCustomBonus]
+    let copiedAt: Date
+}
+
+final class ShiftDraftClipboard {
+    static let shared = ShiftDraftClipboard()
+
+    private(set) var snapshot: ShiftDraftSnapshot?
+
+    private init() {}
+
+    var hasSnapshot: Bool { snapshot != nil }
+
+    func copy(from shift: Shift) {
+        snapshot = ShiftDraftSnapshot(
+            siteID: shift.site?.id,
+            dayFraction: shift.dayFraction,
+            hoursWorked: shift.hoursWorked,
+            isOnCall: shift.isOnCall,
+            onCallAmount: shift.onCallAmount,
+            notes: shift.notes,
+            customBonuses: shift.customBonuses ?? [],
+            copiedAt: Date()
+        )
+    }
+
+    func clear() {
+        snapshot = nil
+    }
+}
+
 // MARK: - Add / Edit Shift View
 
 struct AddShiftView: View {
@@ -9,12 +49,15 @@ struct AddShiftView: View {
     @Query(sort: \Site.name) private var allSites: [Site]
 
     var editingShift: Shift? = nil
+    var initialDate: Date? = nil
 
     // Form state
     @State private var selectedSite: Site?
     @State private var date: Date = Date()
     @State private var dayFraction: DayFraction = .full
     @State private var hoursWorked: Double = 8.0
+    @State private var isOnCall: Bool = false
+    @State private var onCallAmount: Decimal = 0
     @State private var customBonuses: [DraftAppliedCustomBonus] = []
     @State private var notes: String = ""
     @State private var showNotes: Bool = false
@@ -24,6 +67,7 @@ struct AddShiftView: View {
     @State private var sourceChannel: SourceNote.ContactChannel = .text
     @State private var showStreakAlert: Bool = false
     @State private var streakAlertText: String = ""
+    @State private var showPasteHint: Bool = false
     @State private var isSaving: Bool = false
 
     // Recently used sites (last 5 unique)
@@ -43,6 +87,10 @@ struct AddShiftView: View {
 
     private var payUnit: PayUnit { selectedSite?.payUnit ?? .perDay }
 
+    private var canPasteCopiedShift: Bool {
+        editingShift == nil && ShiftDraftClipboard.shared.hasSnapshot
+    }
+
     private var computedBase: Decimal {
         guard let site = selectedSite else { return 0 }
         switch payUnit {
@@ -53,7 +101,16 @@ struct AddShiftView: View {
 
     private var computedTotal: Decimal {
         computedBase
+        + onCallPreviewPay
         + customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
+
+    private var onCallPreviewPay: Decimal {
+        isOnCall ? onCallAmount : 0
+    }
+
+    private var defaultOnCallAmount: Decimal {
+        selectedSite?.employer?.defaultOnCallAmount ?? 0
     }
 
     var body: some View {
@@ -64,12 +121,19 @@ struct AddShiftView: View {
                     if selectedSite != nil {
                         PayPreviewBanner(
                             base: computedBase,
+                            onCallBonus: onCallPreviewPay,
                             customBonus: customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
 
                     VStack(spacing: 24) {
+                        if canPasteCopiedShift && showPasteHint {
+                            PasteCopiedShiftCard(showPasteHint: $showPasteHint) {
+                                pasteCopiedShift()
+                            }
+                        }
+
                         // Site picker
                         SitePickerSection(
                             selectedSite: $selectedSite,
@@ -96,6 +160,14 @@ struct AddShiftView: View {
                             CustomBonusesSection(
                                 customBonuses: $customBonuses,
                                 defaultQuantity: payUnit == .perHour ? hoursWorked : 1
+                            )
+
+                            Divider()
+
+                            OnCallSection(
+                                isOnCall: $isOnCall,
+                                onCallAmount: $onCallAmount,
+                                employerDefaultAmount: defaultOnCallAmount
                             )
 
                             Divider()
@@ -152,11 +224,15 @@ struct AddShiftView: View {
             }
         }
         .onAppear {
+            applyInitialDateIfNeeded()
             populateIfEditing()
             syncCustomBonusesForSelectedSite()
+            syncOnCallForSelectedSite()
+            showPasteHint = canPasteCopiedShift
         }
         .onChange(of: selectedSite?.id) { _, _ in
             syncCustomBonusesForSelectedSite()
+            syncOnCallForSelectedSite()
         }
         .onChange(of: hoursWorked) { oldValue, newValue in
             syncPerHourCustomBonusQuantities(from: oldValue, to: newValue)
@@ -187,6 +263,8 @@ struct AddShiftView: View {
         shift.dayFraction = site.payUnit == .perDay ? dayFraction : nil
         shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
         shift.baseAmount = site.baseAmount
+        shift.isOnCall = isOnCall
+        shift.onCallAmount = isOnCall ? onCallAmount : nil
         shift.splashAmount = nil
         shift.bonusSplashAmount = nil
         shift.customBonuses = customBonuses
@@ -262,6 +340,14 @@ struct AddShiftView: View {
         }
     }
 
+    private func syncOnCallForSelectedSite() {
+        guard editingShift == nil else { return }
+        let employerDefaultAmount = defaultOnCallAmount
+        if !isOnCall || onCallAmount == 0 {
+            onCallAmount = employerDefaultAmount
+        }
+    }
+
     private func buildEditSummary(_ shift: Shift) -> String {
         var changes: [String] = []
         if shift.date != date { changes.append("date changed") }
@@ -270,12 +356,73 @@ struct AddShiftView: View {
         return changes.isEmpty ? "Minor edit" : changes.joined(separator: ", ")
     }
 
+    private func applyInitialDateIfNeeded() {
+        guard editingShift == nil, let initialDate else { return }
+        date = initialDate
+    }
+
+    private func pasteCopiedShift() {
+        guard editingShift == nil, let snapshot = ShiftDraftClipboard.shared.snapshot else { return }
+
+        if let siteID = snapshot.siteID,
+           let copiedSite = allSites.first(where: { $0.id == siteID }) {
+            selectedSite = copiedSite
+        }
+
+        if let copiedDayFraction = snapshot.dayFraction {
+            dayFraction = copiedDayFraction
+        }
+
+        if let copiedHours = snapshot.hoursWorked {
+            hoursWorked = copiedHours
+        }
+
+        isOnCall = snapshot.isOnCall
+        onCallAmount = snapshot.onCallAmount ?? defaultOnCallAmount
+
+        notes = snapshot.notes ?? ""
+        showNotes = !notes.isEmpty
+
+        hasSourceNote = false
+        sourceContactName = ""
+        sourceContactedOn = Date()
+        sourceChannel = .text
+
+        customBonuses = copiedDraftBonuses(from: snapshot)
+        syncCustomBonusesForSelectedSite()
+        showPasteHint = false
+    }
+
+    private func copiedDraftBonuses(from snapshot: ShiftDraftSnapshot) -> [DraftAppliedCustomBonus] {
+        let availableBonusTypes = selectedSite?.employer?.customBonusTypes ?? []
+
+        return snapshot.customBonuses.map { applied in
+            let matchingType = availableBonusTypes.first {
+                $0.name == applied.name &&
+                $0.payUnit == applied.payUnit &&
+                $0.payoutSchedule == applied.payoutSchedule
+            }
+
+            return DraftAppliedCustomBonus(
+                sourceID: matchingType?.id,
+                name: applied.name,
+                payUnit: applied.payUnit,
+                amount: applied.amount,
+                quantity: applied.quantity,
+                payoutSchedule: applied.payoutSchedule,
+                isEnabled: true
+            )
+        }
+    }
+
     private func populateIfEditing() {
         guard let shift = editingShift else { return }
         selectedSite = shift.site
         date = shift.date
         dayFraction = shift.dayFraction ?? .full
         hoursWorked = shift.hoursWorked ?? 8.0
+        isOnCall = shift.isOnCall
+        onCallAmount = shift.onCallAmount ?? shift.site?.employer?.defaultOnCallAmount ?? 0
         customBonuses = (shift.customBonuses ?? []).map { DraftAppliedCustomBonus(applied: $0) }
         if let splash = shift.splashAmount, splash > 0 {
             customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Splash Bonus", payUnit: .perDay, amount: splash, quantity: 1, isEnabled: true))
@@ -299,9 +446,10 @@ struct AddShiftView: View {
 
 struct PayPreviewBanner: View {
     let base: Decimal
+    let onCallBonus: Decimal
     let customBonus: Decimal
 
-    var total: Decimal { base + customBonus }
+    var total: Decimal { base + onCallBonus + customBonus }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -312,6 +460,9 @@ struct PayPreviewBanner: View {
             HStack(spacing: 16) {
                 if base > 0 {
                     MiniPayItem(label: "Base", amount: base)
+                }
+                if onCallBonus > 0 {
+                    MiniPayItem(label: "On-Call", amount: onCallBonus)
                 }
                 if customBonus > 0 {
                     MiniPayItem(label: "Bonuses", amount: customBonus)
@@ -482,6 +633,47 @@ struct HoursEntry: View {
     }
 }
 
+struct PasteCopiedShiftCard: View {
+    @Binding var showPasteHint: Bool
+    let onPaste: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "doc.on.doc")
+                    .foregroundStyle(Color.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Copied shift ready")
+                        .font(.headline)
+                    Text("Paste the copied shift into this date. Notes copy over; source note metadata stays blank.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    onPaste()
+                } label: {
+                    Label("Paste Copied Shift", systemImage: "arrow.down.doc")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                if showPasteHint {
+                    Button("Hide") {
+                        showPasteHint = false
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
 // MARK: - Date Picker Row
 
 struct DatePickerRow: View {
@@ -500,6 +692,47 @@ struct DatePickerRow: View {
     }
 }
 
+
+struct OnCallSection: View {
+    @Binding var isOnCall: Bool
+    @Binding var onCallAmount: Decimal
+    let employerDefaultAmount: Decimal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("On-Call")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+                Spacer()
+                Toggle("", isOn: $isOnCall)
+                    .labelsHidden()
+                    .onChange(of: isOnCall) { _, enabled in
+                        if enabled && onCallAmount == 0 {
+                            onCallAmount = employerDefaultAmount
+                        }
+                    }
+            }
+
+            Text("Uses the employer default when first turned on. Paid with the service date, not deferred.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            if isOnCall {
+                CurrencyField(value: $onCallAmount, placeholder: "On-call amount")
+                Text("Adds \(onCallAmount.formatted(.currency(code: "USD"))) to this shift")
+                    .font(.footnote.bold())
+                    .foregroundStyle(Color.accent)
+            } else if employerDefaultAmount > 0 {
+                Text("Default on-call amount: \(employerDefaultAmount.formatted(.currency(code: "USD")))")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
 
 struct DraftAppliedCustomBonus: Identifiable {
     var id = UUID()
