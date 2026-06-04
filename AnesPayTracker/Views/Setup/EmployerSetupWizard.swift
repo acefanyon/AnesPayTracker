@@ -42,6 +42,9 @@ struct EmployerSetupWizard: View {
     @State private var employerName: String
     @State private var payCadence: PayCadence
     @State private var customCadenceDays: Int
+    @State private var usesPaycheckAnchor: Bool
+    @State private var paycheckAnchorDate: Date
+    @State private var paycheckDelayPeriods: Int
     @State private var defaultOnCallAmount: Decimal
     @State private var contactPersons: [DraftContact]
     @State private var sites: [DraftSite]
@@ -62,6 +65,9 @@ struct EmployerSetupWizard: View {
         _employerName = State(initialValue: name)
         _payCadence = State(initialValue: sourceEmployer?.payCadence ?? .biweekly)
         _customCadenceDays = State(initialValue: sourceEmployer?.customCadenceDays ?? 14)
+        _usesPaycheckAnchor = State(initialValue: sourceEmployer?.paycheckAnchorDate != nil)
+        _paycheckAnchorDate = State(initialValue: sourceEmployer?.paycheckAnchorDate ?? Date())
+        _paycheckDelayPeriods = State(initialValue: sourceEmployer?.paycheckDelayPeriods ?? 1)
         _defaultOnCallAmount = State(initialValue: sourceEmployer?.defaultOnCallAmount ?? 0)
         _contactPersons = State(initialValue: sourceEmployer?.contactPersons.map { DraftContact(contact: $0) } ?? [])
 
@@ -145,6 +151,9 @@ struct EmployerSetupWizard: View {
                                     name: $employerName,
                                     payCadence: $payCadence,
                                     customCadenceDays: $customCadenceDays,
+                                    usesPaycheckAnchor: $usesPaycheckAnchor,
+                                    paycheckAnchorDate: $paycheckAnchorDate,
+                                    paycheckDelayPeriods: $paycheckDelayPeriods,
                                     defaultOnCallAmount: $defaultOnCallAmount,
                                     contactPersons: $contactPersons
                                 )
@@ -159,6 +168,9 @@ struct EmployerSetupWizard: View {
                                     mode: mode,
                                     employerName: employerName,
                                     payCadence: payCadence,
+                                    usesPaycheckAnchor: usesPaycheckAnchor,
+                                    paycheckAnchorDate: paycheckAnchorDate,
+                                    paycheckDelayPeriods: paycheckDelayPeriods,
                                     defaultOnCallAmount: defaultOnCallAmount,
                                     sites: sites,
                                     streakRules: streakRules,
@@ -239,6 +251,8 @@ struct EmployerSetupWizard: View {
                 name: employerName.trimmingCharacters(in: .whitespacesAndNewlines),
                 payCadence: payCadence,
                 customCadenceDays: payCadence == .custom ? customCadenceDays : nil,
+                paycheckAnchorDate: usesPaycheckAnchor ? paycheckAnchorDate : nil,
+                paycheckDelayPeriods: paycheckDelayPeriods,
                 defaultOnCallAmount: defaultOnCallAmount
             )
 
@@ -257,6 +271,8 @@ struct EmployerSetupWizard: View {
         employer.name = employerName.trimmingCharacters(in: .whitespacesAndNewlines)
         employer.payCadence = payCadence
         employer.customCadenceDays = payCadence == .custom ? customCadenceDays : nil
+        employer.paycheckAnchorDate = usesPaycheckAnchor ? paycheckAnchorDate : nil
+        employer.paycheckDelayPeriods = paycheckDelayPeriods
         employer.defaultOnCallAmount = defaultOnCallAmount
 
         syncContacts(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
@@ -554,6 +570,9 @@ struct EmployerInfoStep: View {
     @Binding var name: String
     @Binding var payCadence: PayCadence
     @Binding var customCadenceDays: Int
+    @Binding var usesPaycheckAnchor: Bool
+    @Binding var paycheckAnchorDate: Date
+    @Binding var paycheckDelayPeriods: Int
     @Binding var defaultOnCallAmount: Decimal
     @Binding var contactPersons: [DraftContact]
 
@@ -583,6 +602,28 @@ struct EmployerInfoStep: View {
                         Stepper("\(customCadenceDays) days", value: $customCadenceDays, in: 1...365)
                     }
                     .font(.title3)
+                }
+            }
+
+            WizardField(label: "Paycheck Schedule") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Use paycheck anchor date", isOn: $usesPaycheckAnchor)
+
+                    if usesPaycheckAnchor {
+                        DatePicker("Known paycheck date", selection: $paycheckAnchorDate, displayedComponents: .date)
+                            .datePickerStyle(.compact)
+
+                        Stepper("Paid \(paycheckDelayPeriods) pay period\(paycheckDelayPeriods == 1 ? "" : "s") after work period closes", value: $paycheckDelayPeriods, in: 0...6)
+                            .font(.body)
+
+                        Text("Use a real paycheck date as the anchor. For the clarified rule, keep this at 1: work in Period A is paid on the paycheck associated with Period B after B closes.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Without an anchor, reports use legacy calendar-derived pay periods. Add an anchor before using the paycheck estimator.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -1041,6 +1082,9 @@ struct WizardReviewStep: View {
     let mode: EmployerWizardMode
     let employerName: String
     let payCadence: PayCadence
+    let usesPaycheckAnchor: Bool
+    let paycheckAnchorDate: Date
+    let paycheckDelayPeriods: Int
     let defaultOnCallAmount: Decimal
     let sites: [DraftSite]
     let streakRules: [DraftStreakRule]
@@ -1061,6 +1105,12 @@ struct WizardReviewStep: View {
 
             ReviewRow(label: "Employer", value: employerName)
             ReviewRow(label: "Pay Cadence", value: payCadence.rawValue)
+            if usesPaycheckAnchor {
+                ReviewRow(label: "Paycheck Anchor", value: paycheckAnchorDate.formatted(date: .abbreviated, time: .omitted))
+                ReviewRow(label: "Paycheck Timing", value: "Paid \(paycheckDelayPeriods) period\(paycheckDelayPeriods == 1 ? "" : "s") after close")
+            } else {
+                ReviewRow(label: "Paycheck Anchor", value: "Not configured")
+            }
             if defaultOnCallAmount > 0 {
                 ReviewRow(label: "On-Call Default", value: defaultOnCallAmount.formatted(.currency(code: "USD")))
             }

@@ -176,44 +176,169 @@ struct StreakEngine {
 
     static func payPeriodBounds(containing date: Date, employer: Employer) -> (Date, Date) {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: date)
+        let target = calendar.startOfDay(for: date)
+
+        if let anchored = anchoredPayPeriodBounds(containing: target, employer: employer, calendar: calendar) {
+            return anchored
+        }
 
         switch employer.payCadence {
         case .weekly:
-            let weekday = calendar.component(.weekday, from: today)
+            let weekday = calendar.component(.weekday, from: target)
             let daysToMonday = (weekday == 1) ? -6 : 2 - weekday
-            let start = calendar.date(byAdding: .day, value: daysToMonday, to: today) ?? today
-            let end = calendar.date(byAdding: .day, value: 6, to: start) ?? today
+            let start = calendar.date(byAdding: .day, value: daysToMonday, to: target) ?? target
+            let end = calendar.date(byAdding: .day, value: 6, to: start) ?? target
             return (start, end)
 
         case .biweekly:
-            // Anchor: Jan 1 of current year, biweekly from there
-            let comps = calendar.dateComponents([.year], from: today)
-            let yearStart = calendar.date(from: comps) ?? today
-            let daysDiff = calendar.dateComponents([.day], from: yearStart, to: today).day ?? 0
+            // Legacy fallback for employers that have not configured a paycheck anchor yet.
+            let comps = calendar.dateComponents([.year], from: target)
+            let yearStart = calendar.date(from: comps) ?? target
+            let daysDiff = calendar.dateComponents([.day], from: yearStart, to: target).day ?? 0
             let periodIndex = daysDiff / 14
-            let start = calendar.date(byAdding: .day, value: periodIndex * 14, to: yearStart) ?? today
-            let end = calendar.date(byAdding: .day, value: 13, to: start) ?? today
+            let start = calendar.date(byAdding: .day, value: periodIndex * 14, to: yearStart) ?? target
+            let end = calendar.date(byAdding: .day, value: 13, to: start) ?? target
             return (start, end)
 
         case .monthly:
-            var comps = calendar.dateComponents([.year, .month], from: today)
-            let start = calendar.date(from: comps) ?? today
+            var comps = calendar.dateComponents([.year, .month], from: target)
+            let start = calendar.date(from: comps) ?? target
             comps.month! += 1
-            let nextMonth = calendar.date(from: comps) ?? today
-            let end = calendar.date(byAdding: .day, value: -1, to: nextMonth) ?? today
+            let nextMonth = calendar.date(from: comps) ?? target
+            let end = calendar.date(byAdding: .day, value: -1, to: nextMonth) ?? target
             return (start, end)
 
         case .custom:
             let days = employer.customCadenceDays ?? 14
-            let comps = calendar.dateComponents([.year], from: today)
-            let yearStart = calendar.date(from: comps) ?? today
-            let daysDiff = calendar.dateComponents([.day], from: yearStart, to: today).day ?? 0
+            let comps = calendar.dateComponents([.year], from: target)
+            let yearStart = calendar.date(from: comps) ?? target
+            let daysDiff = calendar.dateComponents([.day], from: yearStart, to: target).day ?? 0
             let periodIndex = daysDiff / days
-            let start = calendar.date(byAdding: .day, value: periodIndex * days, to: yearStart) ?? today
-            let end = calendar.date(byAdding: .day, value: days - 1, to: start) ?? today
+            let start = calendar.date(byAdding: .day, value: periodIndex * days, to: yearStart) ?? target
+            let end = calendar.date(byAdding: .day, value: days - 1, to: start) ?? target
             return (start, end)
         }
+    }
+
+    static func paycheckDate(for serviceDate: Date, employer: Employer, calendar: Calendar = .current) -> Date {
+        let (_, periodEnd) = payPeriodBounds(containing: serviceDate, employer: employer)
+        let delayPeriods = max(0, employer.paycheckDelayPeriods)
+        let referenceDate = dateByAddingPayPeriods(delayPeriods, to: periodEnd, employer: employer, calendar: calendar)
+        return paycheckDate(onOrAfter: referenceDate, employer: employer, calendar: calendar)
+    }
+
+    static func paycheckAggregationWindow(for serviceDate: Date, employer: Employer, calendar: Calendar = .current) -> (start: Date, end: Date, paycheckDate: Date) {
+        let (start, end) = payPeriodBounds(containing: serviceDate, employer: employer)
+        let paycheck = paycheckDate(for: serviceDate, employer: employer, calendar: calendar)
+        return (start, end, paycheck)
+    }
+
+    static func paycheckAggregationRows(for shift: Shift, calendar: Calendar = .current) -> [PaycheckAggregationRow] {
+        guard let employer = shift.site?.employer else { return [] }
+        let employerName = employer.name
+        let siteName = shift.site?.name ?? "Unknown Site"
+
+        func row(componentName: String, amount: Decimal, aggregationDate: Date) -> PaycheckAggregationRow? {
+            guard amount > 0 else { return nil }
+            let window = paycheckAggregationWindow(for: aggregationDate, employer: employer, calendar: calendar)
+            return PaycheckAggregationRow(
+                shiftID: shift.id,
+                serviceDate: shift.date,
+                aggregationStart: window.start,
+                aggregationEnd: window.end,
+                paycheckDate: window.paycheckDate,
+                employerName: employerName,
+                siteName: siteName,
+                componentName: componentName,
+                amount: amount
+            )
+        }
+
+        var rows: [PaycheckAggregationRow] = []
+        if let base = row(componentName: "Base Pay", amount: shift.basePay, aggregationDate: shift.date) {
+            rows.append(base)
+        }
+        if let onCall = row(componentName: "On-Call Bonus", amount: shift.onCallPay, aggregationDate: shift.date) {
+            rows.append(onCall)
+        }
+        for bonus in shift.customBonuses ?? [] {
+            let payoutDate = bonus.payoutSchedule.payoutDate(for: shift.date, calendar: calendar)
+            if let bonusRow = row(componentName: bonus.name, amount: bonus.totalAmount, aggregationDate: payoutDate) {
+                rows.append(bonusRow)
+            }
+        }
+        if let streak = shift.streakBonusAmount, streak > 0 {
+            let schedule = shift.streakPayoutSchedule ?? .nextQuarterlyPayout
+            let payoutDate = schedule.payoutDate(for: shift.date, calendar: calendar)
+            if let streakRow = row(componentName: "Streak Bonus", amount: streak, aggregationDate: payoutDate) {
+                rows.append(streakRow)
+            }
+        }
+        return rows
+    }
+
+    private static func anchoredPayPeriodBounds(containing date: Date, employer: Employer, calendar: Calendar) -> (Date, Date)? {
+        guard let anchor = employer.paycheckAnchorDate else { return nil }
+        let anchorDay = calendar.startOfDay(for: anchor)
+
+        switch employer.payCadence {
+        case .weekly, .biweekly, .custom:
+            guard let days = employer.payCadence.periodLengthDays(customDays: employer.customCadenceDays), days > 0 else { return nil }
+            let daysFromAnchor = calendar.dateComponents([.day], from: anchorDay, to: date).day ?? 0
+            let periodOffset = floorDiv(daysFromAnchor + days - 1, days)
+            let end = calendar.date(byAdding: .day, value: periodOffset * days, to: anchorDay) ?? anchorDay
+            let start = calendar.date(byAdding: .day, value: -(days - 1), to: end) ?? end
+            if date < start {
+                let priorEnd = calendar.date(byAdding: .day, value: -days, to: end) ?? end
+                let priorStart = calendar.date(byAdding: .day, value: -(days - 1), to: priorEnd) ?? priorEnd
+                return (priorStart, priorEnd)
+            }
+            return (start, end)
+        case .monthly:
+            return nil
+        }
+    }
+
+    private static func paycheckDate(onOrAfter date: Date, employer: Employer, calendar: Calendar) -> Date {
+        guard let anchor = employer.paycheckAnchorDate else { return date }
+        let target = calendar.startOfDay(for: date)
+        let anchorDay = calendar.startOfDay(for: anchor)
+
+        switch employer.payCadence {
+        case .weekly, .biweekly, .custom:
+            guard let days = employer.payCadence.periodLengthDays(customDays: employer.customCadenceDays), days > 0 else { return target }
+            let daysFromAnchor = calendar.dateComponents([.day], from: anchorDay, to: target).day ?? 0
+            let offset = ceilDiv(daysFromAnchor, days)
+            return calendar.date(byAdding: .day, value: offset * days, to: anchorDay) ?? target
+        case .monthly:
+            var candidate = anchorDay
+            while candidate < target {
+                candidate = calendar.date(byAdding: .month, value: 1, to: candidate) ?? target
+            }
+            return candidate
+        }
+    }
+
+    private static func dateByAddingPayPeriods(_ count: Int, to date: Date, employer: Employer, calendar: Calendar) -> Date {
+        switch employer.payCadence {
+        case .weekly, .biweekly, .custom:
+            let days = employer.payCadence.periodLengthDays(customDays: employer.customCadenceDays) ?? 14
+            return calendar.date(byAdding: .day, value: days * count, to: date) ?? date
+        case .monthly:
+            return calendar.date(byAdding: .month, value: count, to: date) ?? date
+        }
+    }
+
+    private static func floorDiv(_ numerator: Int, _ denominator: Int) -> Int {
+        precondition(denominator > 0)
+        if numerator >= 0 { return numerator / denominator }
+        return -((-numerator + denominator - 1) / denominator)
+    }
+
+    private static func ceilDiv(_ numerator: Int, _ denominator: Int) -> Int {
+        precondition(denominator > 0)
+        if numerator >= 0 { return (numerator + denominator - 1) / denominator }
+        return -((-numerator) / denominator)
     }
 
     static func allPayPeriods(for employer: Employer, in year: Int) -> [(Date, Date)] {

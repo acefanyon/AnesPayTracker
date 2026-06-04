@@ -10,6 +10,8 @@ final class Employer {
     var contactPersons: [ContactPerson]
     var payCadence: PayCadence
     var customCadenceDays: Int?
+    var paycheckAnchorDate: Date?
+    var paycheckDelayPeriods: Int = 1
     var defaultOnCallAmount: Decimal
     var createdAt: Date
 
@@ -28,6 +30,8 @@ final class Employer {
         contactPersons: [ContactPerson] = [],
         payCadence: PayCadence = .biweekly,
         customCadenceDays: Int? = nil,
+        paycheckAnchorDate: Date? = nil,
+        paycheckDelayPeriods: Int = 1,
         defaultOnCallAmount: Decimal = 0,
         createdAt: Date = Date()
     ) {
@@ -36,6 +40,8 @@ final class Employer {
         self.contactPersons = contactPersons
         self.payCadence = payCadence
         self.customCadenceDays = customCadenceDays
+        self.paycheckAnchorDate = paycheckAnchorDate
+        self.paycheckDelayPeriods = paycheckDelayPeriods
         self.defaultOnCallAmount = defaultOnCallAmount
         self.createdAt = createdAt
         self.sites = []
@@ -413,6 +419,19 @@ struct AppliedCustomBonus: Codable, Identifiable {
     }
 }
 
+struct PaycheckAggregationRow: Identifiable {
+    var id: UUID = UUID()
+    var shiftID: UUID
+    var serviceDate: Date
+    var aggregationStart: Date
+    var aggregationEnd: Date
+    var paycheckDate: Date
+    var employerName: String
+    var siteName: String
+    var componentName: String
+    var amount: Decimal
+}
+
 // MARK: - Enums
 
 enum PayCadence: String, Codable, CaseIterable {
@@ -420,6 +439,15 @@ enum PayCadence: String, Codable, CaseIterable {
     case biweekly = "Biweekly"
     case monthly = "Monthly"
     case custom = "Custom"
+
+    func periodLengthDays(customDays: Int?) -> Int? {
+        switch self {
+        case .weekly: return 7
+        case .biweekly: return 14
+        case .monthly: return nil
+        case .custom: return max(1, customDays ?? 14)
+        }
+    }
 }
 
 enum PayUnit: String, Codable, CaseIterable {
