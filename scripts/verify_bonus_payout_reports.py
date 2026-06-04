@@ -44,16 +44,17 @@ def require(condition: bool, message: str, failures: list[str]) -> None:
 
 
 def next_quarterly_payout(service_date: date) -> date:
-    """Last day of the quarter following the service date's quarter (new default: last check)."""
+    """Last day of the month following the service date's quarter (corrected: not the next quarter, but the month after)."""
+    import calendar as cal_mod
     year = service_date.year
     month = service_date.month
     if 1 <= month <= 3:
-        return date(year, 6, 30)   # Q1 earned → last day of Q2 (June)
+        return date(year, 4, 30)   # Q1 earned → last day of April
     if 4 <= month <= 6:
-        return date(year, 9, 30)   # Q2 earned → last day of Q3 (Sep)
+        return date(year, 7, 31)   # Q2 earned → last day of July
     if 7 <= month <= 9:
-        return date(year, 12, 31)  # Q3 earned → last day of Q4 (Dec)
-    return date(year + 1, 3, 31)   # Q4 earned → last day of Q1 next year (Mar)
+        return date(year, 10, 31)  # Q3 earned → last day of October
+    return date(year + 1, 1, 31)   # Q4 earned → last day of January next year
 
 
 def next_monthly_payout(service_date: date) -> date:
@@ -72,10 +73,10 @@ def next_monthly_payout(service_date: date) -> date:
 
 
 QUARTERLY_PAYOUT_CASES = [
-    QuarterlyPayoutCase(date(2026, 1, 13), date(2026, 6, 30), "Q1 streak payouts land on Jun 30"),
-    QuarterlyPayoutCase(date(2026, 4, 15), date(2026, 9, 30), "Q2 streak payouts land on Sep 30"),
-    QuarterlyPayoutCase(date(2026, 9, 30), date(2026, 12, 31), "Q3 streak payouts land on Dec 31"),
-    QuarterlyPayoutCase(date(2026, 12, 31), date(2027, 3, 31), "Q4 streak payouts roll to next year (Mar 31)"),
+    QuarterlyPayoutCase(date(2026, 1, 13), date(2026, 4, 30), "Q1 streak payouts land on Apr 30"),
+    QuarterlyPayoutCase(date(2026, 4, 15), date(2026, 7, 31), "Q2 streak payouts land on Jul 31"),
+    QuarterlyPayoutCase(date(2026, 9, 30), date(2026, 10, 31), "Q3 streak payouts land on Oct 31"),
+    QuarterlyPayoutCase(date(2026, 12, 31), date(2027, 1, 31), "Q4 streak payouts roll to next year (Jan 31)"),
 ]
 
 MONTHLY_PAYOUT_CASES = [

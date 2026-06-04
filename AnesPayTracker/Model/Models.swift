@@ -513,7 +513,7 @@ enum BonusPayoutSchedule: String, Codable, CaseIterable {
         switch self {
         case .serviceDate: return "Bonus appears on the same shift / paycheck as the shift date. No aggregation delay."
         case .nextMonthlyPayout: return "All bonuses earned within a calendar month are summed and paid on the last check of the following month."
-        case .nextQuarterlyPayout: return "All bonuses earned within a quarter (Jan\u{2013}Mar, Apr\u{2013}Jun, etc.) are summed and paid on the last check of the following quarter."
+        case .nextQuarterlyPayout: return "All bonuses earned within a quarter (Jan\u{2013}Mar, Apr\u{2013}Jun, etc.) are summed and paid on the last check of the month following that quarter."
         }
     }
 
@@ -538,32 +538,30 @@ enum BonusPayoutSchedule: String, Codable, CaseIterable {
             guard let lastOfNextMonth = calendar.date(byAdding: .day, value: -1, to: calendar.date(byAdding: .month, value: 1, to: firstOfNextMonth) ?? firstOfNextMonth) else { return serviceDate }
             return lastOfNextMonth
         case .nextQuarterlyPayout:
+            // Aggregated over the quarter, paid on the last check of the
+            // month following the quarter's end.
+            // Q1 (Jan–Mar) → April  (last day)
+            // Q2 (Apr–Jun) → July   (last day)
+            // Q3 (Jul–Sep) → October (last day)
+            // Q4 (Oct–Dec) → January next year (last day)
             let comps = calendar.dateComponents([.year, .month], from: serviceDate)
             let month = comps.month ?? 1
-            // Which quarter's last month does this fall in?
-            var lastMonthOfPayoutQuarter = DateComponents()
-            lastMonthOfPayoutQuarter.year = comps.year
+            var payoutMonth = DateComponents()
+            payoutMonth.year = comps.year
             switch month {
-            case 1...3:
-                // Q1 earned → paid in Q2, last month of Q2 is June
-                lastMonthOfPayoutQuarter.month = 6
-            case 4...6:
-                // Q2 earned → paid in Q3, last month is Sep
-                lastMonthOfPayoutQuarter.month = 9
-            case 7...9:
-                // Q3 earned → paid in Q4, last month is Dec
-                lastMonthOfPayoutQuarter.month = 12
+            case 1...3:  payoutMonth.month = 4   // Q1 → April
+            case 4...6:  payoutMonth.month = 7   // Q2 → July
+            case 7...9:  payoutMonth.month = 10  // Q3 → October
             case 10...12:
-                // Q4 earned → paid in Q1 of next year, last month is March
-                lastMonthOfPayoutQuarter.year = (comps.year ?? 0) + 1
-                lastMonthOfPayoutQuarter.month = 3
+                payoutMonth.year = (comps.year ?? 0) + 1
+                payoutMonth.month = 1             // Q4 → January next year
             default:
-                lastMonthOfPayoutQuarter.month = month
+                payoutMonth.month = month
             }
-            lastMonthOfPayoutQuarter.day = 1
-            guard let firstOfLastMonthInQuarter = calendar.date(from: lastMonthOfPayoutQuarter) else { return serviceDate }
-            // Last day of that month
-            guard let lastDay = calendar.date(byAdding: .day, value: -1, to: calendar.date(byAdding: .month, value: 1, to: firstOfLastMonthInQuarter) ?? firstOfLastMonthInQuarter) else { return serviceDate }
+            payoutMonth.day = 1
+            guard let firstOfPayoutMonth = calendar.date(from: payoutMonth) else { return serviceDate }
+            guard let lastDay = calendar.date(byAdding: .day, value: -1,
+                to: calendar.date(byAdding: .month, value: 1, to: firstOfPayoutMonth) ?? firstOfPayoutMonth) else { return serviceDate }
             return lastDay
         }
     }
