@@ -28,6 +28,13 @@ def main() -> int:
     require("ShiftDetailView(shift: shift)" in calendar, "Day sheet should support tap-through into shift detail", failures)
     require("AddShiftView(initialDate: date)" in calendar, "Day sheet Add Shift action should reuse the tapped date", failures)
     require("let onTapDay: () -> Void" in calendar, "Calendar day cell should expose a day-tap callback", failures)
+    require("enum CalendarViewMode" in calendar, "Calendar should support week/month toggle via CalendarViewMode enum", failures)
+    require("case week = \"Week\"" in calendar, "Calendar should expose a week view mode", failures)
+    require("case month = \"Month\"" in calendar, "Calendar should expose a month view mode", failures)
+    require("viewMode == .month" in calendar and "monthGrid" in calendar and "weekContent" in calendar, "Calendar should switch between month grid and week content", failures)
+    require("struct WeekDayRow: View" in calendar, "Week view should include daily detail rows", failures)
+    require("struct CalendarNavigationHeader: View" in calendar, "Calendar should use a reusable navigation header", failures)
+    require("struct CalendarSummaryCard: View" in calendar, "Summary card should accept a dynamic title for week/month context", failures)
 
     require("var initialDate: Date? = nil" in add_shift, "Add Shift should accept an injected initial date", failures)
     require("applyInitialDateIfNeeded()" in add_shift, "Add Shift should apply injected dates on appear", failures)

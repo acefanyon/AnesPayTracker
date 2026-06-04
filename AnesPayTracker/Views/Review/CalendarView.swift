@@ -1,52 +1,111 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Calendar View Mode
+
+enum CalendarViewMode: String, CaseIterable {
+    case month = "Month"
+    case week = "Week"
+}
+
 // MARK: - Calendar View
 
 struct CalendarView: View {
     @Query(sort: \Shift.date, order: .reverse) private var allShifts: [Shift]
-    @State private var displayedMonth: Date = Date()
+    @State private var viewMode: CalendarViewMode = .month
+    @State private var displayedDate: Date = Date()
     @State private var selectedDate: Date?
     @State private var activeSheet: CalendarSheet?
 
     private let calendar = Calendar.current
 
+    private var displayedTitle: String {
+        switch viewMode {
+        case .month:
+            return displayedDate.formatted(.dateTime.month(.wide).year())
+        case .week:
+            let start = weekStart
+            let end = calendar.date(byAdding: .day, value: 6, to: start) ?? start
+            let fmt = DateFormatter()
+            fmt.dateFormat = "MMM d"
+            let startStr = fmt.string(from: start)
+            let endStr: String = {
+                let sameMonth = calendar.component(.month, from: start) == calendar.component(.month, from: end)
+                if sameMonth {
+                    fmt.dateFormat = "d"
+                }
+                return fmt.string(from: end)
+            }()
+            return "\(startStr) – \(endStr)"
+        }
+    }
+
+    private var weekStart: Date {
+        let weekday = calendar.component(.weekday, from: displayedDate)
+        let offset = weekday - calendar.firstWeekday
+        let adjustedOffset = offset >= 0 ? offset : offset + 7
+        return calendar.date(byAdding: .day, value: -adjustedOffset, to: calendar.startOfDay(for: displayedDate)) ?? displayedDate
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Month navigation
-                MonthNavigationHeader(displayedMonth: $displayedMonth)
+                // View mode toggle
+                Picker("View", selection: $viewMode) {
+                    ForEach(CalendarViewMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+
+                // Navigation header
+                CalendarNavigationHeader(
+                    title: displayedTitle,
+                    onPrevious: {
+                        withAnimation {
+                            switch viewMode {
+                            case .month:
+                                displayedDate = calendar.date(byAdding: .month, value: -1, to: displayedDate) ?? displayedDate
+                            case .week:
+                                displayedDate = calendar.date(byAdding: .day, value: -7, to: displayedDate) ?? displayedDate
+                            }
+                        }
+                    },
+                    onNext: {
+                        withAnimation {
+                            switch viewMode {
+                            case .month:
+                                displayedDate = calendar.date(byAdding: .month, value: 1, to: displayedDate) ?? displayedDate
+                            case .week:
+                                displayedDate = calendar.date(byAdding: .day, value: 7, to: displayedDate) ?? displayedDate
+                            }
+                        }
+                    }
+                )
 
                 // Weekday headers
                 WeekdayHeader()
 
                 Divider()
 
-                // Month grid
+                // Calendar grid
                 ScrollView {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
-                        ForEach(calendarDays, id: \.self) { date in
-                            if let date = date {
-                                CalendarDayCell(
-                                    date: date,
-                                    shifts: shiftsOn(date: date),
-                                    isToday: calendar.isDateInToday(date)
-                                ) {
-                                    handleDayTap(date)
-                                }
-                            } else {
-                                Color.clear
-                                    .frame(height: 72)
-                            }
-                        }
+                    if viewMode == .month {
+                        monthGrid
+                    } else {
+                        weekContent
                     }
-                    .padding(8)
 
-                    // Summary for month
-                    if !monthShifts.isEmpty {
-                        MonthSummaryCard(shifts: monthShifts)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
+                    // Summary card
+                    if !visibleShifts.isEmpty {
+                        CalendarSummaryCard(
+                            title: viewMode == .month ? "This Month" : "This Week",
+                            shifts: visibleShifts
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
                     }
                 }
             }
@@ -54,7 +113,7 @@ struct CalendarView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Today") {
-                        withAnimation { displayedMonth = Date() }
+                        withAnimation { displayedDate = Date() }
                     }
                     .font(.body)
                 }
@@ -79,10 +138,65 @@ struct CalendarView: View {
         }
     }
 
+    // MARK: - Month Grid
+
+    private var monthGrid: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
+            ForEach(calendarDays, id: \.self) { date in
+                if let date = date {
+                    CalendarDayCell(
+                        date: date,
+                        shifts: shiftsOn(date: date),
+                        isToday: calendar.isDateInToday(date),
+                        compact: true
+                    ) {
+                        handleDayTap(date)
+                    }
+                } else {
+                    Color.clear
+                        .frame(height: 72)
+                }
+            }
+        }
+        .padding(8)
+    }
+
+    // MARK: - Week Content
+
+    private var weekContent: some View {
+        VStack(spacing: 0) {
+            // Week day headers as a row of day cells
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
+                ForEach(weekDays, id: \.self) { date in
+                    CalendarDayCell(
+                        date: date,
+                        shifts: shiftsOn(date: date),
+                        isToday: calendar.isDateInToday(date),
+                        compact: false
+                    ) {
+                        handleDayTap(date)
+                    }
+                }
+            }
+            .padding(8)
+
+            // Day-by-day detail list below the grid
+            ForEach(weekDays, id: \.self) { date in
+                let dayShifts = shiftsOn(date: date)
+                if !dayShifts.isEmpty {
+                    WeekDayRow(date: date, shifts: dayShifts) {
+                        handleDayTap(date)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
     // MARK: - Calendar Grid Computation
 
     private var calendarDays: [Date?] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: displayedMonth) else { return [] }
+        guard let monthInterval = calendar.dateInterval(of: .month, for: displayedDate) else { return [] }
 
         let firstDay = monthInterval.start
         let firstWeekday = calendar.component(.weekday, from: firstDay)
@@ -96,7 +210,6 @@ struct CalendarView: View {
             current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
         }
 
-        // Pad to complete grid
         while days.count % 7 != 0 {
             days.append(nil)
         }
@@ -104,13 +217,25 @@ struct CalendarView: View {
         return days
     }
 
+    private var weekDays: [Date] {
+        let start = weekStart
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+    }
+
     private func shiftsOn(date: Date) -> [Shift] {
         allShifts.filter { calendar.isDate($0.date, inSameDayAs: date) }
     }
 
-    private var monthShifts: [Shift] {
-        guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else { return [] }
-        return allShifts.filter { $0.date >= interval.start && $0.date < interval.end }
+    private var visibleShifts: [Shift] {
+        switch viewMode {
+        case .month:
+            guard let interval = calendar.dateInterval(of: .month, for: displayedDate) else { return [] }
+            return allShifts.filter { $0.date >= interval.start && $0.date < interval.end }
+        case .week:
+            let start = weekStart
+            guard let end = calendar.date(byAdding: .day, value: 7, to: start) else { return [] }
+            return allShifts.filter { $0.date >= start && $0.date < end }
+        }
     }
 
     private func handleDayTap(_ date: Date) {
@@ -126,17 +251,16 @@ private enum CalendarSheet: String, Identifiable {
     var id: String { rawValue }
 }
 
-// MARK: - Month Navigation
+// MARK: - Calendar Navigation Header
 
-struct MonthNavigationHeader: View {
-    @Binding var displayedMonth: Date
-    private let calendar = Calendar.current
+struct CalendarNavigationHeader: View {
+    let title: String
+    let onPrevious: () -> Void
+    let onNext: () -> Void
 
     var body: some View {
         HStack {
-            Button {
-                withAnimation { displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth }
-            } label: {
+            Button(action: onPrevious) {
                 Image(systemName: "chevron.left")
                     .font(.title3.bold())
                     .frame(width: 44, height: 44)
@@ -144,14 +268,12 @@ struct MonthNavigationHeader: View {
 
             Spacer()
 
-            Text(displayedMonth, format: .dateTime.month(.wide).year())
+            Text(title)
                 .font(.title2.bold())
 
             Spacer()
 
-            Button {
-                withAnimation { displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth }
-            } label: {
+            Button(action: onNext) {
                 Image(systemName: "chevron.right")
                     .font(.title3.bold())
                     .frame(width: 44, height: 44)
@@ -188,33 +310,41 @@ struct CalendarDayCell: View {
     let date: Date
     let shifts: [Shift]
     let isToday: Bool
+    let compact: Bool
     let onTapDay: () -> Void
 
     private let calendar = Calendar.current
+
+    private var cellHeight: CGFloat { compact ? 72 : 110 }
+    private var dayFont: Font { compact ? .footnote.bold() : .body.bold() }
+    private var dayCircleSize: CGFloat { compact ? 26 : 32 }
+    private var shiftFont: Font { compact ? .system(size: 9, weight: .bold) : .system(size: 10, weight: .bold) }
+    private var badgeFont: Font { compact ? .system(size: 7, weight: .black) : .system(size: 8, weight: .black) }
+    private var emblemFont: Font { compact ? .system(size: 8) : .system(size: 10) }
 
     var body: some View {
         Button(action: onTapDay) {
             VStack(spacing: 3) {
                 // Day number
                 Text(calendar.component(.day, from: date).description)
-                    .font(.footnote.bold())
+                    .font(dayFont)
                     .foregroundStyle(isToday ? .white : .primary)
-                    .frame(width: 26, height: 26)
+                    .frame(width: dayCircleSize, height: dayCircleSize)
                     .background(isToday ? Color.accent : Color.clear, in: Circle())
 
                 // Shift chips
-                ForEach(shifts.prefix(2)) { shift in
+                ForEach(shifts.prefix(compact ? 2 : 4)) { shift in
                     HStack(spacing: 2) {
                         Text(shift.site?.initials ?? "?")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(shiftFont)
                             .lineLimit(1)
                         if shift.isOnCall {
                             Text("OC")
-                                .font(.system(size: 7, weight: .black))
+                                .font(badgeFont)
                         }
                         if shift.hasStreakBonus {
                             Text("🎯")
-                                .font(.system(size: 8))
+                                .font(emblemFont)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -224,19 +354,50 @@ struct CalendarDayCell: View {
                     .foregroundStyle(shift.isOnCall ? Color.blue : Color.accent)
                 }
 
-                if shifts.count > 2 {
-                    Text("+\(shifts.count - 2)")
+                if shifts.count > (compact ? 2 : 4) {
+                    Text("+\(shifts.count - (compact ? 2 : 4))")
                         .font(.system(size: 9))
                         .foregroundStyle(.secondary)
                 }
             }
             .padding(.vertical, 4)
-            .frame(height: 72, alignment: .top)
+            .frame(height: cellHeight, alignment: .top)
             .frame(maxWidth: .infinity)
             .background(shifts.isEmpty ? Color.clear : Color.accent.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Week Day Row
+
+struct WeekDayRow: View {
+    let date: Date
+    let shifts: [Shift]
+    let onTap: () -> Void
+
+    private var dayLabel: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEE, MMM d"
+        return fmt.string(from: date)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(dayLabel)
+                .font(.subheadline.bold())
+                .foregroundStyle(.secondary)
+
+            ForEach(shifts) { shift in
+                Button(action: onTap) {
+                    CalendarDayShiftRow(shift: shift)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 10)
+        Divider()
     }
 }
 
@@ -351,9 +512,10 @@ struct CalendarDayShiftRow: View {
     }
 }
 
-// MARK: - Month Summary Card
+// MARK: - Calendar Summary Card
 
-struct MonthSummaryCard: View {
+struct CalendarSummaryCard: View {
+    let title: String
     let shifts: [Shift]
 
     var totalPay: Decimal { shifts.reduce(0) { $0 + $1.totalPay } }
@@ -364,7 +526,7 @@ struct MonthSummaryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("This Month")
+            Text(title)
                 .font(.headline)
 
             HStack {
