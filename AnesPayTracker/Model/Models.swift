@@ -86,7 +86,7 @@ final class CustomBonusType {
     var payUnit: PayUnit
     var defaultAmount: Decimal
     var payoutSchedule: BonusPayoutSchedule
-    var proratesPartialDay: Bool
+    var proratesPartialDay: Bool = true
     var createdAt: Date
 
     init(
