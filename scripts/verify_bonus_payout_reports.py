@@ -44,22 +44,44 @@ def require(condition: bool, message: str, failures: list[str]) -> None:
 
 
 def next_quarterly_payout(service_date: date) -> date:
+    """Last day of the quarter following the service date's quarter (new default: last check)."""
     year = service_date.year
     month = service_date.month
     if 1 <= month <= 3:
-        return date(year, 4, 1)
+        return date(year, 6, 30)   # Q1 earned → last day of Q2 (June)
     if 4 <= month <= 6:
-        return date(year, 7, 1)
+        return date(year, 9, 30)   # Q2 earned → last day of Q3 (Sep)
     if 7 <= month <= 9:
-        return date(year, 10, 1)
-    return date(year + 1, 1, 1)
+        return date(year, 12, 31)  # Q3 earned → last day of Q4 (Dec)
+    return date(year + 1, 3, 31)   # Q4 earned → last day of Q1 next year (Mar)
+
+
+def next_monthly_payout(service_date: date) -> date:
+    """Last day of the month following the service date's month."""
+    import calendar as cal_mod
+    year = service_date.year
+    month = service_date.month
+    # Advance to next month
+    if month == 12:
+        year += 1
+        target_month = 1
+    else:
+        target_month = month + 1
+    last_day = cal_mod.monthrange(year, target_month)[1]
+    return date(year, target_month, last_day)
 
 
 QUARTERLY_PAYOUT_CASES = [
-    QuarterlyPayoutCase(date(2026, 1, 13), date(2026, 4, 1), "Q1 streak payouts land on Apr 1"),
-    QuarterlyPayoutCase(date(2026, 4, 15), date(2026, 7, 1), "Q2 streak payouts land on Jul 1"),
-    QuarterlyPayoutCase(date(2026, 9, 30), date(2026, 10, 1), "Q3 streak payouts land on Oct 1"),
-    QuarterlyPayoutCase(date(2026, 12, 31), date(2027, 1, 1), "Q4 streak payouts roll to next year"),
+    QuarterlyPayoutCase(date(2026, 1, 13), date(2026, 6, 30), "Q1 streak payouts land on Jun 30"),
+    QuarterlyPayoutCase(date(2026, 4, 15), date(2026, 9, 30), "Q2 streak payouts land on Sep 30"),
+    QuarterlyPayoutCase(date(2026, 9, 30), date(2026, 12, 31), "Q3 streak payouts land on Dec 31"),
+    QuarterlyPayoutCase(date(2026, 12, 31), date(2027, 3, 31), "Q4 streak payouts roll to next year (Mar 31)"),
+]
+
+MONTHLY_PAYOUT_CASES = [
+    (date(2026, 1, 13), date(2026, 2, 28), "Jan service → last day of Feb"),
+    (date(2026, 3, 20), date(2026, 4, 30), "Mar service → last day of Apr"),
+    (date(2026, 12, 5), date(2027, 1, 31), "Dec service → last day of Jan next year"),
 ]
 
 
@@ -128,6 +150,17 @@ def main() -> int:
             f"pays {actual.isoformat()} expected {case.expected_payout_date.isoformat()}"
         )
         require(ok, case.label, failures)
+
+    print("\nMonthly payout date oracle:")
+    for svc, expected, label in MONTHLY_PAYOUT_CASES:
+        actual = next_monthly_payout(svc)
+        ok = actual == expected
+        status = "PASS" if ok else "FAIL"
+        print(
+            f"{status}: {label} — service {svc.isoformat()} "
+            f"pays {actual.isoformat()} expected {expected.isoformat()}"
+        )
+        require(ok, label, failures)
 
     if failures:
         print("\nBonus payout report checks failed:")
