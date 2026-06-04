@@ -497,9 +497,9 @@ enum StreakWindowType: String, Codable, CaseIterable {
 
 
 enum BonusPayoutSchedule: String, Codable, CaseIterable {
-    case serviceDate = "Paid with Shift"
-    case nextMonthlyPayout = "Aggregated Monthly, Paid Next Month"
-    case nextQuarterlyPayout = "Aggregated Quarterly, Paid Next Quarter"
+    case serviceDate = "Service Date"
+    case nextMonthlyPayout = "Next Monthly Payout"
+    case nextQuarterlyPayout = "Next Quarterly Payout"
 
     var shortLabel: String {
         switch self {
@@ -514,6 +514,14 @@ enum BonusPayoutSchedule: String, Codable, CaseIterable {
         case .serviceDate: return "Bonus appears on the same shift / paycheck as the shift date. No aggregation delay."
         case .nextMonthlyPayout: return "All bonuses earned within a calendar month are summed and paid on the first check of the following month."
         case .nextQuarterlyPayout: return "All bonuses earned within a quarter (Jan–Mar, Apr–Jun, etc.) are summed and paid on the first check of the following quarter."
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .serviceDate: return "Paid with Shift"
+        case .nextMonthlyPayout: return "Aggregated Monthly, Paid Next Month"
+        case .nextQuarterlyPayout: return "Aggregated Quarterly, Paid Next Quarter"
         }
     }
 

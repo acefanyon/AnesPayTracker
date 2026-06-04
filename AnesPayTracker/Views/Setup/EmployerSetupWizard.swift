@@ -771,7 +771,7 @@ struct CustomBonusTypeEditorCard: View {
 
             Picker("How and when paid", selection: $bonus.payoutSchedule) {
                 ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
-                    Text(schedule.rawValue).tag(schedule)
+                    Text(schedule.displayName).tag(schedule)
                 }
             }
             .pickerStyle(.menu)
@@ -1029,7 +1029,7 @@ struct StreakRuleEditorCard: View {
                 Text("How and When This Bonus Is Paid").font(.caption).foregroundStyle(.secondary)
                 Picker("Payout schedule", selection: $rule.payoutSchedule) {
                     ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
-                        Text(schedule.rawValue).tag(schedule)
+                        Text(schedule.displayName).tag(schedule)
                     }
                 }
                 .pickerStyle(.menu)

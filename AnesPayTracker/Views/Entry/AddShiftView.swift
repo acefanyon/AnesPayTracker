@@ -984,7 +984,7 @@ struct CustomBonusesSection: View {
                         CurrencyField(value: $bonus.amount, placeholder: "Amount")
                         Picker("How and when paid", selection: $bonus.payoutSchedule) {
                             ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
-                                Text(schedule.rawValue).tag(schedule)
+                                Text(schedule.displayName).tag(schedule)
                             }
                         }
                         .pickerStyle(.menu)
