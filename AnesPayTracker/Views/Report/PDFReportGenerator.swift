@@ -457,6 +457,119 @@ struct PDFReportGenerator {
         }
     }
 
+    func generatePaycheckEstimatorReport(
+        rows: [PaycheckAggregationRow],
+        startDate: Date,
+        endDate: Date,
+        employerFilter: String?,
+        siteFilter: String?
+    ) -> URL? {
+        let pageWidth: CGFloat = 612
+        let pageHeight: CGFloat = 792
+        let margin: CGFloat = 48
+        let contentWidth = pageWidth - margin * 2
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight))
+        let fileName = "AnesPay_Paycheck_Estimator_\(formatDate(startDate))_\(formatDate(endDate)).pdf"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+        do {
+            try renderer.writePDF(to: url) { context in
+                var yOffset: CGFloat = margin
+                context.beginPage()
+
+                let titleAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 24, weight: .bold), .foregroundColor: UIColor.label]
+                let subtitleAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 14), .foregroundColor: UIColor.secondaryLabel]
+                let sectionAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 12, weight: .bold), .foregroundColor: UIColor.label]
+                let rowAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 9), .foregroundColor: UIColor.label]
+                let rowBoldAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 9, weight: .semibold), .foregroundColor: UIColor.label]
+                let accentAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 10, weight: .bold), .foregroundColor: UIColor.systemBlue]
+
+                NSAttributedString(string: "Paycheck Estimator", attributes: titleAttrs).draw(at: CGPoint(x: margin, y: yOffset))
+                yOffset += 36
+                NSAttributedString(string: "Paycheck Date Range: \(formatFullDate(startDate)) – \(formatFullDate(endDate))", attributes: subtitleAttrs).draw(at: CGPoint(x: margin, y: yOffset))
+                yOffset += 24
+                if let emp = employerFilter {
+                    NSAttributedString(string: "Employer: \(emp)", attributes: subtitleAttrs).draw(at: CGPoint(x: margin, y: yOffset))
+                    yOffset += 20
+                }
+                if let site = siteFilter {
+                    NSAttributedString(string: "Site: \(site)", attributes: subtitleAttrs).draw(at: CGPoint(x: margin, y: yOffset))
+                    yOffset += 20
+                }
+                yOffset += 16
+
+                let total = rows.reduce(Decimal(0)) { $0 + $1.amount }
+                NSAttributedString(string: "ESTIMATED TOTAL: \(total.formatted(.currency(code: "USD")))", attributes: sectionAttrs).draw(at: CGPoint(x: margin, y: yOffset))
+                yOffset += 24
+
+                let componentTotals = Dictionary(grouping: rows, by: { $0.componentName })
+                    .map { ($0.key, $0.value.reduce(Decimal(0)) { $0 + $1.amount }) }
+                    .sorted { $0.0 < $1.0 }
+                if !componentTotals.isEmpty {
+                    NSAttributedString(string: "BREAKDOWN BY PAY COMPONENT", attributes: sectionAttrs).draw(at: CGPoint(x: margin, y: yOffset))
+                    yOffset += 18
+                    for (label, amount) in componentTotals {
+                        NSAttributedString(string: label, attributes: subtitleAttrs).draw(in: CGRect(x: margin, y: yOffset, width: contentWidth - 120, height: 18))
+                        NSAttributedString(string: amount.formatted(.currency(code: "USD")), attributes: subtitleAttrs).draw(in: CGRect(x: pageWidth - margin - 120, y: yOffset, width: 120, height: 18))
+                        yOffset += 18
+                    }
+                    yOffset += 12
+                }
+
+                let cols: [(String, CGFloat, NSTextAlignment)] = [
+                    ("Check", 72, .left), ("Worked", 58, .left), ("Employer", 88, .left),
+                    ("Site", 80, .left), ("Component", 100, .left), ("Window", 72, .left), ("Amount", 74, .right)
+                ]
+                var xOffset = margin
+                for (label, width, align) in cols {
+                    NSAttributedString(string: label.uppercased(), attributes: sectionAttrs).draw(in: applyAlignment(CGRect(x: xOffset, y: yOffset, width: width, height: 18), alignment: align))
+                    xOffset += width
+                }
+                yOffset += 22
+
+                let sortedRows = rows.sorted { lhs, rhs in
+                    if lhs.paycheckDate != rhs.paycheckDate { return lhs.paycheckDate < rhs.paycheckDate }
+                    if lhs.serviceDate != rhs.serviceDate { return lhs.serviceDate < rhs.serviceDate }
+                    return lhs.componentName < rhs.componentName
+                }
+                for (index, row) in sortedRows.enumerated() {
+                    if yOffset > pageHeight - margin - 80 {
+                        context.beginPage()
+                        yOffset = margin
+                    }
+                    if index % 2 == 0 {
+                        let rowBg = UIBezierPath(rect: CGRect(x: margin - 4, y: yOffset - 2, width: contentWidth + 8, height: 22))
+                        UIColor.systemGray6.setFill()
+                        rowBg.fill()
+                    }
+                    let window = "\(formatShortDate(row.aggregationStart))–\(formatShortDate(row.aggregationEnd))"
+                    let values: [(String, CGFloat, NSTextAlignment, [NSAttributedString.Key: Any])] = [
+                        (formatShortDate(row.paycheckDate), 72, .left, rowBoldAttrs),
+                        (formatShortDate(row.serviceDate), 58, .left, rowAttrs),
+                        (row.employerName, 88, .left, rowAttrs),
+                        (row.siteName, 80, .left, rowAttrs),
+                        (row.componentName, 100, .left, rowBoldAttrs),
+                        (window, 72, .left, rowAttrs),
+                        (row.amount.formatted(.currency(code: "USD")), 74, .right, accentAttrs)
+                    ]
+                    xOffset = margin
+                    for (val, width, align, attrs) in values {
+                        NSAttributedString(string: val, attributes: attrs).draw(in: applyAlignment(CGRect(x: xOffset, y: yOffset, width: width, height: 18), alignment: align))
+                        xOffset += width
+                    }
+                    yOffset += 22
+                }
+
+                let footerAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: UIColor.tertiaryLabel]
+                NSAttributedString(string: "Generated by AnesPay on \(formatFullDate(Date()))", attributes: footerAttrs)
+                    .draw(at: CGPoint(x: margin, y: pageHeight - margin))
+            }
+            return url
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: - Helpers
     
     private func applyAlignment(_ rect: CGRect, alignment: NSTextAlignment) -> CGRect {

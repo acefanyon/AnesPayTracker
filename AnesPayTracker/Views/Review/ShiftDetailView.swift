@@ -13,6 +13,7 @@ struct ShiftDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var showEditHistory = false
     @State private var showCopiedAlert = false
+    @State private var icsExportURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -41,6 +42,8 @@ struct ShiftDetailView: View {
                         if let sn = shift.sourceNote {
                             SourceNoteCard(sourceNote: sn)
                         }
+
+                        CalendarExportCard(shift: shift, icsExportURL: $icsExportURL)
 
                         // Edit history
                         if shift.isEdited {
@@ -194,8 +197,13 @@ struct PayBreakdownCard: View {
                     )
                 case .perHour:
                     let hrs = shift.hoursWorked ?? 0
+                    let detail: String? = {
+                        guard let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt else { return nil }
+                        return "Clock \(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute())); ceiling quarter-hour rounded"
+                    }()
                     BreakdownRow(
                         label: "\(shift.baseAmount.formatted(.currency(code: "USD")))/hr × \(hrs.formatted()) hrs",
+                        detail: detail,
                         value: shift.basePay,
                         isBase: true
                     )
@@ -309,6 +317,12 @@ struct ShiftMetaCard: View {
                     MetaRow(label: "Day Fraction", value: shift.dayFraction?.accessibilityLabel ?? "Full Day")
                 case .perHour:
                     MetaRow(label: "Hours", value: "\(shift.hoursWorked?.formatted() ?? "0") hrs")
+                    if let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt {
+                        Divider()
+                        MetaRow(label: "Clock", value: "\(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute()))")
+                        Divider()
+                        MetaRow(label: "Rounding", value: "Ceiling quarter-hour")
+                    }
                 }
                 Divider()
                 MetaRow(label: "On-Call", value: shift.isOnCall ? shift.onCallPay.formatted(.currency(code: "USD")) : "No")
@@ -346,6 +360,39 @@ struct SourceNoteCard: View {
                 MetaRow(label: "Date Contacted", value: sourceNote.contactedOn.formatted(.dateTime.month(.abbreviated).day().year()))
                 Divider()
                 MetaRow(label: "Channel", value: sourceNote.channel.rawValue)
+            }
+        }
+    }
+}
+
+// MARK: - Edit History Card
+
+struct CalendarExportCard: View {
+    let shift: Shift
+    @Binding var icsExportURL: URL?
+
+    var body: some View {
+        InfoCard(title: "Calendar Export") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Export this shift as an .ics calendar file, or use Settings calendar sync to add future shifts directly to a selected calendar.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                if let icsExportURL {
+                    ShareLink(item: icsExportURL) {
+                        Label("Share .ics File", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button {
+                        icsExportURL = CalendarSyncManager.shared.exportICSFile(for: shift)
+                    } label: {
+                        Label("Create .ics File", systemImage: "calendar.badge.plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
         }
     }

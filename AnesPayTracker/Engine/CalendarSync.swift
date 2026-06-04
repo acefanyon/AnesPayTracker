@@ -122,6 +122,35 @@ final class CalendarSyncManager {
               let event = store.event(withIdentifier: eventID) else { return }
         try? store.remove(event, span: .thisEvent)
     }
+
+    func exportICSFile(for shift: Shift) -> URL? {
+        let fileName = "AnesPay_Shift_\(icsFileDate(shift.date))_\(shift.site?.name ?? "Work").ics"
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: " ", with: "_")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        let endDate = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: shift.date)) ?? shift.date
+        let ics = """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:-//AnesPayTracker//Shift Export//EN
+        CALSCALE:GREGORIAN
+        BEGIN:VEVENT
+        UID:\(shift.id.uuidString)@anespaytracker.local
+        DTSTAMP:\(icsTimestamp(Date()))
+        DTSTART;VALUE=DATE:\(icsDate(shift.date))
+        DTEND;VALUE=DATE:\(icsDate(endDate))
+        SUMMARY:\(icsEscaped(eventTitle(for: shift)))
+        DESCRIPTION:\(icsEscaped(eventNotes(for: shift)))
+        END:VEVENT
+        END:VCALENDAR
+        """
+        do {
+            try ics.write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch {
+            return nil
+        }
+    }
     
     // MARK: - Formatting
     
@@ -140,6 +169,10 @@ final class CalendarSyncManager {
         case .perHour:
             let hrs = shift.hoursWorked ?? 0
             lines.append("Hours: \(hrs.formatted())")
+            if let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt {
+                lines.append("Clock: \(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute()))")
+                lines.append("Rounding: ceiling to nearest quarter hour")
+            }
         }
         
         lines.append("Base pay: \(shift.basePay.formatted(.currency(code: "USD")))")
@@ -164,5 +197,33 @@ final class CalendarSyncManager {
         }
         
         return lines.joined(separator: "\n")
+    }
+
+    private func icsDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd"
+        formatter.timeZone = .current
+        return formatter.string(from: date)
+    }
+
+    private func icsFileDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func icsTimestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.string(from: date)
+    }
+
+    private func icsEscaped(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: ";", with: "\\;")
+            .replacingOccurrences(of: ",", with: "\\,")
+            .replacingOccurrences(of: "\n", with: "\\n")
     }
 }

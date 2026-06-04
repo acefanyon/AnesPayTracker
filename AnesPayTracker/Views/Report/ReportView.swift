@@ -238,6 +238,7 @@ struct ReportView: View {
             PaycheckEstimatorSummaryCard(rowCount: paycheckRows.count, paycheckCount: paycheckGroups.count, totalEstimate: totalPaycheckEstimate)
             PaycheckEstimatorBreakdownCard(rows: paycheckRows)
             PaycheckEstimatorTableCard(groups: paycheckGroups)
+            exportButton
         } else {
             EmptyStateView(icon: "banknote", title: "No paycheck estimates in range", message: employersMissingPaycheckAnchor.isEmpty ? "Try another paycheck date range or employer/site filter." : "Add a paycheck anchor date in Employer setup, then return here to estimate checks.")
                 .padding(.top, 40)
@@ -280,10 +281,19 @@ struct ReportView: View {
                 employerFilter: selectedEmployer?.name,
                 siteFilter: selectedSite?.name
             )
-        } else {
+        } else if reportMode == .bonusPayouts {
             let (start, end) = currentBonusPayoutBounds
             generatedURL = generator.generateBonusPayoutReport(
                 rows: bonusPayoutRows,
+                startDate: start,
+                endDate: end,
+                employerFilter: selectedEmployer?.name,
+                siteFilter: selectedSite?.name
+            )
+        } else {
+            let (start, end) = currentPaycheckBounds
+            generatedURL = generator.generatePaycheckEstimatorReport(
+                rows: paycheckRows,
                 startDate: start,
                 endDate: end,
                 employerFilter: selectedEmployer?.name,

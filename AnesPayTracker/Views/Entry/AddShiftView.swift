@@ -7,6 +7,8 @@ struct ShiftDraftSnapshot {
     let siteID: UUID?
     let dayFraction: DayFraction?
     let hoursWorked: Double?
+    let clockInAt: Date?
+    let clockOutAt: Date?
     let isOnCall: Bool
     let onCallAmount: Decimal?
     let notes: String?
@@ -28,6 +30,8 @@ final class ShiftDraftClipboard {
             siteID: shift.site?.id,
             dayFraction: shift.dayFraction,
             hoursWorked: shift.hoursWorked,
+            clockInAt: shift.clockInAt,
+            clockOutAt: shift.clockOutAt,
             isOnCall: shift.isOnCall,
             onCallAmount: shift.onCallAmount,
             notes: shift.notes,
@@ -56,6 +60,9 @@ struct AddShiftView: View {
     @State private var date: Date = Date()
     @State private var dayFraction: DayFraction = .full
     @State private var hoursWorked: Double = 8.0
+    @State private var usesClockTimes: Bool = false
+    @State private var clockInAt: Date = Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var clockOutAt: Date = Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var isOnCall: Bool = false
     @State private var onCallAmount: Decimal = 0
     @State private var customBonuses: [DraftAppliedCustomBonus] = []
@@ -155,7 +162,13 @@ struct AddShiftView: View {
                             if payUnit == .perDay {
                                 DayFractionPicker(selection: $dayFraction)
                             } else {
-                                HoursEntry(hoursWorked: $hoursWorked)
+                                HoursEntry(
+                                    hoursWorked: $hoursWorked,
+                                    usesClockTimes: $usesClockTimes,
+                                    clockInAt: $clockInAt,
+                                    clockOutAt: $clockOutAt,
+                                    serviceDate: date
+                                )
                             }
 
                             Divider()
@@ -241,6 +254,16 @@ struct AddShiftView: View {
         .onChange(of: hoursWorked) { oldValue, newValue in
             syncPerHourCustomBonusQuantities(from: oldValue, to: newValue)
         }
+        .onChange(of: clockInAt) { _, _ in syncHoursFromClockTimesIfNeeded() }
+        .onChange(of: clockOutAt) { _, _ in syncHoursFromClockTimesIfNeeded() }
+        .onChange(of: usesClockTimes) { _, enabled in
+            if enabled { syncHoursFromClockTimesIfNeeded() }
+        }
+        .onChange(of: date) { _, newDate in
+            clockInAt = moveClockTime(clockInAt, to: newDate)
+            clockOutAt = moveClockTime(clockOutAt, to: newDate)
+            syncHoursFromClockTimesIfNeeded()
+        }
         .onChange(of: dayFraction) { oldValue, newValue in
             syncProratedPerDayCustomBonusQuantities(from: oldValue, to: newValue)
         }
@@ -269,6 +292,8 @@ struct AddShiftView: View {
         shift.payUnit = site.payUnit
         shift.dayFraction = site.payUnit == .perDay ? dayFraction : nil
         shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
+        shift.clockInAt = site.payUnit == .perHour && usesClockTimes ? clockInAt : nil
+        shift.clockOutAt = site.payUnit == .perHour && usesClockTimes ? clockOutAt : nil
         shift.baseAmount = site.baseAmount
         shift.isOnCall = isOnCall
         shift.onCallAmount = isOnCall ? onCallAmount : nil
@@ -372,6 +397,8 @@ struct AddShiftView: View {
         if shift.date != date { changes.append("date changed") }
         if shift.dayFraction != dayFraction && payUnit == .perDay { changes.append("fraction changed to \(dayFraction.label)") }
         if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }
+        if shift.clockInAt != clockInAt && usesClockTimes { changes.append("clock-in changed") }
+        if shift.clockOutAt != clockOutAt && usesClockTimes { changes.append("clock-out changed") }
         return changes.isEmpty ? "Minor edit" : changes.joined(separator: ", ")
     }
 
@@ -394,6 +421,12 @@ struct AddShiftView: View {
 
         if let copiedHours = snapshot.hoursWorked {
             hoursWorked = copiedHours
+        }
+        if let copiedClockIn = snapshot.clockInAt, let copiedClockOut = snapshot.clockOutAt {
+            usesClockTimes = true
+            clockInAt = copiedClockIn
+            clockOutAt = copiedClockOut
+            syncHoursFromClockTimesIfNeeded()
         }
 
         isOnCall = snapshot.isOnCall
@@ -441,6 +474,9 @@ struct AddShiftView: View {
         date = shift.date
         dayFraction = shift.dayFraction ?? .full
         hoursWorked = shift.hoursWorked ?? 8.0
+        usesClockTimes = shift.clockInAt != nil && shift.clockOutAt != nil
+        clockInAt = shift.clockInAt ?? Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: shift.date) ?? shift.date
+        clockOutAt = shift.clockOutAt ?? Calendar.current.date(byAdding: .minute, value: Int((shift.hoursWorked ?? 8.0) * 60), to: clockInAt) ?? shift.date
         isOnCall = shift.isOnCall
         onCallAmount = shift.onCallAmount ?? shift.site?.employer?.defaultOnCallAmount ?? 0
         customBonuses = (shift.customBonuses ?? []).map { DraftAppliedCustomBonus(applied: $0) }
@@ -459,6 +495,23 @@ struct AddShiftView: View {
             sourceContactedOn = sn.contactedOn
             sourceChannel = sn.channel
         }
+    }
+
+    private func syncHoursFromClockTimesIfNeeded() {
+        guard usesClockTimes else { return }
+        let rounded = ClockTimeCalculator.ceilingQuarterHours(from: clockInAt, to: clockOutAt)
+        let oldHours = hoursWorked
+        hoursWorked = rounded
+        syncPerHourCustomBonusQuantities(from: oldHours, to: rounded)
+    }
+
+    private func moveClockTime(_ clockTime: Date, to newDate: Date) -> Date {
+        let cal = Calendar.current
+        let timeParts = cal.dateComponents([.hour, .minute], from: clockTime)
+        var dateParts = cal.dateComponents([.year, .month, .day], from: newDate)
+        dateParts.hour = timeParts.hour
+        dateParts.minute = timeParts.minute
+        return cal.date(from: dateParts) ?? clockTime
     }
 }
 
@@ -612,44 +665,94 @@ struct DayFractionPicker: View {
 
 // MARK: - Hours Entry
 
+struct ClockTimeCalculator {
+    static func ceilingQuarterHours(from clockIn: Date, to clockOut: Date) -> Double {
+        let minutes = max(0, clockOut.timeIntervalSince(clockIn) / 60)
+        let roundedQuarterHours = ceil(minutes / 15.0) * 0.25
+        return max(0.25, roundedQuarterHours)
+    }
+}
+
 struct HoursEntry: View {
     @Binding var hoursWorked: Double
+    @Binding var usesClockTimes: Bool
+    @Binding var clockInAt: Date
+    @Binding var clockOutAt: Date
+    let serviceDate: Date
     @State private var rawText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Hours Worked")
-                .font(.subheadline).foregroundStyle(.secondary)
-                .textCase(.uppercase).tracking(0.5)
-
-            HStack(spacing: 16) {
-                Button {
-                    hoursWorked = max(0.25, hoursWorked - 0.25)
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(Color.accent)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Decrease hours")
-
-                Text(hoursWorked.formatted())
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .frame(minWidth: 80)
-                    .multilineTextAlignment(.center)
-
-                Button {
-                    hoursWorked += 0.25
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(Color.accent)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Increase hours")
+            HStack {
+                Text("Hours Worked")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .textCase(.uppercase).tracking(0.5)
+                Spacer()
+                Toggle("Clock In/Out", isOn: $usesClockTimes)
+                    .font(.footnote)
             }
-            .frame(maxWidth: .infinity)
+
+            if usesClockTimes {
+                VStack(alignment: .leading, spacing: 10) {
+                    DatePicker("Clock in", selection: $clockInAt, displayedComponents: .hourAndMinute)
+                    DatePicker("Clock out", selection: $clockOutAt, displayedComponents: .hourAndMinute)
+                    Text("Ceiling quarter-hour rounding: any partial quarter rounds up. Example: 8.01 hours becomes 8.25.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text("Rounded hours: \(hoursWorked.formatted())")
+                        .font(.title2.bold())
+                        .foregroundStyle(Color.accent)
+                }
+                .onAppear { normalizeClockDatesToServiceDate() }
+                .onChange(of: serviceDate) { _, _ in normalizeClockDatesToServiceDate() }
+            } else {
+                HStack(spacing: 16) {
+                    Button {
+                        hoursWorked = max(0.25, hoursWorked - 0.25)
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(Color.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Decrease hours")
+
+                    Text(hoursWorked.formatted())
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .frame(minWidth: 80)
+                        .multilineTextAlignment(.center)
+
+                    Button {
+                        hoursWorked += 0.25
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(Color.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Increase hours")
+                }
+                .frame(maxWidth: .infinity)
+            }
         }
+    }
+
+    private func normalizeClockDatesToServiceDate() {
+        clockInAt = combined(date: serviceDate, time: clockInAt)
+        clockOutAt = combined(date: serviceDate, time: clockOutAt)
+    }
+
+    private func combined(date: Date, time: Date) -> Date {
+        let cal = Calendar.current
+        let dateParts = cal.dateComponents([.year, .month, .day], from: date)
+        let timeParts = cal.dateComponents([.hour, .minute], from: time)
+        var comps = DateComponents()
+        comps.year = dateParts.year
+        comps.month = dateParts.month
+        comps.day = dateParts.day
+        comps.hour = timeParts.hour
+        comps.minute = timeParts.minute
+        return cal.date(from: comps) ?? time
     }
 }
 

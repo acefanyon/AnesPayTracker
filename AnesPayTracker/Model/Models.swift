@@ -179,6 +179,8 @@ final class Shift {
     var payUnit: PayUnit
     var dayFraction: DayFraction?
     var hoursWorked: Double?
+    var clockInAt: Date?
+    var clockOutAt: Date?
     var baseAmount: Decimal
     var isOnCall: Bool
     var onCallAmount: Decimal?
@@ -205,6 +207,8 @@ final class Shift {
         payUnit: PayUnit = .perDay,
         dayFraction: DayFraction? = .full,
         hoursWorked: Double? = nil,
+        clockInAt: Date? = nil,
+        clockOutAt: Date? = nil,
         baseAmount: Decimal = 0,
         isOnCall: Bool = false,
         onCallAmount: Decimal? = nil,
@@ -229,6 +233,8 @@ final class Shift {
         self.payUnit = payUnit
         self.dayFraction = dayFraction
         self.hoursWorked = hoursWorked
+        self.clockInAt = clockInAt
+        self.clockOutAt = clockOutAt
         self.baseAmount = baseAmount
         self.isOnCall = isOnCall
         self.onCallAmount = onCallAmount
