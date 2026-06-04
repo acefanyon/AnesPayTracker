@@ -119,7 +119,7 @@ def calculate_quarter_streak_progress(
         key = quarter_key(shift.service_date)
         prior_count = per_quarter_counts.get(key, 0)
         current_count = prior_count + 1
-        streak_bonus = rule.per_day_bonus if current_count > rule.required_days else Decimal("0")
+        streak_bonus = rule.per_day_bonus * DAY_FRACTIONS[shift.day_fraction] if current_count > rule.required_days else Decimal("0")
         per_quarter_counts[key] = current_count
         results.append((current_count, streak_bonus))
 
@@ -189,6 +189,24 @@ CASES = [
         custom_bonuses=[CustomBonus("Holiday", Decimal("250"), Decimal("1"))],
         expected_base=Decimal("1000"),
         expected_total=Decimal("1250"),
+    ),
+    Case(
+        name="prorated per-day custom bonus follows half-day fraction",
+        pay_unit="perDay",
+        base_amount=Decimal("1000"),
+        day_fraction="half",
+        custom_bonuses=[CustomBonus("Holiday", Decimal("250"), Decimal("0.5"))],
+        expected_base=Decimal("500"),
+        expected_total=Decimal("625"),
+    ),
+    Case(
+        name="non-prorated flat bonus pays full amount on half day",
+        pay_unit="perDay",
+        base_amount=Decimal("1000"),
+        day_fraction="half",
+        custom_bonuses=[CustomBonus("Flat Call", Decimal("250"), Decimal("1"))],
+        expected_base=Decimal("500"),
+        expected_total=Decimal("750"),
     ),
     Case(
         name="custom per-hour bonus included",
@@ -261,7 +279,7 @@ QUARTER_SCENARIOS = [
             QuarterShift(date(2026, 4, 1), "quarter", 1, Decimal("0")),
             QuarterShift(date(2026, 4, 2), "half", 2, Decimal("0")),
             QuarterShift(date(2026, 4, 3), "threeQuarter", 3, Decimal("0")),
-            QuarterShift(date(2026, 4, 4), "full", 4, Decimal("200")),
+            QuarterShift(date(2026, 4, 4), "half", 4, Decimal("100.0")),
         ],
     ),
     QuarterScenario(

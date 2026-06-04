@@ -44,7 +44,8 @@ struct StreakEngine {
             shift.streakQualifiedForPayout = currentCount > rule.requiredDays
 
             if qualifiesForPayout, earnedAmount > 0 {
-                shift.streakBonusAmount = earnedAmount
+                let dayMultiplier = shift.payUnit == .perDay ? (shift.dayFraction?.multiplier ?? 1) : 1
+                shift.streakBonusAmount = earnedAmount * dayMultiplier
                 shift.streakRuleTriggeredID = rule.id
             }
         }

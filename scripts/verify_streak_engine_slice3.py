@@ -52,6 +52,7 @@ def main() -> int:
     require("streakQualifiedShiftCount = currentCount" in engine, "Engine must snapshot quarter progress onto each shift", failures)
     require("streakPayoutSchedule = rule.payoutSchedule" in engine, "Engine must snapshot payout schedule from the active rule", failures)
     require("streakQualifiedForPayout = currentCount > rule.requiredDays" in engine, "Engine must mark only post-threshold shifts as payout-earning", failures)
+    require("dayMultiplier" in engine and "streakBonusAmount = earnedAmount * dayMultiplier" in engine, "Streak earnings must prorate by day fraction on partial-day per-day shifts", failures)
     require("let windowEnd = calendar.endOfDay(for: date)" in engine, "Windowed streak logic must cap counting at the current shift day", failures)
     require("$0.date >= monthStart && $0.date < monthEnd && $0.date <= windowEnd" in engine, "Calendar-month windows must exclude future shifts", failures)
     require("$0.date >= quarterStart && $0.date < quarterEnd && $0.date <= windowEnd" in engine, "Calendar-quarter windows must exclude future shifts", failures)

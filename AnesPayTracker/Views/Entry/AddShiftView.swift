@@ -113,6 +113,10 @@ struct AddShiftView: View {
         selectedSite?.employer?.defaultOnCallAmount ?? 0
     }
 
+    private var dayFractionQuantity: Double {
+        NSDecimalNumber(decimal: dayFraction.multiplier).doubleValue
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -159,7 +163,7 @@ struct AddShiftView: View {
                             // Bonuses
                             CustomBonusesSection(
                                 customBonuses: $customBonuses,
-                                defaultQuantity: payUnit == .perHour ? hoursWorked : 1
+                                defaultQuantity: payUnit == .perHour ? hoursWorked : dayFractionQuantity
                             )
 
                             Divider()
@@ -237,6 +241,9 @@ struct AddShiftView: View {
         .onChange(of: hoursWorked) { oldValue, newValue in
             syncPerHourCustomBonusQuantities(from: oldValue, to: newValue)
         }
+        .onChange(of: dayFraction) { oldValue, newValue in
+            syncProratedPerDayCustomBonusQuantities(from: oldValue, to: newValue)
+        }
     }
 
     // MARK: - Save
@@ -269,7 +276,7 @@ struct AddShiftView: View {
         shift.bonusSplashAmount = nil
         shift.customBonuses = customBonuses
             .filter { $0.isEnabled && !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity, payoutSchedule: $0.payoutSchedule) }
+            .map { AppliedCustomBonus(name: $0.name, payUnit: $0.payUnit, amount: $0.amount, quantity: $0.quantity, payoutSchedule: $0.payoutSchedule, proratesPartialDay: $0.proratesPartialDay) }
 
         if hasSourceNote && !sourceContactName.isEmpty {
             shift.sourceNote = SourceNote(
@@ -317,8 +324,9 @@ struct AddShiftView: View {
                 name: bonusType.name,
                 payUnit: bonusType.payUnit,
                 amount: bonusType.defaultAmount,
-                quantity: bonusType.payUnit == .perHour ? hoursWorked : 1,
+                quantity: bonusType.payUnit == .perHour ? hoursWorked : (bonusType.proratesPartialDay ? dayFractionQuantity : 1),
                 payoutSchedule: bonusType.payoutSchedule,
+                proratesPartialDay: bonusType.payUnit == .perDay && bonusType.proratesPartialDay,
                 isEnabled: false
             ))
         }
@@ -330,12 +338,23 @@ struct AddShiftView: View {
             return false
         }
         syncPerHourCustomBonusQuantities(from: hoursWorked, to: hoursWorked)
+        syncProratedPerDayCustomBonusQuantities(from: dayFraction, to: dayFraction)
     }
 
     private func syncPerHourCustomBonusQuantities(from oldValue: Double, to newValue: Double) {
         for index in customBonuses.indices where customBonuses[index].payUnit == .perHour {
             if !customBonuses[index].isEnabled || customBonuses[index].quantity == oldValue {
                 customBonuses[index].quantity = newValue
+            }
+        }
+    }
+
+    private func syncProratedPerDayCustomBonusQuantities(from oldValue: DayFraction, to newValue: DayFraction) {
+        let oldQuantity = NSDecimalNumber(decimal: oldValue.multiplier).doubleValue
+        let newQuantity = NSDecimalNumber(decimal: newValue.multiplier).doubleValue
+        for index in customBonuses.indices where customBonuses[index].payUnit == .perDay && customBonuses[index].proratesPartialDay {
+            if !customBonuses[index].isEnabled || customBonuses[index].quantity == oldQuantity {
+                customBonuses[index].quantity = newQuantity
             }
         }
     }
@@ -410,6 +429,7 @@ struct AddShiftView: View {
                 amount: applied.amount,
                 quantity: applied.quantity,
                 payoutSchedule: applied.payoutSchedule,
+                proratesPartialDay: applied.proratesPartialDay,
                 isEnabled: true
             )
         }
@@ -425,10 +445,10 @@ struct AddShiftView: View {
         onCallAmount = shift.onCallAmount ?? shift.site?.employer?.defaultOnCallAmount ?? 0
         customBonuses = (shift.customBonuses ?? []).map { DraftAppliedCustomBonus(applied: $0) }
         if let splash = shift.splashAmount, splash > 0 {
-            customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Splash Bonus", payUnit: .perDay, amount: splash, quantity: 1, isEnabled: true))
+            customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Splash Bonus", payUnit: .perDay, amount: splash, quantity: 1, proratesPartialDay: false, isEnabled: true))
         }
         if let bonusSplash = shift.bonusSplashAmount, bonusSplash > 0 {
-            customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Bonus Splash", payUnit: .perDay, amount: bonusSplash, quantity: 1, isEnabled: true))
+            customBonuses.append(DraftAppliedCustomBonus(sourceID: nil, name: "Bonus Splash", payUnit: .perDay, amount: bonusSplash, quantity: 1, proratesPartialDay: false, isEnabled: true))
         }
         syncCustomBonusesForSelectedSite()
         notes = shift.notes ?? ""
@@ -742,15 +762,17 @@ struct DraftAppliedCustomBonus: Identifiable {
     var amount: Decimal
     var quantity: Double
     var payoutSchedule: BonusPayoutSchedule
+    var proratesPartialDay: Bool
     var isEnabled: Bool
 
-    init(sourceID: UUID?, name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, payoutSchedule: BonusPayoutSchedule = .serviceDate, isEnabled: Bool) {
+    init(sourceID: UUID?, name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, payoutSchedule: BonusPayoutSchedule = .serviceDate, proratesPartialDay: Bool = false, isEnabled: Bool) {
         self.sourceID = sourceID
         self.name = name
         self.payUnit = payUnit
         self.amount = amount
         self.quantity = quantity
         self.payoutSchedule = payoutSchedule
+        self.proratesPartialDay = proratesPartialDay
         self.isEnabled = isEnabled
     }
 
@@ -761,6 +783,7 @@ struct DraftAppliedCustomBonus: Identifiable {
         self.amount = applied.amount
         self.quantity = applied.quantity
         self.payoutSchedule = applied.payoutSchedule
+        self.proratesPartialDay = applied.proratesPartialDay
         self.isEnabled = true
     }
 
@@ -786,8 +809,9 @@ struct CustomBonusesSection: View {
                         name: "One-time Bonus",
                         payUnit: .perDay,
                         amount: 0,
-                        quantity: 1,
+                        quantity: defaultQuantity,
                         payoutSchedule: .serviceDate,
+                        proratesPartialDay: true,
                         isEnabled: true
                     ))
                 } label: {
@@ -842,6 +866,17 @@ struct CustomBonusesSection: View {
                                 Text("Per Hour").tag(PayUnit.perHour)
                             }
                             .pickerStyle(.segmented)
+                            .onChange(of: bonus.payUnit) { _, newUnit in
+                                if newUnit == .perDay {
+                                    bonus.proratesPartialDay = true
+                                    bonus.quantity = defaultQuantity
+                                } else {
+                                    bonus.proratesPartialDay = false
+                                    if bonus.quantity < 1 && defaultQuantity > 1 {
+                                        bonus.quantity = defaultQuantity
+                                    }
+                                }
+                            }
                         }
                         CurrencyField(value: $bonus.amount, placeholder: "Amount")
                         Picker("When paid", selection: $bonus.payoutSchedule) {
@@ -850,6 +885,15 @@ struct CustomBonusesSection: View {
                             }
                         }
                         .pickerStyle(.menu)
+                        if bonus.payUnit == .perDay {
+                            Toggle("Prorate for partial day", isOn: $bonus.proratesPartialDay)
+                                .onChange(of: bonus.proratesPartialDay) { _, shouldProrate in
+                                    bonus.quantity = shouldProrate ? defaultQuantity : 1
+                                }
+                            Text(bonus.proratesPartialDay ? "Uses this shift's day fraction for the bonus amount." : "Pays the full bonus amount even on a partial-day shift.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         if bonus.payUnit == .perHour {
                             Stepper("Hours: \(bonus.quantity.formatted())", value: $bonus.quantity, in: 0.25...24, step: 0.25)
                                 .onAppear {

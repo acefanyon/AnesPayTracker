@@ -34,7 +34,7 @@ struct ReportView: View {
             let lastQuarter = cal.date(byAdding: .month, value: -3, to: today) ?? today
             return quarterBounds(containing: lastQuarter)
         case .ytd:
-            var comps = cal.dateComponents([.year], from: today)
+            let comps = cal.dateComponents([.year], from: today)
             let start = cal.date(from: comps) ?? today
             return (start, today)
         case .custom:

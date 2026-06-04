@@ -42,10 +42,14 @@ def main() -> int:
 
     require("CustomBonusesStep" in setup, "Employer setup must keep named custom bonus types", failures)
     require("Bonus name" in setup, "Employer setup must let user name employer bonus types", failures)
+    require("Prorate for partial-day shifts" in setup, "Employer setup must let per-day bonuses opt into partial-day proration", failures)
+    require("proratesPartialDay" in setup, "Employer setup must persist the per-day bonus proration setting", failures)
 
     require("Add One-Time Bonus" in add_shift, "Add Shift must offer an on-the-fly one-time bonus action", failures)
     require("One-time Bonus" in add_shift, "On-the-fly bonus should have a clear default name", failures)
     require("Add custom bonus" in add_shift, "Add Shift must have accessible add-custom-bonus control", failures)
+    require("Prorate for partial day" in add_shift, "Add Shift must show per-shift proration toggle for per-day bonuses", failures)
+    require("dayFractionQuantity" in add_shift, "Add Shift must derive per-day bonus quantity from the selected day fraction", failures)
 
     save_start = add_shift.find("private func saveShift()")
     save_end = add_shift.find("private func syncCustomBonusesForSelectedSite()")

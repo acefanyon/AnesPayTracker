@@ -394,6 +394,7 @@ struct EmployerSetupWizard: View {
                 existing.payUnit = draft.payUnit
                 existing.defaultAmount = draft.defaultAmount
                 existing.payoutSchedule = draft.payoutSchedule
+                existing.proratesPartialDay = draft.proratesPartialDay
                 retainedIDs.insert(existing.id)
                 updatedBonuses.append(existing)
             } else {
@@ -402,7 +403,8 @@ struct EmployerSetupWizard: View {
                     name: trimmedName,
                     payUnit: draft.payUnit,
                     defaultAmount: draft.defaultAmount,
-                    payoutSchedule: draft.payoutSchedule
+                    payoutSchedule: draft.payoutSchedule,
+                    proratesPartialDay: draft.proratesPartialDay
                 )
                 if insertNewObjects { modelContext.insert(bonus) }
                 retainedIDs.insert(bonus.id)
@@ -531,6 +533,7 @@ struct DraftCustomBonusType: Identifiable {
     var payUnit: PayUnit = .perDay
     var defaultAmount: Decimal = 0
     var payoutSchedule: BonusPayoutSchedule = .serviceDate
+    var proratesPartialDay: Bool = true
 
     init() {}
 
@@ -541,6 +544,7 @@ struct DraftCustomBonusType: Identifiable {
         self.payUnit = bonus.payUnit
         self.defaultAmount = bonus.defaultAmount
         self.payoutSchedule = bonus.payoutSchedule
+        self.proratesPartialDay = bonus.proratesPartialDay
     }
 }
 
@@ -726,6 +730,13 @@ struct CustomBonusTypeEditorCard: View {
                 }
             }
             .pickerStyle(.menu)
+
+            if bonus.payUnit == .perDay {
+                Toggle("Prorate for partial-day shifts", isOn: $bonus.proratesPartialDay)
+                Text("When on, a half-day shift receives half of this bonus. Turn off for flat bonuses that should pay the full amount regardless of day fraction.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(14)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
@@ -1073,7 +1084,7 @@ struct WizardReviewStep: View {
                 Divider()
                 Text("Custom Bonuses").font(.headline)
                 ForEach(customBonusTypes.filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { bonus in
-                    Text("\(bonus.name): \(bonus.defaultAmount.formatted(.currency(code: "USD"))) \(bonus.payUnit == .perHour ? "per hour" : "flat/per day") · paid: \(bonus.payoutSchedule.shortLabel)")
+                    Text("\(bonus.name): \(bonus.defaultAmount.formatted(.currency(code: "USD"))) \(bonus.payUnit == .perHour ? "per hour" : "flat/per day") · paid: \(bonus.payoutSchedule.shortLabel)\(bonus.payUnit == .perDay ? (bonus.proratesPartialDay ? " · prorates partial days" : " · full amount on partial days") : "")")
                         .font(.footnote)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)

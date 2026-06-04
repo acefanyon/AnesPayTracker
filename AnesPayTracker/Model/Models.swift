@@ -80,6 +80,7 @@ final class CustomBonusType {
     var payUnit: PayUnit
     var defaultAmount: Decimal
     var payoutSchedule: BonusPayoutSchedule
+    var proratesPartialDay: Bool
     var createdAt: Date
 
     init(
@@ -89,6 +90,7 @@ final class CustomBonusType {
         payUnit: PayUnit = .perDay,
         defaultAmount: Decimal = 0,
         payoutSchedule: BonusPayoutSchedule = .serviceDate,
+        proratesPartialDay: Bool = true,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -97,6 +99,7 @@ final class CustomBonusType {
         self.payUnit = payUnit
         self.defaultAmount = defaultAmount
         self.payoutSchedule = payoutSchedule
+        self.proratesPartialDay = proratesPartialDay
         self.createdAt = createdAt
     }
 }
@@ -367,6 +370,38 @@ struct AppliedCustomBonus: Codable, Identifiable {
     var amount: Decimal
     var quantity: Double
     var payoutSchedule: BonusPayoutSchedule = .serviceDate
+    var proratesPartialDay: Bool = false
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case payUnit
+        case amount
+        case quantity
+        case payoutSchedule
+        case proratesPartialDay
+    }
+
+    init(id: UUID = UUID(), name: String, payUnit: PayUnit, amount: Decimal, quantity: Double, payoutSchedule: BonusPayoutSchedule = .serviceDate, proratesPartialDay: Bool = false) {
+        self.id = id
+        self.name = name
+        self.payUnit = payUnit
+        self.amount = amount
+        self.quantity = quantity
+        self.payoutSchedule = payoutSchedule
+        self.proratesPartialDay = proratesPartialDay
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try container.decode(String.self, forKey: .name)
+        payUnit = try container.decode(PayUnit.self, forKey: .payUnit)
+        amount = try container.decode(Decimal.self, forKey: .amount)
+        quantity = try container.decode(Double.self, forKey: .quantity)
+        payoutSchedule = try container.decodeIfPresent(BonusPayoutSchedule.self, forKey: .payoutSchedule) ?? .serviceDate
+        proratesPartialDay = try container.decodeIfPresent(Bool.self, forKey: .proratesPartialDay) ?? false
+    }
 
     var totalAmount: Decimal {
         switch payUnit {
