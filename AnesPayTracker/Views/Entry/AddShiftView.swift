@@ -982,12 +982,15 @@ struct CustomBonusesSection: View {
                             }
                         }
                         CurrencyField(value: $bonus.amount, placeholder: "Amount")
-                        Picker("When paid", selection: $bonus.payoutSchedule) {
+                        Picker("How and when paid", selection: $bonus.payoutSchedule) {
                             ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
                                 Text(schedule.rawValue).tag(schedule)
                             }
                         }
                         .pickerStyle(.menu)
+                        Text(bonus.payoutSchedule.descriptiveLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         if bonus.payUnit == .perDay {
                             Toggle("Prorate for partial day", isOn: $bonus.proratesPartialDay)
                                 .onChange(of: bonus.proratesPartialDay) { _, shouldProrate in

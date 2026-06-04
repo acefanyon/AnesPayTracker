@@ -364,6 +364,7 @@ struct EmployerSetupWizard: View {
                 existing.windowType = draft.windowType
                 existing.windowDays = draft.windowType == .rollingDays ? draft.windowDays : nil
                 existing.bonusAmount = draft.bonusAmount
+                existing.payoutSchedule = draft.payoutSchedule
                 existing.isActive = index == lastRuleIndex
                 retainedIDs.insert(existing.id)
                 updatedRules.append(existing)
@@ -373,6 +374,7 @@ struct EmployerSetupWizard: View {
                     windowType: draft.windowType,
                     windowDays: draft.windowType == .rollingDays ? draft.windowDays : nil,
                     bonusAmount: draft.bonusAmount,
+                    payoutSchedule: draft.payoutSchedule,
                     isActive: index == lastRuleIndex
                 )
                 rule.employer = employer
@@ -529,6 +531,7 @@ struct DraftStreakRule: Identifiable {
     var windowType: StreakWindowType = .rollingDays
     var windowDays: Int = 14
     var bonusAmount: Decimal = 0
+    var payoutSchedule: BonusPayoutSchedule = .nextQuarterlyPayout
 
     init() {}
 
@@ -539,6 +542,7 @@ struct DraftStreakRule: Identifiable {
         self.windowType = rule.windowType
         self.windowDays = rule.windowDays ?? 14
         self.bonusAmount = rule.bonusAmount
+        self.payoutSchedule = rule.payoutSchedule
     }
 }
 
@@ -765,12 +769,15 @@ struct CustomBonusTypeEditorCard: View {
                 CurrencyField(value: $bonus.defaultAmount, placeholder: "0.00")
             }
 
-            Picker("When paid", selection: $bonus.payoutSchedule) {
+            Picker("How and when paid", selection: $bonus.payoutSchedule) {
                 ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
                     Text(schedule.rawValue).tag(schedule)
                 }
             }
             .pickerStyle(.menu)
+            Text(bonus.payoutSchedule.descriptiveLabel)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             if bonus.payUnit == .perDay {
                 Toggle("Prorate for partial-day shifts", isOn: $bonus.proratesPartialDay)
@@ -1016,6 +1023,19 @@ struct StreakRuleEditorCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Bonus Amount").font(.caption).foregroundStyle(.secondary)
                 CurrencyField(value: $rule.bonusAmount, placeholder: "0.00")
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("How and When This Bonus Is Paid").font(.caption).foregroundStyle(.secondary)
+                Picker("Payout schedule", selection: $rule.payoutSchedule) {
+                    ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
+                        Text(schedule.rawValue).tag(schedule)
+                    }
+                }
+                .pickerStyle(.menu)
+                Text(rule.payoutSchedule.descriptiveLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
         }

@@ -86,14 +86,14 @@ def main() -> int:
 
     require("var payoutSchedule: BonusPayoutSchedule" in models, "CustomBonusType and AppliedCustomBonus must store payout schedule", failures)
     require("payoutSchedule: draft.payoutSchedule" in setup, "Employer custom bonus setup must save payout schedule defaults", failures)
-    require("Picker(\"When paid\"" in setup, "Employer setup must expose a When paid picker for named bonuses", failures)
-    require("Picker(\"When paid\"" in add_shift, "Add Shift one-time bonus UI must expose a When paid picker", failures)
+    require("Picker(\"How and when paid\"" in setup, "Employer setup must expose a How and when paid picker for named bonuses", failures)
+    require("Picker(\"How and when paid\"" in add_shift, "Add Shift one-time bonus UI must expose a How and when paid picker", failures)
     require("payoutSchedule: $0.payoutSchedule" in add_shift, "Shift saves must persist applied bonus payout schedule", failures)
 
     require("enum ReportMode" in report, "Reports must have a mode selector for earnings vs bonus payouts", failures)
     require("case thisQuarter = \"This Quarter\"" in report and "case lastQuarter = \"Last Quarter\"" in report, "Earnings reports must support this-quarter and last-quarter ranges", failures)
     require("EarningsBreakdownCard" in report, "Earnings reports must show an earned base/bonus/streak breakdown", failures)
-    require("Quarterly streak bonuses are included in the quarter they were earned" in report, "Earnings breakdown must explain earned-quarter streak treatment", failures)
+    require("Shows base pay and each bonus type earned during this period" in report, "Earnings breakdown must explain that bonuses are shown earned with payout-note", failures)
     require("add(\"Streak Bonus\", shift.streakBonusAmount ?? 0)" in report, "Earnings bonus-type breakdown must include streak bonus", failures)
     require("case bonusPayouts" in report, "Reports must include a Bonus Payouts mode", failures)
     require("enum BonusPayoutDateRange" in report, "Bonus payout reports must have separate payout date ranges", failures)

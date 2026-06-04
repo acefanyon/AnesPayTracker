@@ -620,7 +620,7 @@ struct EarningsBreakdownCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Earnings Breakdown")
                 .font(.headline)
-            Text("Shows base pay and each bonus type in the period earned. Quarterly streak bonuses are included in the quarter they were earned, even though they are typically paid on the first check of the next quarter.")
+            Text("Shows base pay and each bonus type earned during this period. Quarterly streak bonuses and other scheduled bonuses are paid according to each employer's aggregation and payout rules — check the Paycheck Estimator for estimated paycheck dates.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             ForEach(breakdown, id: \.0) { label, amount in
