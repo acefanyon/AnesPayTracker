@@ -196,7 +196,7 @@ struct AddShiftView: View {
                         }
                     }
                     .padding(20)
-                    .padding(.bottom, 96)
+                    .padding(.bottom, 260)
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
             }

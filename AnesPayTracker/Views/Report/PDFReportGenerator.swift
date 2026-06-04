@@ -70,6 +70,54 @@ struct PDFReportGenerator {
                 line.lineWidth = 0.5
                 line.stroke()
                 yOffset += 12
+
+                var earnedBreakdown: [String: Decimal] = [:]
+                func addEarned(_ label: String, _ amount: Decimal) {
+                    guard amount > 0 else { return }
+                    earnedBreakdown[label, default: 0] += amount
+                }
+                addEarned("Base Pay", shifts.reduce(0) { $0 + $1.basePay })
+                for shift in shifts {
+                    addEarned("On-Call Bonus", shift.onCallPay)
+                    addEarned("Splash Bonus", shift.splashAmount ?? 0)
+                    addEarned("Bonus Splash", shift.bonusSplashAmount ?? 0)
+                    addEarned("Streak Bonus", shift.streakBonusAmount ?? 0)
+                    for bonus in shift.customBonuses ?? [] {
+                        addEarned(bonus.name, bonus.totalAmount)
+                    }
+                }
+                let earnedRows = earnedBreakdown.map { ($0.key, $0.value) }
+                    .sorted { lhs, rhs in
+                        if lhs.0 == "Base Pay" { return true }
+                        if rhs.0 == "Base Pay" { return false }
+                        if lhs.0 == "Streak Bonus" { return true }
+                        if rhs.0 == "Streak Bonus" { return false }
+                        return lhs.0 < rhs.0
+                    }
+                if !earnedRows.isEmpty {
+                    let sectionAttrs: [NSAttributedString.Key: Any] = [
+                        .font: UIFont.systemFont(ofSize: 12, weight: .bold),
+                        .foregroundColor: UIColor.label
+                    ]
+                    NSAttributedString(string: "EARNINGS BREAKDOWN", attributes: sectionAttrs)
+                        .draw(at: CGPoint(x: margin, y: yOffset))
+                    yOffset += 20
+                    for (label, amount) in earnedRows {
+                        NSAttributedString(string: label, attributes: subtitleAttrs)
+                            .draw(in: CGRect(x: margin, y: yOffset, width: contentWidth - 120, height: 18))
+                        NSAttributedString(string: amount.formatted(.currency(code: "USD")), attributes: subtitleAttrs)
+                            .draw(in: CGRect(x: pageWidth - margin - 120, y: yOffset, width: 120, height: 18))
+                        yOffset += 18
+                    }
+                    yOffset += 10
+                    UIColor.separator.setStroke()
+                    let breakdownLine = UIBezierPath()
+                    breakdownLine.move(to: CGPoint(x: margin, y: yOffset))
+                    breakdownLine.addLine(to: CGPoint(x: pageWidth - margin, y: yOffset))
+                    breakdownLine.lineWidth = 0.5
+                    breakdownLine.stroke()
+                    yOffset += 12
+                }
                 
                 // MARK: Table Header
                 let cols: [(String, CGFloat, NSTextAlignment)] = [
@@ -266,6 +314,45 @@ struct PDFReportGenerator {
                 line.lineWidth = 0.5
                 line.stroke()
                 yOffset += 12
+
+                let bonusTypeTotals = Dictionary(grouping: rows) { row in
+                    "\(row.bonusName) · \(row.schedule.shortLabel)"
+                }
+                .map { key, groupedRows in
+                    (key, groupedRows.reduce(Decimal(0)) { $0 + $1.amount })
+                }
+                .sorted { $0.0 < $1.0 }
+
+                if !bonusTypeTotals.isEmpty {
+                    let sectionAttrs: [NSAttributedString.Key: Any] = [
+                        .font: UIFont.systemFont(ofSize: 12, weight: .bold),
+                        .foregroundColor: UIColor.label
+                    ]
+                    NSAttributedString(string: "BREAKDOWN BY BONUS TYPE", attributes: sectionAttrs)
+                        .draw(at: CGPoint(x: margin, y: yOffset))
+                    yOffset += 20
+
+                    for (label, amount) in bonusTypeTotals {
+                        if yOffset > pageHeight - margin - 80 {
+                            context.beginPage()
+                            yOffset = margin
+                        }
+                        NSAttributedString(string: label, attributes: subtitleAttrs)
+                            .draw(in: CGRect(x: margin, y: yOffset, width: contentWidth - 120, height: 18))
+                        NSAttributedString(string: amount.formatted(.currency(code: "USD")), attributes: subtitleAttrs)
+                            .draw(in: CGRect(x: pageWidth - margin - 120, y: yOffset, width: 120, height: 18))
+                        yOffset += 18
+                    }
+
+                    yOffset += 10
+                    UIColor.separator.setStroke()
+                    let typeLine = UIBezierPath()
+                    typeLine.move(to: CGPoint(x: margin, y: yOffset))
+                    typeLine.addLine(to: CGPoint(x: pageWidth - margin, y: yOffset))
+                    typeLine.lineWidth = 0.5
+                    typeLine.stroke()
+                    yOffset += 12
+                }
 
                 let cols: [(String, CGFloat, NSTextAlignment)] = [
                     ("Payout Date", 78, .left),

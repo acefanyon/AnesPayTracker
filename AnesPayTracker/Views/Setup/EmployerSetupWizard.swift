@@ -941,26 +941,86 @@ struct StreakRuleEditorCard: View {
             }
             .font(.body)
 
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Window").font(.caption).foregroundStyle(.secondary)
-                    Picker("Window", selection: $rule.windowType) {
-                        ForEach(StreakWindowType.allCases, id: \.self) {
-                            Text($0.rawValue).tag($0)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Window")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Choose the time frame used to count qualifying shifts toward this streak.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], alignment: .leading, spacing: 10) {
+                    ForEach(StreakWindowType.allCases, id: \.self) { windowType in
+                        StreakWindowOptionCard(
+                            windowType: windowType,
+                            isSelected: rule.windowType == windowType
+                        ) {
+                            rule.windowType = windowType
                         }
                     }
-                    .pickerStyle(.segmented)
                 }
+            }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Bonus Amount").font(.caption).foregroundStyle(.secondary)
-                    CurrencyField(value: $rule.bonusAmount, placeholder: "0.00")
-                }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Bonus Amount").font(.caption).foregroundStyle(.secondary)
+                CurrencyField(value: $rule.bonusAmount, placeholder: "0.00")
             }
 
         }
         .padding(12)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+struct StreakWindowOptionCard: View {
+    let windowType: StreakWindowType
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var helpText: String {
+        switch windowType {
+        case .rollingDays:
+            return "Counts shifts in a moving day window, such as 14 rolling days."
+        case .calendarMonth:
+            return "Counts shifts from the first through last day of each calendar month."
+        case .calendarQuarter:
+            return "Counts shifts inside Jan-Mar, Apr-Jun, Jul-Sep, or Oct-Dec."
+        case .payPeriod:
+            return "Counts shifts inside the employer's configured pay period."
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isSelected ? Color.accent : .secondary)
+                    .padding(.top, 1)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(windowType.rawValue)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                    Text(helpText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 86, alignment: .topLeading)
+            .background(isSelected ? Color.accent.opacity(0.12) : Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.accent : Color.secondary.opacity(0.15), lineWidth: isSelected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Streak window: \(windowType.rawValue)")
+        .accessibilityHint(helpText)
     }
 }
 

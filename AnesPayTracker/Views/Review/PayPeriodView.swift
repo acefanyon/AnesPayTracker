@@ -49,6 +49,7 @@ struct PayPeriodView: View {
                         }
                     }
                     .padding(16)
+                    .padding(.bottom, 180)
                 }
             }
             .navigationTitle("Pay Periods")

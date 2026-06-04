@@ -63,6 +63,7 @@ struct ShiftDetailView: View {
                         .tint(.red)
                     }
                     .padding(20)
+                    .padding(.bottom, 180)
                 }
             }
             .navigationTitle("Shift Detail")

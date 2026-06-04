@@ -134,6 +134,67 @@ Still needs manual runtime confirmation from Jason:
 
 - Confirm scrolling feels natural by hand on Mac Catalyst, especially with trackpad/mouse-wheel input.
 
+Fifth manual pass from Jason:
+
+- Add Shift Save/Cancel works as planned.
+- Add Shift lower fields are still not reachable when adding or reviewing/editing a shift.
+- Full Pay Period rows now expand, but expanded content is still not fully reachable.
+- Settings employer edits appear to work, but full editor content is not reachable.
+- Report filters can switch month/year modes, but filter chips/time periods and lower report fields cannot be reached reliably; PDF export could not be verified because it is below unreachable content.
+- Original app design also requires an option to export added calendar shifts to iCalendar; that option is not currently visible.
+- Overall available options are mostly working, but scrolling/reachability remains the main blocker before real-device testing.
+
+Fifth implementation pass:
+
+- Added extra bottom scroll room to Add Shift, Shift Detail, Pay Periods, Streaks, and Reports so content can scroll above tab bars/floating controls on iOS/Catalyst.
+- Added bottom safe-area room to Settings and Employer Detail lists so lower employer edit actions are not hidden behind the tab/FAB area.
+- Replaced Reports' horizontal date-range chip scroller with a wrapping adaptive grid so all month/year/pay-period choices are visible without relying on horizontal scrolling.
+- iCalendar export remains a required feature gap/backlog item, separate from the scroll fix.
+
+Phone/device follow-up from Jason:
+
+- App is now running on the physical phone.
+- Lower fields are now reachable.
+- Prior 10-minute pass checks are working.
+- New report requirement: bonus payouts should be broken down by bonus type because payout cadence differs by type — many bonuses are paid monthly, while streaks are paid quarterly.
+
+Sixth implementation pass:
+
+- Bonus Payout report now includes a "By Bonus Type" breakdown that groups totals by bonus name plus payout schedule, e.g. monthly splash/custom bonuses remain distinct from quarterly streak bonuses.
+- Bonus Payout report now includes a "By Payout Schedule" summary to show service-date vs monthly vs quarterly payout totals.
+- Bonus payout PDF export now includes a "Breakdown by Bonus Type" section before the detailed payout rows.
+
+Latest Reports follow-up from Jason:
+
+- Earnings report ranges like "This Pay Period" and "Last Pay Period" need to show the actual date frame above the shift detail list.
+- Streak bonuses are clear in Earnings, but Bonus Payouts does not clearly show them by bonus type.
+- Streaks are quarterly payouts and should be reported in quarter chunks such as This Quarter / Last Quarter, broken down like other bonus categories.
+- "Service date" in bonus payout breakdown is ambiguous; it likely means bonuses paid with the shift and should be labeled more clearly.
+- Export PDF opens a blank screen on device and needs a safer preview/share behavior.
+
+Seventh implementation pass:
+
+- Added date-range context cards above Earnings and Bonus Payout detail sections so selections such as This Pay Period / Last Pay Period show their actual start/end dates.
+- Changed Bonus Payouts default range to This Quarter, since streak bonuses are quarterly and month-only default ranges can make streak payouts appear missing.
+- Clarified immediate bonus payout labels from "Service date" to "Paid with shift" so this is not confused with base shift earnings.
+- Bonus Payout empty state now explicitly explains that streak bonuses are quarterly and appear by payout date.
+- Replaced the PDF export share-only sheet with an in-app Quick Look PDF preview to avoid the blank screen observed on device.
+
+Latest Reports follow-up from Jason:
+
+- PDF export now works on device.
+- Earnings should keep showing base pay, bonuses, and streaks in the period where they were earned.
+- Earnings also needs This Quarter / Last Quarter ranges so users can see quarterly earned streak totals and anticipate the first check of the following quarter.
+- Quarterly streak bonuses should appear in the quarter earned, not only the quarter paid, because users already understand payment arrives on the first check of the next quarter.
+- Earnings bonus-type breakdown should include Streak Bonus alongside other bonus types.
+
+Eighth implementation pass:
+
+- Added This Quarter and Last Quarter filters to Earnings.
+- Added an Earnings Breakdown card that totals Base Pay, Streak Bonus, On-Call Bonus, Splash/Bonus Splash, and custom bonus names in the selected earning period.
+- The Earnings Breakdown explains that quarterly streak bonuses are shown in the quarter earned, even though they are typically paid on the first check of the next quarter.
+- Earnings PDF export now includes an Earnings Breakdown section before the detailed shift table.
+
 Problem:
 
 Sheets/pop-ups freeze when scrolling in fields, and the upper-left control is ambiguous.
@@ -355,6 +416,49 @@ Acceptance criteria:
 2. Improve calendar sizing and employer summary.
 3. Add CSV export.
 4. Verify PDF still works.
+
+---
+
+## Sixth manual app pass — pay aggregation and paycheck estimator
+
+Date captured: 2026-06-04
+
+Jason observed/requested:
+
+1. Streak setup window buttons are too cramped. The segmented options `Rolling Days`, `Calendar Month`, `Calendar Quarter`, and `Pay Period` truncate on iPhone; landscape reveals only slightly more. The UI needs a clearer layout, likely wrapping cards/menu rows with descriptions rather than one segmented control.
+2. Flat/per-day bonuses should respect day fraction. If a bonus applies to a half-day shift, the shift should earn half of that bonus unless the bonus is explicitly configured as not prorated.
+3. Employer setup needs to capture both how pay is aggregated and when that aggregated pay is paid out.
+4. Regular/base pay needs configurable aggregation and payout timing. Example: base pay is aggregated biweekly and paid with the next pay period.
+5. On-call bonuses and streak bonuses need the same kind of setup metadata: how they aggregate and when they are paid.
+6. Example requirement: a streak bonus can be aggregated quarterly and paid on the last check of the following month. For Q1, that means payout on the last paycheck in April, not simply April 1.
+7. Reports likely need a new paycheck estimator mode/tab that lets the user pick an employer and pay period, then estimates the paycheck from all base pay and bonus aggregates scheduled for that paycheck.
+8. Hourly pay needs an optional clock-in/clock-out entry mode in addition to the current decimal hours entry. Clocked duration should support either straight decimal to the hundredth or rounding up to the nearest quarter hour.
+
+Initial implementation notes:
+
+- Current model has `Employer.payCadence`, `CustomBonusType.payoutSchedule`, and `StreakRule.payoutSchedule`, but payout schedules are currently too coarse: `serviceDate`, `nextMonthlyPayout`, and `nextQuarterlyPayout`.
+- Current `BonusPayoutSchedule.nextQuarterlyPayout` pays on the first day of the next quarter. It does not yet support "last paycheck of next month".
+- Current on-call bonus is employer-level `defaultOnCallAmount` only; it does not have its own aggregation/payout configuration.
+- Current base pay is service-date/earnings oriented in Reports. Paycheck-estimator logic does not yet exist.
+- Current per-day custom bonus defaults use quantity `1`; half-day/quarter-day shifts do not automatically prorate enabled per-day/flat bonuses.
+- Current hourly entry uses plus/minus quarter-hour decimal increments only; it does not yet support clock-in/clock-out or hundredth-hour decimal entry.
+
+Clarified decisions from Jason:
+
+- Per-day/flat bonuses should have a toggle for whether they prorate on partial-day shifts.
+- On-call bonus should not be fractionated/prorated.
+- Streak bonus should be fractionated by the day fraction when earned on a partial-day shift.
+- Employer setup should ask for one known anchor paycheck date so the app can derive future/previous paycheck dates.
+- "Next pay period" means work in Pay Period A is paid on the paycheck date for Pay Period B after B closes; for biweekly work, this is effectively about a two-week delay.
+- Clock-in/clock-out rounding up to the quarter hour should use ceiling rounding: 8.01 → 8.25, 8.25 → 8.25, 8.26 → 8.50.
+
+Recommended next slice order:
+
+1. Fix the streak setup UI first because it is low-risk and improves current employer setup immediately.
+2. Add prorating metadata and logic for per-day/flat bonuses, with defaults chosen carefully for existing data. Default new per-day bonuses should expose the prorate toggle; existing saved shift snapshots should remain history-safe.
+3. Introduce a generalized pay aggregation/payout model that can be reused by base pay, on-call bonus, custom bonuses, and streak bonuses. Include anchor paycheck date and the "pay period A paid after pay period B closes" delay semantics.
+4. Build a `PaycheckEstimator` engine and report tab after the payout model is explicit and testable.
+5. Add clock-in/clock-out as an hourly-entry mode after the money model is stable, with exact hundredth-hour and quarter-hour ceiling rounding options.
 
 ---
 

@@ -7,50 +7,50 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B001 /* AnesPayTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* AnesPayTrackerApp.swift */; };
-		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
-		B003 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* Theme.swift */; };
-		B004 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A004 /* Models.swift */; };
-		B005 /* StreakEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A005 /* StreakEngine.swift */; };
-		B006 /* CalendarSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A006 /* CalendarSync.swift */; };
-		B007 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A007 /* SeedData.swift */; };
-		B008 /* EmployerSetupWizard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A008 /* EmployerSetupWizard.swift */; };
-		B009 /* AddShiftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009 /* AddShiftView.swift */; };
-		B010 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A010 /* CalendarView.swift */; };
-		B011 /* ShiftDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A011 /* ShiftDetailView.swift */; };
-		B012 /* PayPeriodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* PayPeriodView.swift */; };
-		B013 /* StreakStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* StreakStatusView.swift */; };
-		B014 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* ReportView.swift */; };
-		B015 /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* PDFReportGenerator.swift */; };
-		B016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* SettingsView.swift */; };
-		B017 /* CurrencyField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017 /* CurrencyField.swift */; };
+		B001 /* App/AnesPayTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* App/AnesPayTrackerApp.swift */; };
+		B002 /* App/ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* App/ContentView.swift */; };
+		B003 /* App/Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* App/Theme.swift */; };
+		B004 /* Model/Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A004 /* Model/Models.swift */; };
+		B005 /* Engine/StreakEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A005 /* Engine/StreakEngine.swift */; };
+		B006 /* Engine/CalendarSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A006 /* Engine/CalendarSync.swift */; };
+		B007 /* Engine/SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A007 /* Engine/SeedData.swift */; };
+		B008 /* Views/Setup/EmployerSetupWizard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A008 /* Views/Setup/EmployerSetupWizard.swift */; };
+		B009 /* Views/Entry/AddShiftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009 /* Views/Entry/AddShiftView.swift */; };
+		B010 /* Views/Review/CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A010 /* Views/Review/CalendarView.swift */; };
+		B011 /* Views/Review/ShiftDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A011 /* Views/Review/ShiftDetailView.swift */; };
+		B012 /* Views/Review/PayPeriodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* Views/Review/PayPeriodView.swift */; };
+		B013 /* Views/Review/StreakStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* Views/Review/StreakStatusView.swift */; };
+		B014 /* Views/Report/ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* Views/Report/ReportView.swift */; };
+		B015 /* Views/Report/PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* Views/Report/PDFReportGenerator.swift */; };
+		B016 /* Views/Settings/SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* Views/Settings/SettingsView.swift */; };
+		B017 /* Views/Components/CurrencyField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017 /* Views/Components/CurrencyField.swift */; };
 		B018 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A018 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A001 /* AnesPayTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AnesPayTrackerApp.swift; sourceTree = "<group>"; };
-		A002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ContentView.swift; sourceTree = "<group>"; };
-		A003 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Theme.swift; sourceTree = "<group>"; };
-		A004 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model/Models.swift; sourceTree = "<group>"; };
-		A005 /* StreakEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/StreakEngine.swift; sourceTree = "<group>"; };
-		A006 /* CalendarSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/CalendarSync.swift; sourceTree = "<group>"; };
-		A007 /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/SeedData.swift; sourceTree = "<group>"; };
-		A008 /* EmployerSetupWizard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Setup/EmployerSetupWizard.swift; sourceTree = "<group>"; };
-		A009 /* AddShiftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Entry/AddShiftView.swift; sourceTree = "<group>"; };
-		A010 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/CalendarView.swift; sourceTree = "<group>"; };
-		A011 /* ShiftDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/ShiftDetailView.swift; sourceTree = "<group>"; };
-		A012 /* PayPeriodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/PayPeriodView.swift; sourceTree = "<group>"; };
-		A013 /* StreakStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/StreakStatusView.swift; sourceTree = "<group>"; };
-		A014 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/ReportView.swift; sourceTree = "<group>"; };
-		A015 /* PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/PDFReportGenerator.swift; sourceTree = "<group>"; };
-		A016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
-		A017 /* CurrencyField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Components/CurrencyField.swift; sourceTree = "<group>"; };
+		A001 /* App/AnesPayTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AnesPayTrackerApp.swift; sourceTree = "<group>"; };
+		A002 /* App/ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ContentView.swift; sourceTree = "<group>"; };
+		A003 /* App/Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/Theme.swift; sourceTree = "<group>"; };
+		A004 /* Model/Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model/Models.swift; sourceTree = "<group>"; };
+		A005 /* Engine/StreakEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/StreakEngine.swift; sourceTree = "<group>"; };
+		A006 /* Engine/CalendarSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/CalendarSync.swift; sourceTree = "<group>"; };
+		A007 /* Engine/SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/SeedData.swift; sourceTree = "<group>"; };
+		A008 /* Views/Setup/EmployerSetupWizard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Setup/EmployerSetupWizard.swift; sourceTree = "<group>"; };
+		A009 /* Views/Entry/AddShiftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Entry/AddShiftView.swift; sourceTree = "<group>"; };
+		A010 /* Views/Review/CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/CalendarView.swift; sourceTree = "<group>"; };
+		A011 /* Views/Review/ShiftDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/ShiftDetailView.swift; sourceTree = "<group>"; };
+		A012 /* Views/Review/PayPeriodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/PayPeriodView.swift; sourceTree = "<group>"; };
+		A013 /* Views/Review/StreakStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/StreakStatusView.swift; sourceTree = "<group>"; };
+		A014 /* Views/Report/ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/ReportView.swift; sourceTree = "<group>"; };
+		A015 /* Views/Report/PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/PDFReportGenerator.swift; sourceTree = "<group>"; };
+		A016 /* Views/Settings/SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
+		A017 /* Views/Components/CurrencyField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Components/CurrencyField.swift; sourceTree = "<group>"; };
 		A018 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		PROD1 /* AnesPayTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AnesPayTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		FW01 = {
+		FW01 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -60,20 +60,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		ROOT = {
+		APPFILES /* App */ = {
 			isa = PBXGroup;
 			children = (
-				APPGRP /* AnesPayTracker */,
-				PRODGRP /* Products */,
+				A001 /* App/AnesPayTrackerApp.swift */,
+				A002 /* App/ContentView.swift */,
+				A003 /* App/Theme.swift */,
 			);
-			sourceTree = "<group>";
-		};
-		PRODGRP /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				PROD1 /* AnesPayTracker.app */,
-			);
-			name = Products;
+			name = App;
 			sourceTree = "<group>";
 		};
 		APPGRP /* AnesPayTracker */ = {
@@ -88,32 +82,90 @@
 			path = AnesPayTracker;
 			sourceTree = "<group>";
 		};
-		APPFILES /* App */ = {
+		COMPONENTSGRP /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				A001 /* AnesPayTrackerApp.swift */,
-				A002 /* ContentView.swift */,
-				A003 /* Theme.swift */,
+				A017 /* Views/Components/CurrencyField.swift */,
 			);
-			name = App;
-			sourceTree = "<group>";
-		};
-		MODELGRP /* Model */ = {
-			isa = PBXGroup;
-			children = (
-				A004 /* Models.swift */,
-			);
-			name = Model;
+			name = Components;
 			sourceTree = "<group>";
 		};
 		ENGINEGRP /* Engine */ = {
 			isa = PBXGroup;
 			children = (
-				A005 /* StreakEngine.swift */,
-				A006 /* CalendarSync.swift */,
-				A007 /* SeedData.swift */,
+				A005 /* Engine/StreakEngine.swift */,
+				A006 /* Engine/CalendarSync.swift */,
+				A007 /* Engine/SeedData.swift */,
 			);
 			name = Engine;
+			sourceTree = "<group>";
+		};
+		ENTRYGRP /* Entry */ = {
+			isa = PBXGroup;
+			children = (
+				A009 /* Views/Entry/AddShiftView.swift */,
+			);
+			name = Entry;
+			sourceTree = "<group>";
+		};
+		MODELGRP /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				A004 /* Model/Models.swift */,
+			);
+			name = Model;
+			sourceTree = "<group>";
+		};
+		PRODGRP /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				PROD1 /* AnesPayTracker.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		REPORTGRP /* Report */ = {
+			isa = PBXGroup;
+			children = (
+				A014 /* Views/Report/ReportView.swift */,
+				A015 /* Views/Report/PDFReportGenerator.swift */,
+			);
+			name = Report;
+			sourceTree = "<group>";
+		};
+		REVIEWGRP /* Review */ = {
+			isa = PBXGroup;
+			children = (
+				A010 /* Views/Review/CalendarView.swift */,
+				A011 /* Views/Review/ShiftDetailView.swift */,
+				A012 /* Views/Review/PayPeriodView.swift */,
+				A013 /* Views/Review/StreakStatusView.swift */,
+			);
+			name = Review;
+			sourceTree = "<group>";
+		};
+		ROOT = {
+			isa = PBXGroup;
+			children = (
+				APPGRP /* AnesPayTracker */,
+				PRODGRP /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		SETTINGSGRP /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A016 /* Views/Settings/SettingsView.swift */,
+			);
+			name = Settings;
+			sourceTree = "<group>";
+		};
+		SETUPGRP /* Setup */ = {
+			isa = PBXGroup;
+			children = (
+				A008 /* Views/Setup/EmployerSetupWizard.swift */,
+			);
+			name = Setup;
 			sourceTree = "<group>";
 		};
 		VIEWSGRP /* Views */ = {
@@ -129,64 +181,12 @@
 			name = Views;
 			sourceTree = "<group>";
 		};
-		SETUPGRP /* Setup */ = {
-			isa = PBXGroup;
-			children = (
-				A008 /* EmployerSetupWizard.swift */,
-			);
-			name = Setup;
-			sourceTree = "<group>";
-		};
-		ENTRYGRP /* Entry */ = {
-			isa = PBXGroup;
-			children = (
-				A009 /* AddShiftView.swift */,
-			);
-			name = Entry;
-			sourceTree = "<group>";
-		};
-		REVIEWGRP /* Review */ = {
-			isa = PBXGroup;
-			children = (
-				A010 /* CalendarView.swift */,
-				A011 /* ShiftDetailView.swift */,
-				A012 /* PayPeriodView.swift */,
-				A013 /* StreakStatusView.swift */,
-			);
-			name = Review;
-			sourceTree = "<group>";
-		};
-		REPORTGRP /* Report */ = {
-			isa = PBXGroup;
-			children = (
-				A014 /* ReportView.swift */,
-				A015 /* PDFReportGenerator.swift */,
-			);
-			name = Report;
-			sourceTree = "<group>";
-		};
-		SETTINGSGRP /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				A016 /* SettingsView.swift */,
-			);
-			name = Settings;
-			sourceTree = "<group>";
-		};
-		COMPONENTSGRP /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				A017 /* CurrencyField.swift */,
-			);
-			name = Components;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		TARGET1 /* AnesPayTracker */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BLDCFGLIST;
+			buildConfigurationList = BLDCFGLIST /* Build configuration list for PBXNativeTarget "AnesPayTracker" */;
 			buildPhases = (
 				SRC01 /* Sources */,
 				FW01 /* Frameworks */,
@@ -216,7 +216,7 @@
 					};
 				};
 			};
-			buildConfigurationList = PROJBLDCFG;
+			buildConfigurationList = PROJBLDCFG /* Build configuration list for PBXProject "AnesPayTracker" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -250,23 +250,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B001 /* AnesPayTrackerApp.swift in Sources */,
-				B002 /* ContentView.swift in Sources */,
-				B003 /* Theme.swift in Sources */,
-				B004 /* Models.swift in Sources */,
-				B005 /* StreakEngine.swift in Sources */,
-				B006 /* CalendarSync.swift in Sources */,
-				B007 /* SeedData.swift in Sources */,
-				B008 /* EmployerSetupWizard.swift in Sources */,
-				B009 /* AddShiftView.swift in Sources */,
-				B010 /* CalendarView.swift in Sources */,
-				B011 /* ShiftDetailView.swift in Sources */,
-				B012 /* PayPeriodView.swift in Sources */,
-				B013 /* StreakStatusView.swift in Sources */,
-				B014 /* ReportView.swift in Sources */,
-				B015 /* PDFReportGenerator.swift in Sources */,
-				B016 /* SettingsView.swift in Sources */,
-				B017 /* CurrencyField.swift in Sources */,
+				B001 /* App/AnesPayTrackerApp.swift in Sources */,
+				B002 /* App/ContentView.swift in Sources */,
+				B003 /* App/Theme.swift in Sources */,
+				B004 /* Model/Models.swift in Sources */,
+				B005 /* Engine/StreakEngine.swift in Sources */,
+				B006 /* Engine/CalendarSync.swift in Sources */,
+				B007 /* Engine/SeedData.swift in Sources */,
+				B008 /* Views/Setup/EmployerSetupWizard.swift in Sources */,
+				B009 /* Views/Entry/AddShiftView.swift in Sources */,
+				B010 /* Views/Review/CalendarView.swift in Sources */,
+				B011 /* Views/Review/ShiftDetailView.swift in Sources */,
+				B012 /* Views/Review/PayPeriodView.swift in Sources */,
+				B013 /* Views/Review/StreakStatusView.swift in Sources */,
+				B014 /* Views/Report/ReportView.swift in Sources */,
+				B015 /* Views/Report/PDFReportGenerator.swift in Sources */,
+				B016 /* Views/Settings/SettingsView.swift in Sources */,
+				B017 /* Views/Components/CurrencyField.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,6 +396,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UUYQH2JFZT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
 				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
@@ -403,8 +404,8 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				MARKETING_VERSION = 1.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anespay.tracker;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.com.anespay.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -421,6 +422,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UUYQH2JFZT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
 				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
@@ -428,8 +430,8 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				MARKETING_VERSION = 1.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anespay.tracker;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.com.anespay.tracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -443,15 +445,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		PROJBLDCFG /* Build configuration list for PBXProject "AnesPayTracker" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CFG_DEBUG /* Debug */,
-				CFG_RELEASE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		BLDCFGLIST /* Build configuration list for PBXNativeTarget "AnesPayTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -461,8 +454,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		PROJBLDCFG /* Build configuration list for PBXProject "AnesPayTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFG_DEBUG /* Debug */,
+				CFG_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = PROJECT /* Project object */;
 }

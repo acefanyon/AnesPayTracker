@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import QuickLook
 
 // MARK: - Report View
 
@@ -10,13 +11,12 @@ struct ReportView: View {
 
     @State private var reportMode: ReportMode = .earnings
     @State private var dateRange: ReportDateRange = .thisMonth
-    @State private var bonusPayoutDateRange: BonusPayoutDateRange = .thisMonth
+    @State private var bonusPayoutDateRange: BonusPayoutDateRange = .thisQuarter
     @State private var customStart: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var customEnd: Date = Date()
     @State private var selectedEmployer: Employer?
     @State private var selectedSite: Site?
-    @State private var showShareSheet = false
-    @State private var pdfURL: URL?
+    @State private var pdfPreviewItem: PDFPreviewItem?
     @State private var expandedNote: Shift?
 
     var currentDateBounds: (Date, Date) {
@@ -28,6 +28,11 @@ struct ReportView: View {
         case .lastMonth:
             let lastMonth = cal.date(byAdding: .month, value: -1, to: today) ?? today
             return monthBounds(containing: lastMonth)
+        case .thisQuarter:
+            return quarterBounds(containing: today)
+        case .lastQuarter:
+            let lastQuarter = cal.date(byAdding: .month, value: -3, to: today) ?? today
+            return quarterBounds(containing: lastQuarter)
         case .ytd:
             var comps = cal.dateComponents([.year], from: today)
             let start = cal.date(from: comps) ?? today
@@ -117,18 +122,23 @@ struct ReportView: View {
                     }
                 }
                 .padding(16)
+                .padding(.bottom, 180)
             }
             .navigationTitle("Report")
-            .sheet(isPresented: $showShareSheet) {
-                if let url = pdfURL {
-                    ShareSheet(items: [url])
-                }
+            .sheet(item: $pdfPreviewItem) { item in
+                PDFPreviewSheet(url: item.url)
             }
         }
     }
 
     @ViewBuilder private var earningsReportBody: some View {
         if !filteredShifts.isEmpty {
+            ReportRangeContextCard(
+                title: dateRange.rawValue,
+                subtitle: "Shift service dates included in this earnings report",
+                startDate: currentDateBounds.0,
+                endDate: currentDateBounds.1
+            )
             ReportSummaryCard(
                 shiftCount: filteredShifts.count,
                 totalBase: totalBase,
@@ -136,6 +146,7 @@ struct ReportView: View {
                 totalStreak: totalStreak,
                 grandTotal: grandTotal
             )
+            EarningsBreakdownCard(shifts: filteredShifts)
             ReportTableCard(shifts: filteredShifts, expandedNote: $expandedNote)
             exportButton
         } else {
@@ -146,12 +157,24 @@ struct ReportView: View {
 
     @ViewBuilder private var bonusPayoutReportBody: some View {
         if !bonusPayoutRows.isEmpty {
+            ReportRangeContextCard(
+                title: bonusPayoutDateRange.rawValue,
+                subtitle: "Bonus payout dates included here. Quarterly streak bonuses appear in the quarter they are paid, not necessarily the quarter they were worked.",
+                startDate: currentBonusPayoutBounds.0,
+                endDate: currentBonusPayoutBounds.1
+            )
             BonusPayoutSummaryCard(rowCount: bonusPayoutRows.count, totalBonusPayout: totalBonusPayout)
             BonusPayoutBreakdownCard(rows: bonusPayoutRows)
             BonusPayoutTableCard(rows: bonusPayoutRows)
             exportButton
         } else {
-            EmptyStateView(icon: "calendar.badge.clock", title: "No bonus payouts in range", message: "Try this month, this quarter, or a custom payout period.")
+            ReportRangeContextCard(
+                title: bonusPayoutDateRange.rawValue,
+                subtitle: "No bonus payouts are scheduled for this payout-date range. Streak bonuses are quarterly; try This Quarter, Last Quarter, or Custom if you are checking streak payouts.",
+                startDate: currentBonusPayoutBounds.0,
+                endDate: currentBonusPayoutBounds.1
+            )
+            EmptyStateView(icon: "calendar.badge.clock", title: "No bonus payouts in range", message: "Try this quarter, last quarter, or a custom payout period. Bonuses labeled Paid with shift are immediate shift-date bonuses, not base shift earnings.")
                 .padding(.top, 40)
         }
     }
@@ -171,9 +194,10 @@ struct ReportView: View {
 
     private func generateAndSharePDF() {
         let generator = PDFReportGenerator()
+        let generatedURL: URL?
         if reportMode == .earnings {
             let (start, end) = currentDateBounds
-            pdfURL = generator.generate(
+            generatedURL = generator.generate(
                 shifts: filteredShifts,
                 startDate: start,
                 endDate: end,
@@ -182,7 +206,7 @@ struct ReportView: View {
             )
         } else {
             let (start, end) = currentBonusPayoutBounds
-            pdfURL = generator.generateBonusPayoutReport(
+            generatedURL = generator.generateBonusPayoutReport(
                 rows: bonusPayoutRows,
                 startDate: start,
                 endDate: end,
@@ -190,7 +214,9 @@ struct ReportView: View {
                 siteFilter: selectedSite?.name
             )
         }
-        showShareSheet = pdfURL != nil
+        if let generatedURL {
+            pdfPreviewItem = PDFPreviewItem(url: generatedURL)
+        }
     }
 
     private func matchesEmployerAndSite(_ shift: Shift) -> Bool {
@@ -234,6 +260,8 @@ enum ReportMode: String, CaseIterable {
 enum ReportDateRange: String, CaseIterable {
     case thisMonth = "This Month"
     case lastMonth = "Last Month"
+    case thisQuarter = "This Quarter"
+    case lastQuarter = "Last Quarter"
     case ytd = "Year to Date"
     case thisPayPeriod = "This Pay Period"
     case lastPayPeriod = "Last Pay Period"
@@ -350,16 +378,14 @@ struct ReportFiltersCard: View {
             }
             .pickerStyle(.segmented)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    if reportMode == .earnings {
-                        ForEach(ReportDateRange.allCases, id: \.self) { range in
-                            FilterChip(label: range.rawValue, isSelected: dateRange == range) { dateRange = range }
-                        }
-                    } else {
-                        ForEach(BonusPayoutDateRange.allCases, id: \.self) { range in
-                            FilterChip(label: range.rawValue, isSelected: bonusPayoutDateRange == range) { bonusPayoutDateRange = range }
-                        }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 8)], alignment: .leading, spacing: 8) {
+                if reportMode == .earnings {
+                    ForEach(ReportDateRange.allCases, id: \.self) { range in
+                        FilterChip(label: range.rawValue, isSelected: dateRange == range) { dateRange = range }
+                    }
+                } else {
+                    ForEach(BonusPayoutDateRange.allCases, id: \.self) { range in
+                        FilterChip(label: range.rawValue, isSelected: bonusPayoutDateRange == range) { bonusPayoutDateRange = range }
                     }
                 }
             }
@@ -408,6 +434,31 @@ struct ReportFiltersCard: View {
     }
 }
 
+// MARK: - Range Context
+
+struct ReportRangeContextCard: View {
+    let title: String
+    let subtitle: String
+    let startDate: Date
+    let endDate: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+            Text("\(startDate.formatted(.dateTime.month(.abbreviated).day().year())) – \(endDate.formatted(.dateTime.month(.abbreviated).day().year()))")
+                .font(.subheadline.bold())
+                .foregroundStyle(Color.accent)
+            Text(subtitle)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
 // MARK: - Summary Cards
 
 struct ReportSummaryCard: View {
@@ -440,6 +491,59 @@ struct ReportSummaryCard: View {
     }
 }
 
+struct EarningsBreakdownCard: View {
+    let shifts: [Shift]
+
+    private var breakdown: [(String, Decimal)] {
+        var totals: [String: Decimal] = [:]
+
+        func add(_ label: String, _ amount: Decimal) {
+            guard amount > 0 else { return }
+            totals[label, default: 0] += amount
+        }
+
+        add("Base Pay", shifts.reduce(0) { $0 + $1.basePay })
+
+        for shift in shifts {
+            add("On-Call Bonus", shift.onCallPay)
+            add("Splash Bonus", shift.splashAmount ?? 0)
+            add("Bonus Splash", shift.bonusSplashAmount ?? 0)
+            add("Streak Bonus", shift.streakBonusAmount ?? 0)
+            for bonus in shift.customBonuses ?? [] {
+                add(bonus.name, bonus.totalAmount)
+            }
+        }
+
+        return totals.map { ($0.key, $0.value) }
+            .sorted { lhs, rhs in
+                if lhs.0 == "Base Pay" { return true }
+                if rhs.0 == "Base Pay" { return false }
+                if lhs.0 == "Streak Bonus" { return true }
+                if rhs.0 == "Streak Bonus" { return false }
+                return lhs.0 < rhs.0
+            }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Earnings Breakdown")
+                .font(.headline)
+            Text("Shows base pay and each bonus type in the period earned. Quarterly streak bonuses are included in the quarter they were earned, even though they are typically paid on the first check of the next quarter.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            ForEach(breakdown, id: \.0) { label, amount in
+                HStack {
+                    Text(label).font(.footnote)
+                    Spacer()
+                    Text(amount.formatted(.currency(code: "USD"))).font(.footnote.bold())
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
 struct BonusPayoutSummaryCard: View {
     let rowCount: Int
     let totalBonusPayout: Decimal
@@ -468,6 +572,14 @@ struct BonusPayoutSummaryCard: View {
 struct BonusPayoutBreakdownCard: View {
     let rows: [BonusPayoutRow]
 
+    private var bonusTypeBreakdown: [(String, Decimal)] {
+        totals(groupedBy: { "\($0.bonusName) · \($0.schedule.shortLabel)" })
+    }
+
+    private var payoutScheduleBreakdown: [(String, Decimal)] {
+        totals(groupedBy: { $0.schedule.shortLabel })
+    }
+
     private var employerBreakdown: [(String, Decimal)] {
         totals(groupedBy: { $0.employerName })
     }
@@ -480,6 +592,8 @@ struct BonusPayoutBreakdownCard: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Breakdown")
                 .font(.headline)
+            breakdownSection(title: "By Bonus Type", values: bonusTypeBreakdown)
+            breakdownSection(title: "By Payout Schedule", values: payoutScheduleBreakdown)
             breakdownSection(title: "By Employer", values: employerBreakdown)
             breakdownSection(title: "By Site / Location", values: siteBreakdown)
         }
@@ -701,14 +815,42 @@ struct BonusPayoutTableCard: View {
     }
 }
 
-// MARK: - Share Sheet
+// MARK: - PDF Preview
 
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
+struct PDFPreviewItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
 
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+struct PDFPreviewSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url)
     }
 
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
+        context.coordinator.url = url
+        uiViewController.reloadData()
+    }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        var url: URL
+
+        init(url: URL) {
+            self.url = url
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
+    }
 }

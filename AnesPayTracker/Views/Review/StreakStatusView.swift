@@ -33,6 +33,7 @@ struct StreakStatusView: View {
                     }
                 }
                 .padding(16)
+                .padding(.bottom, 180)
             }
             .navigationTitle("Streaks")
             .sheet(item: $selectedShift) { shift in

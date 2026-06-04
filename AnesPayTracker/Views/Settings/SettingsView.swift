@@ -70,6 +70,9 @@ struct SettingsView: View {
                     Text("About")
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 120)
+            }
             .navigationTitle("Settings")
             .sheet(isPresented: $showAddEmployer) {
                 EmployerSetupWizard()
@@ -242,6 +245,9 @@ struct EmployerDetailSettings: View {
                     Label("Delete Employer", systemImage: "trash")
                 }
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 120)
         }
         .navigationTitle(employer.name)
         .confirmationDialog("Delete \(employer.name)?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {

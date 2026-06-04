@@ -434,7 +434,7 @@ enum BonusPayoutSchedule: String, Codable, CaseIterable {
 
     var shortLabel: String {
         switch self {
-        case .serviceDate: return "Service date"
+        case .serviceDate: return "Paid with shift"
         case .nextMonthlyPayout: return "Monthly + delay"
         case .nextQuarterlyPayout: return "Quarterly"
         }
