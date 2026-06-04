@@ -12,6 +12,7 @@ struct ReportView: View {
     @State private var reportMode: ReportMode = .earnings
     @State private var dateRange: ReportDateRange = .thisMonth
     @State private var bonusPayoutDateRange: BonusPayoutDateRange = .thisQuarter
+    @State private var paycheckDateRange: BonusPayoutDateRange = .thisMonth
     @State private var customStart: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var customEnd: Date = Date()
     @State private var selectedEmployer: Employer?
@@ -73,6 +74,25 @@ struct ReportView: View {
         }
     }
 
+    var currentPaycheckBounds: (Date, Date) {
+        let cal = Calendar.current
+        let today = Date()
+        switch paycheckDateRange {
+        case .thisMonth:
+            return monthBounds(containing: today)
+        case .lastMonth:
+            let lastMonth = cal.date(byAdding: .month, value: -1, to: today) ?? today
+            return monthBounds(containing: lastMonth)
+        case .thisQuarter:
+            return quarterBounds(containing: today)
+        case .lastQuarter:
+            let lastQuarter = cal.date(byAdding: .month, value: -3, to: today) ?? today
+            return quarterBounds(containing: lastQuarter)
+        case .custom:
+            return (cal.startOfDay(for: customStart), cal.endOfDay(for: customEnd))
+        }
+    }
+
     var filteredShifts: [Shift] {
         let (start, end) = currentDateBounds
         return allShifts.filter { shift in
@@ -93,11 +113,31 @@ struct ReportView: View {
             }
     }
 
+    var paycheckRows: [PaycheckAggregationRow] {
+        let (start, end) = currentPaycheckBounds
+        return allShifts
+            .filter(matchesEmployerAndSite)
+            .filter { $0.site?.employer?.paycheckAnchorDate != nil }
+            .flatMap { StreakEngine.paycheckAggregationRows(for: $0) }
+            .filter { $0.paycheckDate >= start && $0.paycheckDate <= end }
+            .sorted { lhs, rhs in
+                if lhs.paycheckDate != rhs.paycheckDate { return lhs.paycheckDate < rhs.paycheckDate }
+                if lhs.serviceDate != rhs.serviceDate { return lhs.serviceDate < rhs.serviceDate }
+                return lhs.componentName < rhs.componentName
+            }
+    }
+
     var totalBase: Decimal { filteredShifts.reduce(0) { $0 + $1.basePay } }
     var totalBonus: Decimal { filteredShifts.reduce(0) { $0 + $1.bonusPay } }
     var totalStreak: Decimal { filteredShifts.reduce(0) { $0 + ($1.streakBonusAmount ?? 0) } }
     var grandTotal: Decimal { filteredShifts.reduce(0) { $0 + $1.totalPay } }
     var totalBonusPayout: Decimal { bonusPayoutRows.reduce(0) { $0 + $1.amount } }
+    var totalPaycheckEstimate: Decimal { paycheckRows.reduce(0) { $0 + $1.amount } }
+
+    var employersMissingPaycheckAnchor: [Employer] {
+        let relevant = selectedEmployer.map { [$0] } ?? employers
+        return relevant.filter { $0.paycheckAnchorDate == nil }
+    }
 
     var body: some View {
         NavigationStack {
@@ -107,6 +147,7 @@ struct ReportView: View {
                         reportMode: $reportMode,
                         dateRange: $dateRange,
                         bonusPayoutDateRange: $bonusPayoutDateRange,
+                        paycheckDateRange: $paycheckDateRange,
                         customStart: $customStart,
                         customEnd: $customEnd,
                         selectedEmployer: $selectedEmployer,
@@ -117,8 +158,10 @@ struct ReportView: View {
 
                     if reportMode == .earnings {
                         earningsReportBody
-                    } else {
+                    } else if reportMode == .bonusPayouts {
                         bonusPayoutReportBody
+                    } else {
+                        paycheckEstimatorBody
                     }
                 }
                 .padding(16)
@@ -177,6 +220,39 @@ struct ReportView: View {
             EmptyStateView(icon: "calendar.badge.clock", title: "No bonus payouts in range", message: "Try this quarter, last quarter, or a custom payout period. Bonuses labeled Paid with shift are immediate shift-date bonuses, not base shift earnings.")
                 .padding(.top, 40)
         }
+    }
+
+    @ViewBuilder private var paycheckEstimatorBody: some View {
+        ReportRangeContextCard(
+            title: paycheckDateRange.rawValue,
+            subtitle: "Estimated paycheck dates in this range. Rows are grouped by the paycheck where the aggregate should appear, using each employer's anchor paycheck date and delay rule.",
+            startDate: currentPaycheckBounds.0,
+            endDate: currentPaycheckBounds.1
+        )
+
+        if !employersMissingPaycheckAnchor.isEmpty {
+            PaycheckAnchorWarningCard(employers: employersMissingPaycheckAnchor)
+        }
+
+        if !paycheckRows.isEmpty {
+            PaycheckEstimatorSummaryCard(rowCount: paycheckRows.count, paycheckCount: paycheckGroups.count, totalEstimate: totalPaycheckEstimate)
+            PaycheckEstimatorBreakdownCard(rows: paycheckRows)
+            PaycheckEstimatorTableCard(groups: paycheckGroups)
+        } else {
+            EmptyStateView(icon: "banknote", title: "No paycheck estimates in range", message: employersMissingPaycheckAnchor.isEmpty ? "Try another paycheck date range or employer/site filter." : "Add a paycheck anchor date in Employer setup, then return here to estimate checks.")
+                .padding(.top, 40)
+        }
+    }
+
+    private var paycheckGroups: [PaycheckGroup] {
+        let grouped = Dictionary(grouping: paycheckRows, by: { $0.paycheckDate })
+        return grouped.map { date, rows in
+            PaycheckGroup(paycheckDate: date, rows: rows.sorted { lhs, rhs in
+                if lhs.serviceDate != rhs.serviceDate { return lhs.serviceDate < rhs.serviceDate }
+                return lhs.componentName < rhs.componentName
+            })
+        }
+        .sorted { $0.paycheckDate < $1.paycheckDate }
     }
 
     private var exportButton: some View {
@@ -255,6 +331,7 @@ struct ReportView: View {
 enum ReportMode: String, CaseIterable {
     case earnings = "Earnings"
     case bonusPayouts = "Bonus Payouts"
+    case paycheckEstimator = "Paycheck Estimator"
 }
 
 enum ReportDateRange: String, CaseIterable {
@@ -349,6 +426,7 @@ struct ReportFiltersCard: View {
     @Binding var reportMode: ReportMode
     @Binding var dateRange: ReportDateRange
     @Binding var bonusPayoutDateRange: BonusPayoutDateRange
+    @Binding var paycheckDateRange: BonusPayoutDateRange
     @Binding var customStart: Date
     @Binding var customEnd: Date
     @Binding var selectedEmployer: Employer?
@@ -383,14 +461,18 @@ struct ReportFiltersCard: View {
                     ForEach(ReportDateRange.allCases, id: \.self) { range in
                         FilterChip(label: range.rawValue, isSelected: dateRange == range) { dateRange = range }
                     }
-                } else {
+                } else if reportMode == .bonusPayouts {
                     ForEach(BonusPayoutDateRange.allCases, id: \.self) { range in
                         FilterChip(label: range.rawValue, isSelected: bonusPayoutDateRange == range) { bonusPayoutDateRange = range }
+                    }
+                } else {
+                    ForEach(BonusPayoutDateRange.allCases, id: \.self) { range in
+                        FilterChip(label: range.rawValue, isSelected: paycheckDateRange == range) { paycheckDateRange = range }
                     }
                 }
             }
 
-            if (reportMode == .earnings && dateRange == .custom) || (reportMode == .bonusPayouts && bonusPayoutDateRange == .custom) {
+            if (reportMode == .earnings && dateRange == .custom) || (reportMode == .bonusPayouts && bonusPayoutDateRange == .custom) || (reportMode == .paycheckEstimator && paycheckDateRange == .custom) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("From").font(.caption).foregroundStyle(.secondary)
@@ -812,6 +894,161 @@ struct BonusPayoutTableCard: View {
         }
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Paycheck Estimator
+
+struct PaycheckGroup: Identifiable {
+    var id: Date { paycheckDate }
+    let paycheckDate: Date
+    let rows: [PaycheckAggregationRow]
+
+    var total: Decimal { rows.reduce(0) { $0 + $1.amount } }
+}
+
+struct PaycheckAnchorWarningCard: View {
+    let employers: [Employer]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Paycheck anchor needed", systemImage: "exclamationmark.triangle.fill")
+                .font(.headline)
+                .foregroundStyle(.orange)
+            Text("The paycheck estimator only includes employers with a known paycheck anchor date. Configure the anchor in Employer setup for: \(employers.map(\.name).joined(separator: ", ")).")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+struct PaycheckEstimatorSummaryCard: View {
+    let rowCount: Int
+    let paycheckCount: Int
+    let totalEstimate: Decimal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Paycheck Estimator")
+                .font(.headline)
+            Text("Groups base pay, on-call, custom bonuses, and streak bonuses by expected paycheck date using the employer paycheck anchor and delay rule.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            HStack {
+                Text("\(paycheckCount) paycheck\(paycheckCount == 1 ? "" : "s") · \(rowCount) line item\(rowCount == 1 ? "" : "s")")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(totalEstimate.formatted(.currency(code: "USD")))
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.accent)
+            }
+        }
+        .padding(16)
+        .background(Color.accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+struct PaycheckEstimatorBreakdownCard: View {
+    let rows: [PaycheckAggregationRow]
+
+    private var componentBreakdown: [(String, Decimal)] { totals(groupedBy: { $0.componentName }) }
+    private var employerBreakdown: [(String, Decimal)] { totals(groupedBy: { $0.employerName }) }
+    private var siteBreakdown: [(String, Decimal)] { totals(groupedBy: { "\($0.employerName) · \($0.siteName)" }) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Estimated Check Breakdown")
+                .font(.headline)
+            breakdownSection(title: "By Pay Component", values: componentBreakdown)
+            breakdownSection(title: "By Employer", values: employerBreakdown)
+            breakdownSection(title: "By Site / Location", values: siteBreakdown)
+        }
+        .padding(16)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func breakdownSection(title: String, values: [(String, Decimal)]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline.bold()).foregroundStyle(.secondary)
+            ForEach(values, id: \.0) { label, amount in
+                HStack {
+                    Text(label).font(.footnote)
+                    Spacer()
+                    Text(amount.formatted(.currency(code: "USD"))).font(.footnote.bold())
+                }
+            }
+        }
+    }
+
+    private func totals(groupedBy key: (PaycheckAggregationRow) -> String) -> [(String, Decimal)] {
+        let grouped = Dictionary(grouping: rows, by: key)
+        return grouped.map { ($0.key, $0.value.reduce(0) { $0 + $1.amount }) }
+            .sorted { $0.0 < $1.0 }
+    }
+}
+
+struct PaycheckEstimatorTableCard: View {
+    let groups: [PaycheckGroup]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(groups) { group in
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Paycheck")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            Text(group.paycheckDate, format: .dateTime.month(.abbreviated).day().year())
+                                .font(.headline)
+                        }
+                        Spacer()
+                        Text(group.total.formatted(.currency(code: "USD")))
+                            .font(.title3.bold())
+                            .foregroundStyle(Color.accent)
+                    }
+                    .padding(12)
+                    .background(Color.accent.opacity(0.06))
+
+                    ForEach(group.rows) { row in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(row.componentName).font(.footnote.bold()).lineLimit(1)
+                                    Text("\(row.employerName) · \(row.siteName)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                    Text(paycheckRowDetailText(row))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(row.amount.formatted(.currency(code: "USD")))
+                                    .font(.footnote.bold())
+                                    .foregroundStyle(Color.accent)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        if row.id != group.rows.last?.id { Divider() }
+                    }
+                }
+                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func paycheckRowDetailText(_ row: PaycheckAggregationRow) -> String {
+        let worked = row.serviceDate.formatted(.dateTime.month(.abbreviated).day())
+        let start = row.aggregationStart.formatted(.dateTime.month(.twoDigits).day(.twoDigits))
+        let end = row.aggregationEnd.formatted(.dateTime.month(.twoDigits).day(.twoDigits))
+        return "Worked \(worked) · Aggregates \(start)–\(end)"
     }
 }
 
