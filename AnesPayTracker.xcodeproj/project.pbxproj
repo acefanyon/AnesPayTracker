@@ -398,6 +398,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UUYQH2JFZT;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
 				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -424,6 +425,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UUYQH2JFZT;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
 				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
