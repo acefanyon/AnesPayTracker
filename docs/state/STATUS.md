@@ -89,11 +89,12 @@ No profiles for 'com.anespay.tracker' were found
 
    - Likely resolution: use Xcode with automatic signing/provisioning, or rerun with `-allowProvisioningUpdates` only after confirming Apple ID/team setup.
 
-3. App Store Connect / TestFlight setup
-   - Create app record using current bundle ID if not already created.
-   - Archive/upload through Xcode Organizer once provisioning is healthy.
+4. App Store Connect / TestFlight setup
+   - App record and iOS archive/upload path are now working.
+   - Current state: version 1.0 uploaded to Apple, export compliance answered, and external TestFlight review is `Waiting for Review`.
+   - Internal testing should be available sooner; external testers (including spouse) must wait for Apple’s TestFlight beta review to clear.
 
-4. Final human QA
+5. Final human QA
    - Manual real-device pass for scrolling, PDF preview/share, `.ics` export/share, clock-in/out entry, and paycheck estimator readability.
 
 ## Verification commands last run
