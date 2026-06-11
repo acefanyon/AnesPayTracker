@@ -1,0 +1,33 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="140" y1="120" x2="884" y2="920" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B5688"/>
+      <stop offset="1" stop-color="#1699D2"/>
+    </linearGradient>
+    <linearGradient id="card" x1="262" y1="220" x2="762" y2="792" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FDFF"/>
+      <stop offset="1" stop-color="#E1F5FD"/>
+    </linearGradient>
+    <filter id="shadow" x="176" y="172" width="672" height="680" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#083654" flood-opacity="0.26"/>
+    </filter>
+  </defs>
+
+  <rect x="64" y="64" width="896" height="896" rx="205" fill="url(#bg)"/>
+  <circle cx="798" cy="220" r="118" fill="#FFFFFF" fill-opacity="0.07"/>
+  <circle cx="230" cy="800" r="156" fill="#FFFFFF" fill-opacity="0.06"/>
+
+  <g filter="url(#shadow)">
+    <rect x="224" y="204" width="576" height="616" rx="116" fill="url(#card)"/>
+    <path d="M224 320C224 255.935 275.935 204 340 204H684C748.065 204 800 255.935 800 320V352H224V320Z" fill="#0E5E96"/>
+    <rect x="308" y="150" width="56" height="128" rx="28" fill="#F5FCFF"/>
+    <rect x="660" y="150" width="56" height="128" rx="28" fill="#F5FCFF"/>
+
+    <rect x="310" y="430" width="148" height="56" rx="22" fill="#98DDF3"/>
+    <rect x="310" y="520" width="148" height="56" rx="22" fill="#98DDF3"/>
+    <rect x="310" y="610" width="148" height="56" rx="22" fill="#98DDF3"/>
+
+    <circle cx="612" cy="548" r="136" fill="#0E5E96"/>
+    <path d="M622.6 452V485.3C664.5 488.8 693.2 512.5 698.6 548H650C645.5 532.3 633 524.7 614.1 524.7C593.4 524.7 580.3 533.5 580.3 547.2C580.3 560.5 591.1 566.9 623.2 574.5C676.3 586.8 703.6 606.3 703.6 646.1C703.6 687.6 672.4 714.6 622.6 719V754H589.8V718.5C540.9 713.5 510.9 687.9 505.8 647.7H555.7C560.4 668 575.7 677.3 599.6 677.3C622.6 677.3 636.1 668.4 636.1 654C636.1 640.2 624.6 633.8 590 625.8C541.9 614.6 513.5 598.8 513.5 556C513.5 517.9 541.5 492.4 589.8 486.9V452H622.6Z" fill="#F5FCFF"/>
+  </g>
+</svg>
