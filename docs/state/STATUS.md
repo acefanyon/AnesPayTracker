@@ -156,12 +156,11 @@ Best next low-risk work:
 
 1. Add/keep repo-local agent entrypoint and status docs so future sessions resume cleanly.
 2. Ignore local `build/` output so archive products do not dirty git status.
-3. After docs are committed, choose one release path:
-   - Private TestFlight first, if the goal is real use by a small number of testers.
-   - Full public App Store submission, if branding/icon/legal metadata are ready.
+3. Prepare a private TestFlight-first checklist and use that as the guided release path.
+4. If/when needed after that, move to full public App Store submission once branding/icon/legal metadata are ready.
 
 Best next user/manual step:
 
-- Decide whether to proceed as private TestFlight first or public App Store submission.
+- Work through `docs/PRIVATE_TESTFLIGHT_CHECKLIST.md`.
 - Provide or approve an app icon direction.
 - In Xcode, verify signing/provisioning under `Target → Signing & Capabilities` and create/upload an archive.
