@@ -1,18 +1,18 @@
 # AnesPayTracker Status
 
-Last updated: 2026-06-11 10:06 MST
+Last updated: 2026-06-28 20:44 MST
 
 ## TL;DR
 
-AnesPayTracker is code-complete for the current feature set and is in release-polish / TestFlight-App Store preparation state.
+AnesPayTracker is code-complete for the current feature set and is in release-polish / TestFlight follow-up state.
 
 Current live verification from this resumption pass:
 
 - 14/14 `scripts/verify_*.py` scripts passed.
-- iOS Simulator build for `iPhone 17` succeeded with signing disabled.
-- Mac Catalyst build succeeded with signing disabled.
 - Generic iOS compile succeeded with signing disabled.
-- Signed generic iOS CLI build is currently blocked by missing provisioning profile for `com.anespay.tracker` unless Xcode is allowed to create/update provisioning.
+- App icon asset is present at `AnesPayTracker/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`.
+- App Store Connect/TestFlight status could not be checked from Hermes because App Store Connect redirected to login and `xcrun altool --list-apps` requires explicit App Store Connect authentication.
+- Previous saved external state remains: version 1.0 uploaded, export compliance answered, external TestFlight review was `Waiting for Review` as of 2026-06-11.
 
 ## Git state at resumption
 
@@ -76,26 +76,22 @@ Completed from prior work:
 
 These are outside normal source-code verification:
 
-1. App icon
-   - `AnesPayTracker/Assets.xcassets/AppIcon.appiconset/` currently only has metadata, not a finished 1024x1024 icon set.
+1. App Store Connect / TestFlight status check
+   - App record and iOS archive/upload path were working as of the last release pass.
+   - Previous saved state: version 1.0 uploaded to Apple, export compliance answered, and external TestFlight review was `Waiting for Review`.
+   - Hermes could not inspect live review status in this session without App Store Connect authentication.
 
-2. Provisioning / signed device build
+2. Tester install / real-device QA
+   - If TestFlight review has cleared, invite/install for the intended tester set and run the manual real-device pass for scrolling, PDF preview/share, `.ics` export/share, clock-in/out entry, and paycheck estimator readability.
+
+3. Provisioning / signed build maintenance for future uploads
    - Unsigned generic iOS compile succeeds.
-   - Signed CLI generic build failed with:
+   - Prior signed CLI generic build failed with `No profiles for 'com.anespay.tracker' were found`; Xcode Organizer upload was later proven working.
+   - For future uploads, prefer Xcode Organizer/automatic signing or rerun CLI signing only after confirming App Store Connect credentials/provisioning setup.
 
-```text
-No profiles for 'com.anespay.tracker' were found
-```
+Resolved since the older checklist:
 
-   - Likely resolution: use Xcode with automatic signing/provisioning, or rerun with `-allowProvisioningUpdates` only after confirming Apple ID/team setup.
-
-4. App Store Connect / TestFlight setup
-   - App record and iOS archive/upload path are now working.
-   - Current state: version 1.0 uploaded to Apple, export compliance answered, and external TestFlight review is `Waiting for Review`.
-   - Internal testing should be available sooner; external testers (including spouse) must wait for Apple’s TestFlight beta review to clear.
-
-5. Final human QA
-   - Manual real-device pass for scrolling, PDF preview/share, `.ics` export/share, clock-in/out entry, and paycheck estimator readability.
+- App icon asset now exists at `AnesPayTracker/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`.
 
 ## Verification commands last run
 
@@ -105,7 +101,20 @@ Verifiers:
 for f in scripts/verify_*.py; do python3 "$f"; done
 ```
 
-Result: all 14 passed.
+Result: all 14 passed on 2026-06-28.
+
+Generic iOS compile without signing:
+
+```bash
+xcodebuild -project AnesPayTracker.xcodeproj \
+  -scheme AnesPayTracker \
+  -destination 'generic/platform=iOS' \
+  build CODE_SIGNING_ALLOWED=NO
+```
+
+Result: `BUILD SUCCEEDED` on 2026-06-28.
+
+Older retained verification from previous full release pass:
 
 Simulator build:
 
@@ -155,13 +164,12 @@ Result: failed due to missing provisioning profile for `com.anespay.tracker`.
 
 Best next low-risk work:
 
-1. Add/keep repo-local agent entrypoint and status docs so future sessions resume cleanly.
-2. Ignore local `build/` output so archive products do not dirty git status.
-3. Prepare a private TestFlight-first checklist and use that as the guided release path.
-4. If/when needed after that, move to full public App Store submission once branding/icon/legal metadata are ready.
+1. Have the user check App Store Connect → AnesPayTracker → TestFlight for the live external review status.
+2. If approved, install via TestFlight on the target phone(s) and run the real-device smoke checklist in `docs/PRIVATE_TESTFLIGHT_CHECKLIST.md`.
+3. If rejected or still waiting, capture Apple’s exact status/reviewer message before changing code.
+4. For the next upload, increment the build number and use Xcode Organizer/automatic signing, since that path already succeeded once.
 
 Best next user/manual step:
 
-- Work through `docs/PRIVATE_TESTFLIGHT_CHECKLIST.md`.
-- Provide or approve an app icon direction.
-- In Xcode, verify signing/provisioning under `Target → Signing & Capabilities` and create/upload an archive.
+- Open App Store Connect and confirm whether external TestFlight review for version 1.0/build 1 is approved, rejected, or still waiting.
+- If approved, send/install the TestFlight invite and run the first real-device QA pass.
