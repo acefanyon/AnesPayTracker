@@ -1,18 +1,18 @@
 # AnesPayTracker Status
 
-Last updated: 2026-06-28 20:44 MST
+Last updated: 2026-06-28 20:59 MST
 
 ## TL;DR
 
-AnesPayTracker is code-complete for the current feature set and is in release-polish / TestFlight follow-up state.
+AnesPayTracker is code-complete for the current feature set and is in TestFlight feedback iteration.
 
 Current live verification from this resumption pass:
 
+- TestFlight paycheck-calendar correction implemented: employer setup now asks for a known pay-period end date plus the actual paycheck date for that same period, instead of a whole-pay-period delay stepper.
+- Oracle case added and passing: June 7–20 work period paid on June 26; next period pays July 10; prior period pays June 12.
 - 14/14 `scripts/verify_*.py` scripts passed.
 - Generic iOS compile succeeded with signing disabled.
-- App icon asset is present at `AnesPayTracker/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`.
-- App Store Connect/TestFlight status could not be checked from Hermes because App Store Connect redirected to login and `xcrun altool --list-apps` requires explicit App Store Connect authentication.
-- Previous saved external state remains: version 1.0 uploaded, export compliance answered, external TestFlight review was `Waiting for Review` as of 2026-06-11.
+- Build number incremented to `2` for the next TestFlight upload.
 
 ## Git state at resumption
 

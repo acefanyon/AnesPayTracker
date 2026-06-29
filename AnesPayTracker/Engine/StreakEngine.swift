@@ -222,6 +222,23 @@ struct StreakEngine {
 
     static func paycheckDate(for serviceDate: Date, employer: Employer, calendar: Calendar = .current) -> Date {
         let (_, periodEnd) = payPeriodBounds(containing: serviceDate, employer: employer)
+
+        if let payPeriodEndAnchorDate = employer.payPeriodEndAnchorDate,
+           let paycheckAnchorDate = employer.paycheckAnchorDate,
+           let days = employer.payCadence.periodLengthDays(customDays: employer.customCadenceDays),
+           days > 0 {
+            let periodOffset = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: payPeriodEndAnchorDate),
+                to: calendar.startOfDay(for: periodEnd)
+            ).day.map { floorDiv($0, days) } ?? 0
+            return calendar.date(
+                byAdding: .day,
+                value: periodOffset * days,
+                to: calendar.startOfDay(for: paycheckAnchorDate)
+            ) ?? periodEnd
+        }
+
         let delayPeriods = max(0, employer.paycheckDelayPeriods)
         let referenceDate = dateByAddingPayPeriods(delayPeriods, to: periodEnd, employer: employer, calendar: calendar)
         return paycheckDate(onOrAfter: referenceDate, employer: employer, calendar: calendar)
@@ -278,7 +295,7 @@ struct StreakEngine {
     }
 
     private static func anchoredPayPeriodBounds(containing date: Date, employer: Employer, calendar: Calendar) -> (Date, Date)? {
-        guard let anchor = employer.paycheckAnchorDate else { return nil }
+        guard let anchor = employer.payPeriodEndAnchorDate ?? employer.paycheckAnchorDate else { return nil }
         let anchorDay = calendar.startOfDay(for: anchor)
 
         switch employer.payCadence {

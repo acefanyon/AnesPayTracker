@@ -60,7 +60,7 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 - On-call bonus does not prorate by day fraction.
 - Streak bonus prorates by day fraction when earned on a partial-day shift.
 - Clock-in / clock-out rounding uses ceiling to the next quarter hour.
-- Pay Period A work is paid on the paycheck associated with Pay Period B by default (`paycheckDelayPeriods = 1`).
+- Paycheck estimator now stores two anchors for employer paycheck calendars: a known pay-period end date and the actual paycheck date for that same period. Example: work period Jun 7–20 paid on Jun 26 uses period-end anchor Jun 20 and paycheck anchor Jun 26. Do not model this as a whole-pay-period delay stepper.
 - Monthly aggregation payout defaults to the last day/check of the following month.
 - Quarterly aggregation payout defaults to the last day/check of the month after the quarter ends: Q1 → Apr 30, Q2 → Jul 31, Q3 → Oct 31, Q4 → Jan 31.
 

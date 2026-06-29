@@ -117,7 +117,7 @@ struct ReportView: View {
         let (start, end) = currentPaycheckBounds
         return allShifts
             .filter(matchesEmployerAndSite)
-            .filter { $0.site?.employer?.paycheckAnchorDate != nil }
+            .filter { $0.site?.employer?.paycheckAnchorDate != nil && $0.site?.employer?.payPeriodEndAnchorDate != nil }
             .flatMap { StreakEngine.paycheckAggregationRows(for: $0) }
             .filter { $0.paycheckDate >= start && $0.paycheckDate <= end }
             .sorted { lhs, rhs in
@@ -136,7 +136,7 @@ struct ReportView: View {
 
     var employersMissingPaycheckAnchor: [Employer] {
         let relevant = selectedEmployer.map { [$0] } ?? employers
-        return relevant.filter { $0.paycheckAnchorDate == nil }
+        return relevant.filter { $0.paycheckAnchorDate == nil || $0.payPeriodEndAnchorDate == nil }
     }
 
     var body: some View {
@@ -225,7 +225,7 @@ struct ReportView: View {
     @ViewBuilder private var paycheckEstimatorBody: some View {
         ReportRangeContextCard(
             title: paycheckDateRange.rawValue,
-            subtitle: "Estimated paycheck dates in this range. Rows are grouped by the paycheck where the aggregate should appear, using each employer's anchor paycheck date and delay rule.",
+            subtitle: "Estimated paycheck dates in this range. Rows are grouped by the paycheck where the aggregate should appear, using each employer's known pay-period end date and actual paycheck date anchor.",
             startDate: currentPaycheckBounds.0,
             endDate: currentPaycheckBounds.1
         )
@@ -240,7 +240,7 @@ struct ReportView: View {
             PaycheckEstimatorTableCard(groups: paycheckGroups)
             exportButton
         } else {
-            EmptyStateView(icon: "banknote", title: "No paycheck estimates in range", message: employersMissingPaycheckAnchor.isEmpty ? "Try another paycheck date range or employer/site filter." : "Add a paycheck anchor date in Employer setup, then return here to estimate checks.")
+            EmptyStateView(icon: "banknote", title: "No paycheck estimates in range", message: employersMissingPaycheckAnchor.isEmpty ? "Try another paycheck date range or employer/site filter." : "Add pay-period end and paycheck date anchors in Employer setup, then return here to estimate checks.")
                 .padding(.top, 40)
         }
     }
@@ -925,7 +925,7 @@ struct PaycheckAnchorWarningCard: View {
             Label("Paycheck anchor needed", systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
                 .foregroundStyle(.orange)
-            Text("The paycheck estimator only includes employers with a known paycheck anchor date. Configure the anchor in Employer setup for: \(employers.map(\.name).joined(separator: ", ")).")
+            Text("The paycheck estimator only includes employers with a known pay-period end date and actual paycheck date. Configure both anchors in Employer setup for: \(employers.map(\.name).joined(separator: ", ")).")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -944,7 +944,7 @@ struct PaycheckEstimatorSummaryCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Paycheck Estimator")
                 .font(.headline)
-            Text("Groups base pay, on-call, custom bonuses, and streak bonuses by expected paycheck date using the employer paycheck anchor and delay rule.")
+            Text("Groups base pay, on-call, custom bonuses, and streak bonuses by expected paycheck date using the employer's known pay-period end date and the paycheck date for that same period.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             HStack {

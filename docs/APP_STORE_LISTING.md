@@ -39,7 +39,7 @@ REPORTS
 
 • Earnings report — see base pay, bonuses, and streaks broken down by type for any month, quarter, pay period, or custom range
 • Bonus Payout report — see which bonuses are scheduled to pay out during a given period, grouped by bonus type and payout schedule
-• Paycheck Estimator — the critical one. For each employer, configure a paycheck anchor date and delay rule (e.g. work in pay period A is paid when period B closes). The estimator shows every line item — base pay, on-call, custom bonuses, and streak bonuses — grouped under each expected paycheck date, with the aggregation window behind it
+• Paycheck Estimator — the critical one. For each employer, configure a known pay-period end date and the actual paycheck date for that same period (for example, a June 7–20 work period paid on June 26). The estimator shows every line item — base pay, on-call, custom bonuses, and streak bonuses — grouped under each expected paycheck date, with the aggregation window behind it
 
 EXPORT
 
@@ -54,7 +54,7 @@ BUILT FOR REAL CONTRACTS
 • On-call bonuses never prorate
 • Streak bonuses prorate by day fraction
 • History safety — editing an employer or its rules does not change past shifts; shift pay snapshots are preserved at the time of entry
-• Paycheck Estimator warns you when an employer has not yet configured a paycheck anchor date
+• Paycheck Estimator warns you when an employer has not yet configured both a pay-period end anchor and a paycheck date anchor
 
 AnesPayTracker stores your data locally on your device. No account required. No ads. No subscriptions. Your shift and pay data stays with you.
 

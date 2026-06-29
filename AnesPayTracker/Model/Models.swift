@@ -10,6 +10,7 @@ final class Employer {
     var contactPersons: [ContactPerson]
     var payCadence: PayCadence
     var customCadenceDays: Int?
+    var payPeriodEndAnchorDate: Date?
     var paycheckAnchorDate: Date?
     var paycheckDelayPeriods: Int = 1
     var defaultOnCallAmount: Decimal
@@ -30,6 +31,7 @@ final class Employer {
         contactPersons: [ContactPerson] = [],
         payCadence: PayCadence = .biweekly,
         customCadenceDays: Int? = nil,
+        payPeriodEndAnchorDate: Date? = nil,
         paycheckAnchorDate: Date? = nil,
         paycheckDelayPeriods: Int = 1,
         defaultOnCallAmount: Decimal = 0,
@@ -40,6 +42,7 @@ final class Employer {
         self.contactPersons = contactPersons
         self.payCadence = payCadence
         self.customCadenceDays = customCadenceDays
+        self.payPeriodEndAnchorDate = payPeriodEndAnchorDate
         self.paycheckAnchorDate = paycheckAnchorDate
         self.paycheckDelayPeriods = paycheckDelayPeriods
         self.defaultOnCallAmount = defaultOnCallAmount

@@ -448,15 +448,15 @@ Clarified decisions from Jason:
 - Per-day/flat bonuses should have a toggle for whether they prorate on partial-day shifts.
 - On-call bonus should not be fractionated/prorated.
 - Streak bonus should be fractionated by the day fraction when earned on a partial-day shift.
-- Employer setup should ask for one known anchor paycheck date so the app can derive future/previous paycheck dates.
-- "Next pay period" means work in Pay Period A is paid on the paycheck date for Pay Period B after B closes; for biweekly work, this is effectively about a two-week delay.
+- Employer setup should ask for two paycheck calendar anchors: a known pay-period end date and the actual paycheck date for that same period.
+- TestFlight correction: do not model paycheck timing as a whole-pay-period delay stepper. Example: work period June 7–20 can pay on June 26; future periods keep that same period-end → paycheck-date offset.
 - Clock-in/clock-out rounding up to the quarter hour should use ceiling rounding: 8.01 → 8.25, 8.25 → 8.25, 8.26 → 8.50.
 
 Recommended next slice order:
 
 1. Fix the streak setup UI first because it is low-risk and improves current employer setup immediately.
 2. Add prorating metadata and logic for per-day/flat bonuses, with defaults chosen carefully for existing data. Default new per-day bonuses should expose the prorate toggle; existing saved shift snapshots should remain history-safe. Implemented: employer custom bonus types and per-shift one-time bonuses now expose a partial-day proration toggle; prorated per-day bonuses store the day-fraction multiplier as their saved quantity; on-call remains non-prorated; streak bonuses prorate by day fraction when earned on per-day partial shifts.
-3. Introduce a generalized pay aggregation/payout model that can be reused by base pay, on-call bonus, custom bonuses, and streak bonuses. Include anchor paycheck date and the "pay period A paid after pay period B closes" delay semantics. Implemented as the current slice: employers now store an optional real paycheck anchor date and pay-period delay count; the engine can derive anchored pay-period windows, paycheck dates, and reusable aggregation rows for base pay, on-call pay, custom bonuses, and streak bonuses.
+3. Introduce a generalized pay aggregation/payout model that can be reused by base pay, on-call bonus, custom bonuses, and streak bonuses. Include separate pay-period end and paycheck date anchors rather than a whole-pay-period delay toggle. Implemented and corrected after TestFlight: employers now store an optional known pay-period end anchor plus an optional actual paycheck date anchor; the engine can derive anchored pay-period windows, paycheck dates, and reusable aggregation rows for base pay, on-call pay, custom bonuses, and streak bonuses.
 4. Build a `PaycheckEstimator` engine and report tab after the payout model is explicit and testable. Implemented in-app Paycheck Estimator report mode: filters by paycheck date, warns when employer anchors are missing, groups estimated line items by paycheck date, and breaks down base/on-call/custom/streak components.
 5. Add clock-in/clock-out as an hourly-entry mode after the money model is stable, with exact hundredth-hour and quarter-hour ceiling rounding options. Implemented: hourly shifts can now toggle Clock In/Out entry, snapshot clock-in/out timestamps, and calculate paid hours with ceiling quarter-hour rounding.
 6. Add calendar export support for shift reconciliation. Implemented: shift detail can create/share a `.ics` file, while opt-in native calendar sync remains available through settings.
