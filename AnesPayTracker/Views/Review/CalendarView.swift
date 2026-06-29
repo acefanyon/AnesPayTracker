@@ -118,21 +118,15 @@ struct CalendarView: View {
                     .font(.body)
                 }
             }
-            .sheet(item: $activeSheet, onDismiss: {
-                selectedDate = nil
-            }) { sheet in
+            .sheet(item: $activeSheet) { sheet in
                 switch sheet {
-                case .addShift:
-                    if let selectedDate {
-                        AddShiftView(initialDate: selectedDate)
-                    }
-                case .daySheet:
-                    if let selectedDate {
-                        CalendarDaySheet(
-                            date: selectedDate,
-                            shifts: shiftsOn(date: selectedDate)
-                        )
-                    }
+                case .addShift(let date):
+                    AddShiftView(initialDate: date)
+                case .daySheet(let date):
+                    CalendarDaySheet(
+                        date: date,
+                        shifts: shiftsOn(date: date)
+                    )
                 }
             }
         }
@@ -239,16 +233,20 @@ struct CalendarView: View {
     }
 
     private func handleDayTap(_ date: Date) {
-        selectedDate = date
-        activeSheet = shiftsOn(date: date).isEmpty ? .addShift : .daySheet
+        activeSheet = shiftsOn(date: date).isEmpty ? .addShift(date) : .daySheet(date)
     }
 }
 
-private enum CalendarSheet: String, Identifiable {
-    case addShift
-    case daySheet
+private enum CalendarSheet: Identifiable {
+    case addShift(Date)
+    case daySheet(Date)
 
-    var id: String { rawValue }
+    var id: String {
+        switch self {
+        case .addShift(let date): return "add-\(date.timeIntervalSinceReferenceDate)"
+        case .daySheet(let date): return "day-\(date.timeIntervalSinceReferenceDate)"
+        }
+    }
 }
 
 // MARK: - Calendar Navigation Header
@@ -315,9 +313,9 @@ struct CalendarDayCell: View {
 
     private let calendar = Calendar.current
 
-    private var cellHeight: CGFloat { compact ? 72 : 110 }
-    private var dayFont: Font { compact ? .footnote.bold() : .body.bold() }
-    private var dayCircleSize: CGFloat { compact ? 26 : 32 }
+    private var cellHeight: CGFloat { compact ? 82 : 118 }
+    private var dayFont: Font { .system(size: compact ? 20 : 24, weight: .bold, design: .rounded) }
+    private var dayCircleSize: CGFloat { compact ? 34 : 38 }
     private var shiftFont: Font { compact ? .system(size: 9, weight: .bold) : .system(size: 10, weight: .bold) }
     private var badgeFont: Font { compact ? .system(size: 7, weight: .black) : .system(size: 8, weight: .black) }
     private var emblemFont: Font { compact ? .system(size: 8) : .system(size: 10) }
@@ -328,6 +326,9 @@ struct CalendarDayCell: View {
                 // Day number
                 Text(calendar.component(.day, from: date).description)
                     .font(dayFont)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                    .dynamicTypeSize(.xSmall ... .accessibility1)
                     .foregroundStyle(isToday ? .white : .primary)
                     .frame(width: dayCircleSize, height: dayCircleSize)
                     .background(isToday ? Color.accent : Color.clear, in: Circle())

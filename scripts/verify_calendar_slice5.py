@@ -19,11 +19,10 @@ def main() -> int:
     add_shift = ADD_SHIFT.read_text()
     failures: list[str] = []
 
-    require("@State private var selectedDate: Date?" in calendar, "Calendar should track a selected date for tap flows", failures)
-    require("@State private var activeSheet: CalendarSheet?" in calendar, "Calendar should route taps through a sheet state", failures)
+    require("case addShift(Date)" in calendar and "case daySheet(Date)" in calendar, "Calendar sheet state should carry the tapped date to avoid blank sheet races", failures)
     require("handleDayTap(date)" in calendar, "Calendar day cells should route taps through a shared handler", failures)
-    require("activeSheet = shiftsOn(date: date).isEmpty ? .addShift : .daySheet" in calendar, "Calendar tap handler should open Add Shift for empty days and a day sheet for occupied days", failures)
-    require("AddShiftView(initialDate: selectedDate)" in calendar, "Empty-day taps should open Add Shift prefilled to the selected date", failures)
+    require("activeSheet = shiftsOn(date: date).isEmpty ? .addShift(date) : .daySheet(date)" in calendar, "Calendar tap handler should open Add Shift for empty days and a day sheet for occupied days", failures)
+    require("AddShiftView(initialDate: date)" in calendar, "Empty-day taps should open Add Shift prefilled to the tapped date", failures)
     require("struct CalendarDaySheet: View" in calendar, "Occupied days should open a dedicated day sheet", failures)
     require("ShiftDetailView(shift: shift)" in calendar, "Day sheet should support tap-through into shift detail", failures)
     require("AddShiftView(initialDate: date)" in calendar, "Day sheet Add Shift action should reuse the tapped date", failures)

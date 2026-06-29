@@ -139,6 +139,10 @@ struct AddShiftView: View {
                     }
 
                     VStack(spacing: 24) {
+                        if allSites.isEmpty {
+                            NoSitesConfiguredCard()
+                        }
+
                         if canPasteCopiedShift && showPasteHint {
                             PasteCopiedShiftCard(showPasteHint: $showPasteHint) {
                                 pasteCopiedShift()
@@ -245,6 +249,7 @@ struct AddShiftView: View {
             populateIfEditing()
             syncCustomBonusesForSelectedSite()
             syncOnCallForSelectedSite()
+            selectDefaultSiteIfNeeded()
             showPasteHint = canPasteCopiedShift
         }
         .onChange(of: selectedSite?.id) { _, _ in
@@ -269,7 +274,12 @@ struct AddShiftView: View {
         }
     }
 
-    // MARK: - Save
+    // MARK: - Defaults / Save
+
+    private func selectDefaultSiteIfNeeded() {
+        guard editingShift == nil, selectedSite == nil else { return }
+        selectedSite = recentSites.first ?? allSites.first
+    }
 
     private func saveShift() {
         guard let site = selectedSite else { return }
@@ -562,6 +572,22 @@ struct MiniPayItem: View {
 }
 
 // MARK: - Site Picker
+
+struct NoSitesConfiguredCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("No sites configured", systemImage: "exclamationmark.triangle.fill")
+                .font(.headline)
+                .foregroundStyle(.orange)
+            Text("Add an employer/site in Settings before saving a shift. Existing shifts may still appear on the calendar, but a site is required for new entries.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
 
 struct SitePickerSection: View {
     @Binding var selectedSite: Site?
