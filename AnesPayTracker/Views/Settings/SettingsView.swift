@@ -122,7 +122,50 @@ struct EmployerDetailSettings: View {
                     }
                 }
             }
-            
+
+            // Pay schedule
+            Section {
+                if employer.payCadence != .monthly {
+                    Toggle("Anchor to a known period", isOn: Binding(
+                        get: { employer.payPeriodAnchor != nil },
+                        set: { on in
+                            employer.payPeriodAnchor = on ? Calendar.current.startOfDay(for: Date()) : nil
+                        }
+                    ))
+
+                    if employer.payPeriodAnchor != nil {
+                        DatePicker(
+                            "First day of a period",
+                            selection: Binding(
+                                get: { employer.payPeriodAnchor ?? Date() },
+                                set: { employer.payPeriodAnchor = Calendar.current.startOfDay(for: $0) }
+                            ),
+                            displayedComponents: .date
+                        )
+                    }
+                }
+
+                Toggle("Show expected paydays", isOn: Binding(
+                    get: { employer.payDelayDays != nil },
+                    set: { on in employer.payDelayDays = on ? 21 : nil }
+                ))
+
+                if employer.payDelayDays != nil {
+                    Stepper(
+                        "Paid \(employer.payDelayDays ?? 21) days after a period ends",
+                        value: Binding(
+                            get: { employer.payDelayDays ?? 21 },
+                            set: { employer.payDelayDays = $0 }
+                        ),
+                        in: 0...90
+                    )
+                }
+            } header: {
+                Text("Pay Schedule")
+            } footer: {
+                Text("Pick the first day of any pay period you know for certain — all periods are counted from that date, so they stay correct across year boundaries. Payment usually lags the period it covers: working the first half of January but being paid in early February is a delay of about 21 days.")
+            }
+
             // Contacts
             Section("Contacts") {
                 ForEach(employer.contactPersons) { contact in

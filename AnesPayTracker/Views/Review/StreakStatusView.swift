@@ -9,35 +9,34 @@ struct StreakStatusView: View {
     
     @State private var selectedShift: Shift?
     
+    // Pushed from Home (no NavigationStack of its own — Home provides it).
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    ForEach(employers) { employer in
-                        if !employer.streakRules.filter({ $0.isActive }).isEmpty {
-                            EmployerStreakSection(
-                                employer: employer,
-                                allShifts: allShifts,
-                                onSelectShift: { selectedShift = $0 }
-                            )
-                        }
-                    }
-                    
-                    if employers.allSatisfy({ $0.streakRules.filter({ $0.isActive }).isEmpty }) {
-                        EmptyStateView(
-                            icon: "flame",
-                            title: "No streak rules",
-                            message: "Add streak rules in your employer settings to track bonus progress."
+        ScrollView {
+            VStack(spacing: 24) {
+                ForEach(employers) { employer in
+                    if !employer.streakRules.filter({ $0.isActive }).isEmpty {
+                        EmployerStreakSection(
+                            employer: employer,
+                            allShifts: allShifts,
+                            onSelectShift: { selectedShift = $0 }
                         )
-                        .padding(.top, 60)
                     }
                 }
-                .padding(16)
+
+                if employers.allSatisfy({ $0.streakRules.filter({ $0.isActive }).isEmpty }) {
+                    EmptyStateView(
+                        icon: "flame",
+                        title: "No streak rules",
+                        message: "Add streak rules in your employer settings to track bonus progress."
+                    )
+                    .padding(.top, 60)
+                }
             }
-            .navigationTitle("Streaks")
-            .sheet(item: $selectedShift) { shift in
-                ShiftDetailView(shift: shift)
-            }
+            .padding(16)
+        }
+        .navigationTitle("Streaks")
+        .sheet(item: $selectedShift) { shift in
+            ShiftDetailView(shift: shift)
         }
     }
 }

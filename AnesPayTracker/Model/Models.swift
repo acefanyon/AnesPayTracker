@@ -10,20 +10,31 @@ final class Employer {
     var contactPersons: [ContactPerson]
     var payCadence: PayCadence
     var customCadenceDays: Int?
+    /// The first day of any pay period the user knows for certain.
+    /// Weekly/biweekly/custom periods are counted forward and backward from
+    /// this date. nil falls back to a fixed Monday epoch (stable, but likely
+    /// misaligned with the employer's real schedule).
+    var payPeriodAnchor: Date?
+    /// Days between the end of a pay period and the day its payment actually
+    /// lands (payment can lag well into a later period — e.g. work the first
+    /// half of January, get paid in early February). nil = don't show paydays.
+    var payDelayDays: Int?
     var createdAt: Date
-    
+
     @Relationship(deleteRule: .cascade, inverse: \Site.employer)
     var sites: [Site]
-    
+
     @Relationship(deleteRule: .cascade, inverse: \StreakRule.employer)
     var streakRules: [StreakRule]
-    
+
     init(
         id: UUID = UUID(),
         name: String,
         contactPersons: [ContactPerson] = [],
         payCadence: PayCadence = .biweekly,
         customCadenceDays: Int? = nil,
+        payPeriodAnchor: Date? = nil,
+        payDelayDays: Int? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -31,6 +42,8 @@ final class Employer {
         self.contactPersons = contactPersons
         self.payCadence = payCadence
         self.customCadenceDays = customCadenceDays
+        self.payPeriodAnchor = payPeriodAnchor
+        self.payDelayDays = payDelayDays
         self.createdAt = createdAt
         self.sites = []
         self.streakRules = []

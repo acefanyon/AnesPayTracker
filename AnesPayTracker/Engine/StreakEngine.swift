@@ -137,25 +137,14 @@ struct StreakEngine {
     static func payPeriodBounds(containing date: Date, employer: Employer) -> (Date, Date) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: date)
-        
+
         switch employer.payCadence {
         case .weekly:
-            let weekday = calendar.component(.weekday, from: today)
-            let daysToMonday = (weekday == 1) ? -6 : 2 - weekday
-            let start = calendar.date(byAdding: .day, value: daysToMonday, to: today) ?? today
-            let end = calendar.date(byAdding: .day, value: 6, to: start) ?? today
-            return (start, end)
-            
+            return anchoredBounds(containing: today, lengthDays: 7, anchor: employer.payPeriodAnchor, calendar: calendar)
+
         case .biweekly:
-            // Anchor: Jan 1 of current year, biweekly from there
-            var comps = calendar.dateComponents([.year], from: today)
-            let yearStart = calendar.date(from: comps) ?? today
-            let daysDiff = calendar.dateComponents([.day], from: yearStart, to: today).day ?? 0
-            let periodIndex = daysDiff / 14
-            let start = calendar.date(byAdding: .day, value: periodIndex * 14, to: yearStart) ?? today
-            let end = calendar.date(byAdding: .day, value: 13, to: start) ?? today
-            return (start, end)
-            
+            return anchoredBounds(containing: today, lengthDays: 14, anchor: employer.payPeriodAnchor, calendar: calendar)
+
         case .monthly:
             var comps = calendar.dateComponents([.year, .month], from: today)
             let start = calendar.date(from: comps) ?? today
@@ -163,17 +152,36 @@ struct StreakEngine {
             let nextMonth = calendar.date(from: comps) ?? today
             let end = calendar.date(byAdding: .day, value: -1, to: nextMonth) ?? today
             return (start, end)
-            
+
         case .custom:
-            let days = employer.customCadenceDays ?? 14
-            var comps = calendar.dateComponents([.year], from: today)
-            let yearStart = calendar.date(from: comps) ?? today
-            let daysDiff = calendar.dateComponents([.day], from: yearStart, to: today).day ?? 0
-            let periodIndex = daysDiff / days
-            let start = calendar.date(byAdding: .day, value: periodIndex * days, to: yearStart) ?? today
-            let end = calendar.date(byAdding: .day, value: days - 1, to: start) ?? today
-            return (start, end)
+            return anchoredBounds(containing: today, lengthDays: employer.customCadenceDays ?? 14, anchor: employer.payPeriodAnchor, calendar: calendar)
         }
+    }
+
+    /// Fixed-length periods counted from the anchor (the first day of any pay
+    /// period the user knows), in both directions — so periods never re-shuffle
+    /// at a year boundary. Without an anchor, falls back to a fixed epoch
+    /// (Jan 1, 2001 — a Monday, which keeps un-anchored weekly periods
+    /// Monday-based like before).
+    private static func anchoredBounds(containing day: Date, lengthDays: Int, anchor: Date?, calendar: Calendar) -> (Date, Date) {
+        let length = max(1, lengthDays)
+        let anchorDay = calendar.startOfDay(for: anchor ?? Date(timeIntervalSinceReferenceDate: 0))
+        let daysDiff = calendar.dateComponents([.day], from: anchorDay, to: day).day ?? 0
+        // Floored division so dates before the anchor land in the right period
+        let periodIndex = daysDiff >= 0 ? daysDiff / length : -((-daysDiff + length - 1) / length)
+        let start = calendar.date(byAdding: .day, value: periodIndex * length, to: anchorDay) ?? day
+        let end = calendar.date(byAdding: .day, value: length - 1, to: start) ?? day
+        return (start, end)
+    }
+
+    /// The day payment for a period actually lands. Payment lags the work it
+    /// covers by `payDelayDays` — often into a later period entirely (work the
+    /// first half of January, get paid in early February). nil when the
+    /// employer doesn't track paydays.
+    static func payday(forPeriodEnding end: Date, employer: Employer) -> Date? {
+        guard let delay = employer.payDelayDays else { return nil }
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .day, value: delay, to: calendar.startOfDay(for: end))
     }
     
     static func allPayPeriods(for employer: Employer, in year: Int) -> [(Date, Date)] {

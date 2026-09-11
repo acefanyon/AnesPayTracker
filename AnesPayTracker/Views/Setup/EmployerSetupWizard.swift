@@ -11,6 +11,10 @@ struct EmployerSetupWizard: View {
     @State private var employerName = ""
     @State private var payCadence: PayCadence = .biweekly
     @State private var customCadenceDays = 14
+    @State private var hasPeriodAnchor = false
+    @State private var periodAnchor = Date()
+    @State private var trackPayday = false
+    @State private var payDelayDays = 21
     @State private var contactPersons: [DraftContact] = []
     @State private var sites: [DraftSite] = [DraftSite()]
     @State private var streakRules: [DraftStreakRule] = []
@@ -60,6 +64,10 @@ struct EmployerSetupWizard: View {
                                 name: $employerName,
                                 payCadence: $payCadence,
                                 customCadenceDays: $customCadenceDays,
+                                hasPeriodAnchor: $hasPeriodAnchor,
+                                periodAnchor: $periodAnchor,
+                                trackPayday: $trackPayday,
+                                payDelayDays: $payDelayDays,
                                 contactPersons: $contactPersons
                             )
                         case .sites:
@@ -119,7 +127,10 @@ struct EmployerSetupWizard: View {
         let employer = Employer(
             name: employerName.trimmingCharacters(in: .whitespaces),
             payCadence: payCadence,
-            customCadenceDays: payCadence == .custom ? customCadenceDays : nil
+            customCadenceDays: payCadence == .custom ? customCadenceDays : nil,
+            payPeriodAnchor: hasPeriodAnchor && payCadence != .monthly
+                ? Calendar.current.startOfDay(for: periodAnchor) : nil,
+            payDelayDays: trackPayday ? payDelayDays : nil
         )
         
         employer.contactPersons = contactPersons.map {
@@ -213,6 +224,10 @@ struct EmployerInfoStep: View {
     @Binding var name: String
     @Binding var payCadence: PayCadence
     @Binding var customCadenceDays: Int
+    @Binding var hasPeriodAnchor: Bool
+    @Binding var periodAnchor: Date
+    @Binding var trackPayday: Bool
+    @Binding var payDelayDays: Int
     @Binding var contactPersons: [DraftContact]
     
     @State private var showAddContact = false
@@ -243,7 +258,27 @@ struct EmployerInfoStep: View {
                     .font(.title3)
                 }
             }
-            
+
+            WizardField(label: "Pay Schedule (optional)") {
+                VStack(alignment: .leading, spacing: 12) {
+                    if payCadence != .monthly {
+                        Toggle("I know a period start date", isOn: $hasPeriodAnchor)
+                        if hasPeriodAnchor {
+                            DatePicker("First day of a pay period", selection: $periodAnchor, displayedComponents: .date)
+                        }
+                    }
+
+                    Toggle("Show expected paydays", isOn: $trackPayday)
+                    if trackPayday {
+                        Stepper("Paid \(payDelayDays) days after a period ends", value: $payDelayDays, in: 0...90)
+                    }
+
+                    Text("Payment often lags the period it covers — e.g. the first half of January is paid in early February. You can adjust both later in Settings.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             WizardField(label: "Contacts (optional)") {
                 VStack(spacing: 8) {
                     ForEach($contactPersons) { $contact in

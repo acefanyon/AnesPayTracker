@@ -24,6 +24,7 @@
 		B015 /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* PDFReportGenerator.swift */; };
 		B016 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* SettingsView.swift */; };
 		B017 /* CurrencyField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017 /* CurrencyField.swift */; };
+		B019 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019 /* HomeView.swift */; };
 		B018 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A018 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -45,6 +46,7 @@
 		A015 /* PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportGenerator.swift; sourceTree = "<group>"; };
 		A016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A017 /* CurrencyField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyField.swift; sourceTree = "<group>"; };
+		A019 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A018 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		PROD1 /* AnesPayTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AnesPayTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -119,6 +121,7 @@
 		VIEWSGRP /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				HOMEGRP /* Home */,
 				SETUPGRP /* Setup */,
 				ENTRYGRP /* Entry */,
 				REVIEWGRP /* Review */,
@@ -127,6 +130,14 @@
 				COMPONENTSGRP /* Components */,
 			);
 			name = Views;
+			sourceTree = "<group>";
+		};
+		HOMEGRP /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				A019 /* HomeView.swift */,
+			);
+			name = Home;
 			sourceTree = "<group>";
 		};
 		SETUPGRP /* Setup */ = {
@@ -251,6 +262,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B001 /* AnesPayTrackerApp.swift in Sources */,
+				B019 /* HomeView.swift in Sources */,
 				B002 /* ContentView.swift in Sources */,
 				B003 /* Theme.swift in Sources */,
 				B004 /* Models.swift in Sources */,

@@ -21,6 +21,12 @@ struct SeedData {
         let tanya = ContactPerson(name: "Tanya Reeves", role: "Scheduling Coordinator")
         let marcos = ContactPerson(name: "Marcos Ibáñez", role: "Medical Director")
         vap.contactPersons = [tanya, marcos]
+
+        // Periods count from a real known period start (today is day 7 of 14);
+        // payment lands 5 days after each period ends.
+        let seedCal = Calendar.current
+        vap.payPeriodAnchor = seedCal.date(byAdding: .day, value: -6, to: seedCal.startOfDay(for: Date()))
+        vap.payDelayDays = 5
         
         // Site 1: Riverside Surgical Center (per-day)
         let riverside = Site(

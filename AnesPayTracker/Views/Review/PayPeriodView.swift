@@ -162,6 +162,14 @@ struct PayPeriodCard: View {
         let today = Date()
         return today >= period.start && today <= period.end
     }
+
+    private var subtitleText: String {
+        let shifts = "\(period.shifts.count) shift\(period.shifts.count == 1 ? "" : "s")"
+        if let payday = StreakEngine.payday(forPeriodEnding: period.end, employer: employer) {
+            return "\(shifts) · payday \(payday.formatted(.dateTime.month(.abbreviated).day()))"
+        }
+        return shifts
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -183,7 +191,7 @@ struct PayPeriodCard: View {
                                     .foregroundStyle(Color.accent)
                             }
                         }
-                        Text("\(period.shifts.count) shift\(period.shifts.count == 1 ? "" : "s")")
+                        Text(subtitleText)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }

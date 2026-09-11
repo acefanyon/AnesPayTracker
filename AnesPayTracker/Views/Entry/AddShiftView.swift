@@ -46,11 +46,25 @@ struct AddShiftView: View {
     
     private var payUnit: PayUnit { selectedSite?.payUnit ?? .perDay }
     
-    private var computedBase: Decimal {
+    /// The rate this save will actually use. Editing an existing shift keeps
+    /// its snapshotted rate — a later site-rate change must never silently
+    /// reprice history. Only a new shift, or an edit that moves the shift to a
+    /// different site (or a site whose pay unit changed), takes the current rate.
+    private var effectiveRate: Decimal {
         guard let site = selectedSite else { return 0 }
+        if let existing = editingShift,
+           existing.site?.id == site.id,
+           existing.payUnit == site.payUnit {
+            return existing.baseAmount
+        }
+        return site.baseAmount
+    }
+
+    private var computedBase: Decimal {
+        guard selectedSite != nil else { return 0 }
         switch payUnit {
-        case .perDay: return site.baseAmount * (dayFraction.multiplier)
-        case .perHour: return site.baseAmount * Decimal(hoursWorked)
+        case .perDay: return effectiveRate * (dayFraction.multiplier)
+        case .perHour: return effectiveRate * Decimal(hoursWorked)
         }
     }
     
@@ -173,12 +187,16 @@ struct AddShiftView: View {
             modelContext.insert(shift)
         }
         
+        // Snapshot the rate exactly as effectiveRate previewed it: current site
+        // rate for new shifts or site changes, the shift's own historical rate
+        // otherwise.
+        let rate = effectiveRate
         shift.site = site
         shift.date = date
         shift.payUnit = site.payUnit
         shift.dayFraction = site.payUnit == .perDay ? dayFraction : nil
         shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
-        shift.baseAmount = site.baseAmount
+        shift.baseAmount = rate
         shift.splashAmount = hasSplash ? splashAmount : nil
         shift.bonusSplashAmount = hasBonusSplash ? bonusSplashAmount : nil
         
@@ -221,10 +239,27 @@ struct AddShiftView: View {
     
     private func buildEditSummary(_ shift: Shift) -> String {
         var changes: [String] = []
-        if shift.date != date { changes.append("date changed") }
+        if let newSite = selectedSite, shift.site?.id != newSite.id {
+            changes.append("site changed to \(newSite.name)")
+        }
+        if !Calendar.current.isDate(shift.date, inSameDayAs: date) {
+            changes.append("date changed to \(date.formatted(.dateTime.month(.abbreviated).day()))")
+        }
         if shift.dayFraction != dayFraction && payUnit == .perDay { changes.append("fraction changed to \(dayFraction.label)") }
-        if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }
+        if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked.formatted())") }
+        let newSplash: Decimal? = hasSplash ? splashAmount : nil
+        if shift.splashAmount != newSplash {
+            changes.append("splash \(amountLabel(shift.splashAmount)) → \(amountLabel(newSplash))")
+        }
+        let newBonusSplash: Decimal? = hasBonusSplash ? bonusSplashAmount : nil
+        if shift.bonusSplashAmount != newBonusSplash {
+            changes.append("bonus splash \(amountLabel(shift.bonusSplashAmount)) → \(amountLabel(newBonusSplash))")
+        }
         return changes.isEmpty ? "Minor edit" : changes.joined(separator: ", ")
+    }
+
+    private func amountLabel(_ amount: Decimal?) -> String {
+        amount.map { $0.formatted(.currency(code: "USD")) } ?? "none"
     }
     
     private func populateIfEditing() {
