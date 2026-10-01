@@ -4,6 +4,8 @@ Last updated: 2026-10-01
 
 ## 2026-10-01 update
 
+- Build numbers: Xcode Organizer's "Manage Version and Build Number" option auto-assigns the next unused number on upload, so App Store Connect numbers can be ahead of the source. The source with build 4 (data safety) was uploaded on 2026-09-30 and appears in TestFlight as **1.1 (5)**; Jason's phone runs it with real Envision/Banner data intact. The source is now set to **1.1 (6)** for the next upload (Home tab and fixes below). Always compare against App Store Connect's TestFlight build list, not the source number.
+
 - The TestFlight tester has real pay data that exists only on her phone (the iCloud capability is not enabled). Treat her store as irreplaceable.
 - Build 4 (data safety): launch never deletes data. The legacy sample-data cleanup was removed, the "delete the store and start fresh" migration fallback was replaced with an error screen, and the store files are copied to `Application Support/StoreBackups/before-build-<N>` (last 3 kept) before each new build opens them. Sample data is only inserted in DEBUG builds.
 - Build 5 (Home tab): new first tab showing the current work period (earned so far, payday), the next paycheck (from `StreakEngine.paycheckAggregationRows`, same as the Paycheck Estimator), streak progress and recent shifts. Home replaces the Streaks tab, whose content (`StreakStatusContent`) is linked from Home. Verifier: `scripts/verify_home_screen.py`.
