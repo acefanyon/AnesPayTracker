@@ -1001,89 +1001,105 @@ struct CustomBonusesSection: View {
                     .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
             }
 
-            ForEach($customBonuses) { $bonus in
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            if bonus.sourceID == nil {
-                                TextField("Bonus name", text: $bonus.name)
-                                    .textFieldStyle(.roundedBorder)
-                            } else {
-                                Text(bonus.name).font(.body.bold())
-                            }
-                            Text("\(bonus.payUnit == .perHour ? "Per-hour bonus" : "Flat / per-day bonus") · paid: \(bonus.payoutSchedule.shortLabel)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if bonus.sourceID == nil {
-                            Button(role: .destructive) {
-                                customBonuses.removeAll { $0.id == bonus.id }
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Remove custom bonus")
-                        } else {
-                            Toggle("", isOn: $bonus.isEnabled)
-                        }
-                    }
-
-                    if bonus.isEnabled {
-                        if bonus.sourceID == nil {
-                            Picker("How this bonus pays", selection: $bonus.payUnit) {
-                                Text("Flat").tag(PayUnit.perDay)
-                                Text("Per Hour").tag(PayUnit.perHour)
-                            }
-                            .pickerStyle(.segmented)
-                            .onChange(of: bonus.payUnit) { _, newUnit in
-                                if newUnit == .perDay {
-                                    bonus.proratesPartialDay = true
-                                    bonus.quantity = defaultQuantity
-                                } else {
-                                    bonus.proratesPartialDay = false
-                                    if bonus.quantity < 1 && defaultQuantity > 1 {
-                                        bonus.quantity = defaultQuantity
-                                    }
-                                }
-                            }
-                        }
-                        CurrencyField(value: $bonus.amount, placeholder: "Amount")
-                        Picker("How and when paid", selection: $bonus.payoutSchedule) {
-                            ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
-                                Text(schedule.displayName).tag(schedule)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        Text(bonus.payoutSchedule.descriptiveLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if bonus.payUnit == .perDay {
-                            Toggle("Prorate for partial day", isOn: $bonus.proratesPartialDay)
-                                .onChange(of: bonus.proratesPartialDay) { _, shouldProrate in
-                                    bonus.quantity = shouldProrate ? defaultQuantity : 1
-                                }
-                            Text(bonus.proratesPartialDay ? "Uses this shift's day fraction for the bonus amount." : "Pays the full bonus amount even on a partial-day shift.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        if bonus.payUnit == .perHour {
-                            Stepper("Hours: \(bonus.quantity.formatted())", value: $bonus.quantity, in: 0.25...24, step: 0.25)
-                                .onAppear {
-                                    if bonus.quantity == 1, defaultQuantity > 1 {
-                                        bonus.quantity = defaultQuantity
-                                    }
-                                }
-                        }
-                        Text("Adds \(bonus.totalAmount.formatted(.currency(code: "USD")))")
-                            .font(.footnote.bold())
-                            .foregroundStyle(Color.accent)
-                    }
-                }
-                .padding(12)
-                .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            // Switching to another employer's site removes this list's
+            // bonuses mid-update, so rows must look them up by ID.
+            ForEach(customBonuses) { bonus in
+                CustomBonusRow(
+                    bonus: $customBonuses.element(bonus),
+                    defaultQuantity: defaultQuantity,
+                    onRemove: { customBonuses.removeAll { $0.id == bonus.id } }
+                )
             }
         }
+    }
+}
+
+struct CustomBonusRow: View {
+    @Binding var bonus: DraftAppliedCustomBonus
+    let defaultQuantity: Double
+    let onRemove: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    if bonus.sourceID == nil {
+                        TextField("Bonus name", text: $bonus.name)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        Text(bonus.name).font(.body.bold())
+                    }
+                    Text("\(bonus.payUnit == .perHour ? "Per-hour bonus" : "Flat / per-day bonus") · paid: \(bonus.payoutSchedule.shortLabel)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if bonus.sourceID == nil {
+                    Button(role: .destructive) {
+                        onRemove()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Remove custom bonus")
+                } else {
+                    Toggle("", isOn: $bonus.isEnabled)
+                }
+            }
+
+            if bonus.isEnabled {
+                if bonus.sourceID == nil {
+                    Picker("How this bonus pays", selection: $bonus.payUnit) {
+                        Text("Flat").tag(PayUnit.perDay)
+                        Text("Per Hour").tag(PayUnit.perHour)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: bonus.payUnit) { _, newUnit in
+                        if newUnit == .perDay {
+                            bonus.proratesPartialDay = true
+                            bonus.quantity = defaultQuantity
+                        } else {
+                            bonus.proratesPartialDay = false
+                            if bonus.quantity < 1 && defaultQuantity > 1 {
+                                bonus.quantity = defaultQuantity
+                            }
+                        }
+                    }
+                }
+                CurrencyField(value: $bonus.amount, placeholder: "Amount")
+                Picker("How and when paid", selection: $bonus.payoutSchedule) {
+                    ForEach(BonusPayoutSchedule.allCases, id: \.self) { schedule in
+                        Text(schedule.displayName).tag(schedule)
+                    }
+                }
+                .pickerStyle(.menu)
+                Text(bonus.payoutSchedule.descriptiveLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if bonus.payUnit == .perDay {
+                    Toggle("Prorate for partial day", isOn: $bonus.proratesPartialDay)
+                        .onChange(of: bonus.proratesPartialDay) { _, shouldProrate in
+                            bonus.quantity = shouldProrate ? defaultQuantity : 1
+                        }
+                    Text(bonus.proratesPartialDay ? "Uses this shift's day fraction for the bonus amount." : "Pays the full bonus amount even on a partial-day shift.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if bonus.payUnit == .perHour {
+                    Stepper("Hours: \(bonus.quantity.formatted())", value: $bonus.quantity, in: 0.25...24, step: 0.25)
+                        .onAppear {
+                            if bonus.quantity == 1, defaultQuantity > 1 {
+                                bonus.quantity = defaultQuantity
+                            }
+                        }
+                }
+                Text("Adds \(bonus.totalAmount.formatted(.currency(code: "USD")))")
+                    .font(.footnote.bold())
+                    .foregroundStyle(Color.accent)
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
     }
 }
 

@@ -97,6 +97,8 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 - [ ] The setup wizard opens and the employer above can be created.
 
 **C2. Shift entry**
+- [ ] **Regression (2026-10-01 crash):** open Add Shift with a Valley Anesthesia Partners site selected, then tap **Test Surgical**, then **Test Hospital**, then back to a Valley site. No crash; each employer's own bonuses appear and the other employer's disappear.
+- [ ] In the setup wizard, add and delete a site, a streak rule and a bonus type, including deleting one while its name field is being edited. No crash.
 - [ ] The **+** button in the top-right corner of Home, Calendar, Pay Periods and Report opens Add Shift; no floating button covers content on any tab.
 - [ ] Each shift's preview total matches the table *before* saving, and Shift Detail shows the same total after saving.
 - [ ] Clock In/Out shows 8.25 hours for 7:00 → 3:01.

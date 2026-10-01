@@ -148,6 +148,26 @@ extension View {
     }
 }
 
+// MARK: - Shared Bindings
+
+extension Binding {
+    /// A binding to one element of an Identifiable array, looked up by ID
+    /// instead of index. `ForEach($array)` bindings are index-based and crash
+    /// ("Index out of range") when rows are removed while their controls are
+    /// still updating. This one can't: after the element is removed, reads
+    /// return its last known value and writes are ignored.
+    func element<Element: Identifiable>(_ element: Element) -> Binding<Element> where Value == [Element] {
+        let id = element.id
+        return Binding<Element>(
+            get: { self.wrappedValue.first { $0.id == id } ?? element },
+            set: { newValue in
+                guard let index = self.wrappedValue.firstIndex(where: { $0.id == id }) else { return }
+                self.wrappedValue[index] = newValue
+            }
+        )
+    }
+}
+
 // MARK: - Shared Modal Controls
 
 struct ModalCloseButton: View {

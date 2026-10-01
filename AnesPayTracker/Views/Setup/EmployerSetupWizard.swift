@@ -642,7 +642,7 @@ struct EmployerInfoStep: View {
 
             WizardField(label: "Contacts (optional)") {
                 VStack(spacing: 8) {
-                    ForEach($contactPersons) { $contact in
+                    ForEach(contactPersons) { contact in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(contact.name).font(.body.bold())
@@ -732,9 +732,9 @@ struct CustomBonusesStep: View {
                     .controlSize(.regular)
                 }
 
-                ForEach($customBonusTypes) { $bonus in
+                ForEach(customBonusTypes) { bonus in
                     CustomBonusTypeEditorCard(
-                        bonus: $bonus,
+                        bonus: $customBonusTypes.element(bonus),
                         canDelete: !(isEditingExistingEmployer && bonus.sourceID != nil)
                     ) {
                         customBonusTypes.removeAll { $0.id == bonus.id }
@@ -873,9 +873,9 @@ struct SitesStep: View {
             Text("Add the hospitals or surgical centers where you work.")
                 .foregroundStyle(.secondary)
 
-            ForEach($sites) { $site in
+            ForEach(sites) { site in
                 SiteEditorCard(
-                    site: $site,
+                    site: $sites.element(site),
                     canDelete: !(isEditingExistingEmployer && site.sourceID != nil),
                     onDelete: {
                         sites.removeAll { $0.id == site.id }
@@ -966,9 +966,9 @@ struct StreakRulesStep: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                ForEach($rules) { $rule in
+                ForEach(rules) { rule in
                     StreakRuleEditorCard(
-                        rule: $rule,
+                        rule: $rules.element(rule),
                         canDelete: !(isEditingExistingEmployer && rule.sourceID != nil),
                         onDelete: {
                             rules.removeAll { $0.id == rule.id }
