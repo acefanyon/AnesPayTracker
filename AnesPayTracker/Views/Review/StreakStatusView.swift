@@ -4,41 +4,49 @@ import SwiftData
 // MARK: - Streak Status View
 
 struct StreakStatusView: View {
+    var body: some View {
+        NavigationStack {
+            StreakStatusContent()
+        }
+    }
+}
+
+/// The streak list without its own NavigationStack, so it can also be pushed
+/// from Home.
+struct StreakStatusContent: View {
     @Query private var employers: [Employer]
     @Query(sort: \Shift.date, order: .reverse) private var allShifts: [Shift]
 
     @State private var selectedShift: Shift?
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    ForEach(employers) { employer in
-                        if employer.activeStreakRule != nil {
-                            EmployerStreakSection(
-                                employer: employer,
-                                allShifts: allShifts,
-                                onSelectShift: { selectedShift = $0 }
-                            )
-                        }
-                    }
-
-                    if employers.allSatisfy({ $0.activeStreakRule == nil }) {
-                        EmptyStateView(
-                            icon: "flame",
-                            title: "No streak rules",
-                            message: "Add streak rules in your employer settings to track bonus progress."
+        ScrollView {
+            VStack(spacing: 24) {
+                ForEach(employers) { employer in
+                    if employer.activeStreakRule != nil {
+                        EmployerStreakSection(
+                            employer: employer,
+                            allShifts: allShifts,
+                            onSelectShift: { selectedShift = $0 }
                         )
-                        .padding(.top, 60)
                     }
                 }
-                .padding(16)
-                .padding(.bottom, 180)
+
+                if employers.allSatisfy({ $0.activeStreakRule == nil }) {
+                    EmptyStateView(
+                        icon: "flame",
+                        title: "No streak rules",
+                        message: "Add streak rules in your employer settings to track bonus progress."
+                    )
+                    .padding(.top, 60)
+                }
             }
-            .navigationTitle("Streaks")
-            .sheet(item: $selectedShift) { shift in
-                ShiftDetailView(shift: shift)
-            }
+            .padding(16)
+            .padding(.bottom, 180)
+        }
+        .navigationTitle("Streaks")
+        .sheet(item: $selectedShift) { shift in
+            ShiftDetailView(shift: shift)
         }
     }
 }

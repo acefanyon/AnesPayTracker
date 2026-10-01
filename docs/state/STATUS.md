@@ -1,8 +1,16 @@
 # AnesPayTracker Status
 
-Last updated: 2026-06-28 20:59 MST
+Last updated: 2026-10-01
 
-## TL;DR
+## 2026-10-01 update
+
+- The TestFlight tester has real pay data that exists only on her phone (the iCloud capability is not enabled). Treat her store as irreplaceable.
+- Build 4 (data safety): launch never deletes data. The legacy sample-data cleanup was removed, the "delete the store and start fresh" migration fallback was replaced with an error screen, and the store files are copied to `Application Support/StoreBackups/before-build-<N>` (last 3 kept) before each new build opens them. Sample data is only inserted in DEBUG builds.
+- Build 5 (Home tab): new first tab showing the current work period (earned so far, payday), the next paycheck (from `StreakEngine.paycheckAggregationRows`, same as the Paycheck Estimator), streak progress and recent shifts. Home replaces the Streaks tab, whose content (`StreakStatusContent`) is linked from Home. Verifier: `scripts/verify_home_screen.py`.
+- CI: `.github/workflows/build.yml` runs every `scripts/verify_*.py` and builds Release and Debug for the iOS Simulator on pushes to `main`, `hermes/**` and `claude/**`.
+- The old sample employer still exists on the tester's phone. Do not delete it (or its sites, which cascade to shifts) until she confirms no real shifts are attached.
+
+## TL;DR (2026-06-28)
 
 AnesPayTracker is code-complete for the current feature set and is in TestFlight feedback iteration.
 

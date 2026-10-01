@@ -20,6 +20,7 @@
 		B011 /* Views/Review/ShiftDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A011 /* Views/Review/ShiftDetailView.swift */; };
 		B012 /* Views/Review/PayPeriodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* Views/Review/PayPeriodView.swift */; };
 		B013 /* Views/Review/StreakStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* Views/Review/StreakStatusView.swift */; };
+		B019 /* Views/Home/HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019 /* Views/Home/HomeView.swift */; };
 		B014 /* Views/Report/ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* Views/Report/ReportView.swift */; };
 		B015 /* Views/Report/PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* Views/Report/PDFReportGenerator.swift */; };
 		B016 /* Views/Settings/SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* Views/Settings/SettingsView.swift */; };
@@ -41,6 +42,7 @@
 		A011 /* Views/Review/ShiftDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/ShiftDetailView.swift; sourceTree = "<group>"; };
 		A012 /* Views/Review/PayPeriodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/PayPeriodView.swift; sourceTree = "<group>"; };
 		A013 /* Views/Review/StreakStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/StreakStatusView.swift; sourceTree = "<group>"; };
+		A019 /* Views/Home/HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/HomeView.swift; sourceTree = "<group>"; };
 		A014 /* Views/Report/ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/ReportView.swift; sourceTree = "<group>"; };
 		A015 /* Views/Report/PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/PDFReportGenerator.swift; sourceTree = "<group>"; };
 		A016 /* Views/Settings/SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -133,6 +135,14 @@
 			name = Report;
 			sourceTree = "<group>";
 		};
+		HOMEGRP /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				A019 /* Views/Home/HomeView.swift */,
+			);
+			name = Home;
+			sourceTree = "<group>";
+		};
 		REVIEWGRP /* Review */ = {
 			isa = PBXGroup;
 			children = (
@@ -171,6 +181,7 @@
 		VIEWSGRP /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				HOMEGRP /* Home */,
 				SETUPGRP /* Setup */,
 				ENTRYGRP /* Entry */,
 				REVIEWGRP /* Review */,
@@ -263,6 +274,7 @@
 				B011 /* Views/Review/ShiftDetailView.swift in Sources */,
 				B012 /* Views/Review/PayPeriodView.swift in Sources */,
 				B013 /* Views/Review/StreakStatusView.swift in Sources */,
+				B019 /* Views/Home/HomeView.swift in Sources */,
 				B014 /* Views/Report/ReportView.swift in Sources */,
 				B015 /* Views/Report/PDFReportGenerator.swift in Sources */,
 				B016 /* Views/Settings/SettingsView.swift in Sources */,
@@ -405,7 +417,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
@@ -431,7 +443,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";

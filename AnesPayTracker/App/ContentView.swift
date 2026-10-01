@@ -7,7 +7,7 @@ struct ContentView: View {
     
     @State private var showSetupWizard = false
     @State private var showAddShift = false
-    @State private var selectedTab: AppTab = .calendar
+    @State private var selectedTab: AppTab = .home
     
     var body: some View {
         Group {
@@ -32,6 +32,12 @@ struct ContentView: View {
     
     private var mainContent: some View {
         TabView(selection: $selectedTab) {
+            HomeView()
+                .tabItem {
+                    Label("Home", systemImage: "house")
+                }
+                .tag(AppTab.home)
+
             CalendarView()
                 .tabItem {
                     Label("Calendar", systemImage: "calendar")
@@ -43,12 +49,6 @@ struct ContentView: View {
                     Label("Pay Periods", systemImage: "dollarsign.circle")
                 }
                 .tag(AppTab.payPeriods)
-            
-            StreakStatusView()
-                .tabItem {
-                    Label("Streaks", systemImage: "flame")
-                }
-                .tag(AppTab.streaks)
             
             ReportView()
                 .tabItem {
@@ -74,7 +74,7 @@ struct ContentView: View {
 }
 
 enum AppTab: Hashable {
-    case calendar, payPeriods, streaks, report, settings
+    case home, calendar, payPeriods, report, settings
 }
 
 // MARK: - Welcome View
