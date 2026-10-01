@@ -98,11 +98,32 @@ struct AddShiftView: View {
         editingShift == nil && ShiftDraftClipboard.shared.hasSnapshot
     }
 
-    private var computedBase: Decimal {
+    /// The rate this shift is paid at. New shifts take the site's current rate.
+    /// An edited shift keeps the rate it was saved with, so changing a site's
+    /// rate in Settings never rewrites past pay. It only takes the current rate
+    /// if it is moved to a different site or the site's pay unit changed.
+    private var effectiveRate: Decimal {
         guard let site = selectedSite else { return 0 }
+        if let existing = editingShift,
+           existing.site?.id == site.id,
+           existing.payUnit == site.payUnit {
+            return existing.baseAmount
+        }
+        return site.baseAmount
+    }
+
+    private var keepsSavedRate: Bool {
+        guard let site = selectedSite, let existing = editingShift else { return false }
+        return existing.site?.id == site.id
+            && existing.payUnit == site.payUnit
+            && existing.baseAmount != site.baseAmount
+    }
+
+    private var computedBase: Decimal {
+        guard selectedSite != nil else { return 0 }
         switch payUnit {
-        case .perDay: return site.baseAmount * (dayFraction.multiplier)
-        case .perHour: return site.baseAmount * Decimal(hoursWorked)
+        case .perDay: return effectiveRate * (dayFraction.multiplier)
+        case .perHour: return effectiveRate * Decimal(hoursWorked)
         }
     }
 
@@ -136,6 +157,18 @@ struct AddShiftView: View {
                             customBonus: customBonuses.filter(\.isEnabled).reduce(Decimal(0)) { $0 + $1.totalAmount }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
+                    if keepsSavedRate, let site = selectedSite {
+                        Label(
+                            "Paid at this shift's saved rate of \(effectiveRate.formatted(.currency(code: "USD")))\(site.payUnit == .perDay ? "/day" : "/hr"). \(site.name)'s current rate (\(site.baseAmount.formatted(.currency(code: "USD")))) applies to new shifts.",
+                            systemImage: "lock.fill"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
                     }
 
                     VStack(spacing: 24) {
@@ -284,6 +317,8 @@ struct AddShiftView: View {
     private func saveShift() {
         guard let site = selectedSite else { return }
         isSaving = true
+        // Read before the shift's site/pay unit are overwritten below.
+        let rate = effectiveRate
 
         let shift: Shift
         if let existing = editingShift {
@@ -304,7 +339,7 @@ struct AddShiftView: View {
         shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
         shift.clockInAt = site.payUnit == .perHour && usesClockTimes ? clockInAt : nil
         shift.clockOutAt = site.payUnit == .perHour && usesClockTimes ? clockOutAt : nil
-        shift.baseAmount = site.baseAmount
+        shift.baseAmount = rate
         shift.isOnCall = isOnCall
         shift.onCallAmount = isOnCall ? onCallAmount : nil
         shift.splashAmount = nil
@@ -404,6 +439,12 @@ struct AddShiftView: View {
 
     private func buildEditSummary(_ shift: Shift) -> String {
         var changes: [String] = []
+        if let newSite = selectedSite, shift.site?.id != newSite.id {
+            changes.append("site changed to \(newSite.name)")
+        }
+        if effectiveRate != shift.baseAmount {
+            changes.append("rate \(shift.baseAmount.formatted(.currency(code: "USD"))) → \(effectiveRate.formatted(.currency(code: "USD")))")
+        }
         if shift.date != date { changes.append("date changed") }
         if shift.dayFraction != dayFraction && payUnit == .perDay { changes.append("fraction changed to \(dayFraction.label)") }
         if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }

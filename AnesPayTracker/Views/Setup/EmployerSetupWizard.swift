@@ -628,9 +628,14 @@ struct EmployerInfoStep: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     } else {
-                        Text("Without an anchor, reports use legacy calendar-derived pay periods. Add an anchor before using the paycheck estimator.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        Label(
+                            payCadence == .monthly
+                                ? "Recommended. Without these dates the app can't show paydays or estimate paychecks. Use any pay stub: the period's end date and the date it was paid."
+                                : "Recommended. Without these dates the app has to guess your pay periods, which will likely be off by days, and it can't show paydays or estimate paychecks. Use any pay stub: the period's end date and the date it was paid.",
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
                     }
                 }
             }

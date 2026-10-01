@@ -29,6 +29,12 @@ struct PayPeriodView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         if let employer = selectedEmployer ?? employers.first {
+                            if !employer.hasReliablePayPeriods {
+                                PayScheduleSetupCard(
+                                    title: "Pay period dates are estimated",
+                                    message: "\(employer.name) has no known pay-period end date, so these periods are guessed and may not match your real schedule. Add one in Settings → \(employer.name) → Open Full Employer Editor → Use paycheck calendar anchors."
+                                )
+                            }
                             let periods = payPeriodGroups(for: employer)
                             if periods.isEmpty {
                                 EmptyStateView(
@@ -380,5 +386,27 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }
+    }
+}
+
+// MARK: - Pay Schedule Setup Card
+
+/// Shown wherever pay periods or paydays would otherwise be guessed because an
+/// employer has no paycheck calendar anchors.
+struct PayScheduleSetupCard: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: "calendar.badge.exclamationmark")
+                .font(.subheadline.bold())
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
     }
 }

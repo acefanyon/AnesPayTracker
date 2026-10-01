@@ -92,21 +92,29 @@ struct EmployerPayOverview: View {
     let employer: Employer
     let showEmployerName: Bool
 
-    private var hasPaycheckAnchors: Bool {
-        employer.payPeriodEndAnchorDate != nil && employer.paycheckAnchorDate != nil
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if showEmployerName {
                 Text(employer.name)
                     .font(.headline)
             }
-            CurrentWorkPeriodCard(employer: employer, showsPaycheckDate: hasPaycheckAnchors)
-            if hasPaycheckAnchors {
+            // Without a known period end date the engine's period dates are
+            // guesses, so don't present them as fact.
+            if employer.hasReliablePayPeriods {
+                CurrentWorkPeriodCard(employer: employer, showsPaycheckDate: employer.hasPaycheckAnchors)
+            }
+            if employer.hasPaycheckAnchors {
                 NextPaycheckCard(employer: employer)
+            } else if employer.hasReliablePayPeriods {
+                PayScheduleSetupCard(
+                    title: "Paydays not set up",
+                    message: "To see when you'll be paid, add the paycheck date for a known pay period: Settings → \(employer.name) → Open Full Employer Editor → Use paycheck calendar anchors."
+                )
             } else {
-                PaycheckAnchorPromptCard()
+                PayScheduleSetupCard(
+                    title: "Pay schedule not set up",
+                    message: "To see your current pay period and paydays, add a known pay-period end date and the paycheck date for that period: Settings → \(employer.name) → Open Full Employer Editor → Use paycheck calendar anchors."
+                )
             }
         }
     }
@@ -286,21 +294,6 @@ struct NextPaycheckCard: View {
         guard let start = baseRows.map(\.aggregationStart).min(),
               let end = baseRows.map(\.aggregationEnd).max() else { return nil }
         return "For work \(HomeFormat.range(start, end))"
-    }
-}
-
-struct PaycheckAnchorPromptCard: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label("Paydays not set up", systemImage: "calendar.badge.exclamationmark")
-                .font(.subheadline.bold())
-            Text("To see when you'll be paid, add a known pay-period end date and the paycheck date for that period: Settings → your employer → Open Full Employer Editor.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
     }
 }
 

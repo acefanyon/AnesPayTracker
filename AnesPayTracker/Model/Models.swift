@@ -67,6 +67,20 @@ final class Employer {
         activeStreakRules.first
     }
 
+    /// Whether `StreakEngine.payPeriodBounds` reflects this employer's real
+    /// schedule. Monthly periods are calendar months. Weekly, biweekly and
+    /// custom cadences need a known pay-period end date; without one the
+    /// engine falls back to guessed (Monday- or Jan-1-based) periods.
+    var hasReliablePayPeriods: Bool {
+        payCadence == .monthly || payPeriodEndAnchorDate != nil
+    }
+
+    /// Both paycheck anchors are set, so paydays can be computed. Same rule
+    /// the Paycheck Estimator report uses.
+    var hasPaycheckAnchors: Bool {
+        payPeriodEndAnchorDate != nil && paycheckAnchorDate != nil
+    }
+
     func activateOnlyStreakRule(_ selectedRule: StreakRule) {
         for rule in streakRules {
             rule.isActive = (rule.id == selectedRule.id)

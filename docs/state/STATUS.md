@@ -8,6 +8,8 @@ Last updated: 2026-10-01
 - Build 4 (data safety): launch never deletes data. The legacy sample-data cleanup was removed, the "delete the store and start fresh" migration fallback was replaced with an error screen, and the store files are copied to `Application Support/StoreBackups/before-build-<N>` (last 3 kept) before each new build opens them. Sample data is only inserted in DEBUG builds.
 - Build 5 (Home tab): new first tab showing the current work period (earned so far, payday), the next paycheck (from `StreakEngine.paycheckAggregationRows`, same as the Paycheck Estimator), streak progress and recent shifts. Home replaces the Streaks tab, whose content (`StreakStatusContent`) is linked from Home. Verifier: `scripts/verify_home_screen.py`.
 - CI: `.github/workflows/build.yml` runs every `scripts/verify_*.py` and builds Release and Debug for the iOS Simulator on pushes to `main`, `hermes/**` and `claude/**`.
+- Build 5 also fixes: (1) editing a saved shift no longer reprices it to the site's current rate; (2) employers without a known pay-period end date no longer have guessed pay-period dates presented as fact (Home hides the work-period card, Pay Periods shows an "estimated" warning, setup warns). Verifier: `scripts/verify_history_and_pay_schedule_safety.py`.
+- Test plan: `docs/QA_TEST_PLAN.md`.
 - The old sample employer still exists on the tester's phone. Do not delete it (or its sites, which cascade to shifts) until she confirms no real shifts are attached.
 
 ## TL;DR (2026-06-28)

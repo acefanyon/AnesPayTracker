@@ -44,7 +44,7 @@ These are the functions where a mistake changes someone's pay or loses data. Tod
 3. **Pay periods and paydays** — `StreakEngine.payPeriodBounds(containing:employer:)`, `StreakEngine.paycheckDate(for:employer:)`
    - Oracle: work period Jun 7–20 paid Jun 26; next period paid Jul 10; prior period paid Jun 12.
    - Dates before the anchor; a period spanning New Year's stays one period; monthly cadence.
-   - Employers *without* anchors fall back to a Jan-1-based biweekly schedule — see Known issue 2.
+   - Employers *without* anchors fall back to a guessed (Jan-1-based biweekly) schedule; the UI flags those dates as estimated — see Fixed issue 2.
 4. **Bonus payout schedules** — `BonusPayoutSchedule.payoutDate(for:)`
    - Monthly → last day of the following month.
    - Quarterly → Q1 Apr 30, Q2 Jul 31, Q3 Oct 31, Q4 Jan 31 (next year).
@@ -52,7 +52,7 @@ These are the functions where a mistake changes someone's pay or loses data. Tod
    - Base and on-call land on the paycheck for the shift's period; each custom bonus and the streak bonus land on the paycheck for their payout date; zero amounts produce no row.
 6. **Streaks** — `StreakEngine.recomputeStreaks(for:)`, `StreakEngine.progress(for:relativeTo:)`
    - Each window type (rolling days, calendar month, calendar quarter, pay period); the threshold shift; post-threshold per-day earning; only one active rule; totals recompute after a shift is edited or deleted.
-7. **History safety** — editing a saved shift after its site's rate changed must keep the shift's original rate. **Currently fails** — see Known issue 1.
+7. **History safety** — editing a saved shift after its site's rate changed must keep the shift's original rate (fixed 2026-10-01; statically checked by `verify_history_and_pay_schedule_safety.py`).
 8. **Data safety** — `StoreSafety.backUpStoreIfNeeded()` copies the store once per build and keeps the last three; a store that can't be opened shows `StoreOpenFailedView` and deletes nothing; a store written by builds 1–4 opens in the current build with every record intact.
 9. **Reconciliation invariant** — for any set of shifts, the sum of Pay Periods totals equals the sum of Paycheck Estimator rows (once every row's paycheck date has passed).
 
@@ -110,7 +110,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 - [ ] Values match the table above.
 - [ ] Streaks card shows **5 of 10 days** (when testing on or before Oct 5; the 14-day window then starts dropping the Sep 22 shift); **Details** opens the full streak screen and Back returns to Home.
 - [ ] Recent shifts lists the five shifts newest first; tapping one opens its detail.
-- [ ] Turn off **Use paycheck calendar anchors** in the employer editor → Home shows **Paydays not set up** instead of a paycheck card. Turn it back on with the same dates.
+- [ ] Turn off **Use paycheck calendar anchors** in the employer editor → Home hides both cards and shows **Pay schedule not set up**; Pay Periods shows **Pay period dates are estimated**; the editor shows an orange warning under the toggle. Turn it back on with the same dates.
 
 **C4. Same numbers everywhere**
 - [ ] **Pay Periods:** Sep 14–27 = **$2,862.50**; Sep 28–Oct 11 = **$2,000.00**.
@@ -123,10 +123,10 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 - [ ] Edit the Sep 22 shift's notes only → total stays $1,000.00; Shift Detail shows an edit-history entry.
 - [ ] Delete the Sep 30 shift → Home earned drops to $1,250.00, Pay Periods updates, Streaks shows one day fewer. Re-add it.
 
-**C6. History safety (Known issue 1)**
+**C6. History safety**
 - [ ] In Settings, change Test Surgical's rate to **$1,200**. Existing shifts still show their old totals.
 - [ ] A *new* Test Surgical full-day shift totals **$1,200.00**. Delete it afterward.
-- [ ] Edit the Sep 22 shift's notes again. **Expected:** still $1,000.00. **Current build:** becomes $1,200.00 — this is Known issue 1. Set the rate back to $1,000.
+- [ ] Edit the Sep 22 shift: the edit screen shows a lock note — *Paid at this shift's saved rate of $1,000.00/day* — and after changing only the notes the total is still **$1,000.00**. Set the rate back to $1,000.
 
 **C7. Employer editing**
 - [ ] **Open Full Employer Editor**, delete the contact, save, reopen → the contact stays deleted.
@@ -168,7 +168,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 
 ---
 
-## Known issues (found while writing this plan)
+## Fixed issues (found while writing this plan, fixed 2026-10-01 for build 5)
 
-1. **Editing a saved shift reprices it to the site's current rate.** `AddShiftView` sets `shift.baseAmount = site.baseAmount` on every save, including edits. After a site's rate changes in Settings, editing any old shift — even just its notes — silently changes its pay. This violates the history-safety rule in `AGENTS.md`. Fix: when editing, keep the shift's own `baseAmount` unless its site or pay unit changes.
-2. **Employers without paycheck anchors get guessed pay periods.** The biweekly and custom fallbacks count from January 1 of each year, so the dates are almost always off and a period spanning New Year's splits in two. Paydays and the Paycheck Estimator already require anchors; the Home tab's work-period card and the Pay Periods tab still show the guessed dates. Fix: show the work-period card only when anchors are set, and prompt for them during setup.
+1. **Editing a saved shift repriced it to the site's current rate.** `AddShiftView` sets `shift.baseAmount = site.baseAmount` on every save, including edits. After a site's rate changes in Settings, editing any old shift — even just its notes — silently changes its pay. This violated the history-safety rule in `AGENTS.md`. **Fixed:** an edited shift keeps its own `baseAmount` unless it moves to another site or the site's pay unit changes; the edit screen says which rate applies, and rate changes are recorded in edit history.
+2. **Employers without paycheck anchors got guessed pay periods shown as fact.** The biweekly and custom fallbacks count from January 1 of each year, so the dates are almost always off and a period spanning New Year's splits in two. **Fixed:** `Employer.hasReliablePayPeriods` (monthly, or a known period end date) gates Home's work-period card; Pay Periods labels guessed dates as estimated; setup warns clearly when the anchors are off. The fallback math itself is unchanged, so existing data and reports are not affected.

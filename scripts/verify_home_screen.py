@@ -32,8 +32,10 @@ checks = {
         ".totalPay" in HOME and "baseAmount" not in HOME and "multiplier" not in HOME
     ),
     "Payday cards should require both paycheck anchors (same rule as the report)": (
-        "employer.payPeriodEndAnchorDate != nil && employer.paycheckAnchorDate != nil" in HOME
-        and "PaycheckAnchorPromptCard" in HOME
+        "if employer.hasPaycheckAnchors {" in HOME and "PayScheduleSetupCard(" in HOME
+    ),
+    "The work-period card should only show real (anchored or monthly) pay periods": (
+        "if employer.hasReliablePayPeriods {\n                CurrentWorkPeriodCard(" in HOME
     ),
     "Home must be read-only": (
         "modelContext" not in HOME and ".delete(" not in HOME and ".insert(" not in HOME and ".save()" not in HOME
