@@ -13,7 +13,7 @@ final class Employer {
     var payPeriodEndAnchorDate: Date?
     var paycheckAnchorDate: Date?
     var paycheckDelayPeriods: Int = 1
-    var defaultOnCallAmount: Decimal
+    var defaultOnCallAmount: Decimal = 0
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Site.employer)
@@ -101,8 +101,8 @@ final class CustomBonusType {
     var employer: Employer?
     var name: String
     var payUnit: PayUnit
-    var defaultAmount: Decimal
-    var payoutSchedule: BonusPayoutSchedule
+    var defaultAmount: Decimal = 0
+    var payoutSchedule: BonusPayoutSchedule = BonusPayoutSchedule.serviceDate
     var proratesPartialDay: Bool = true
     var createdAt: Date
 
@@ -199,7 +199,7 @@ final class Shift {
     var clockInAt: Date?
     var clockOutAt: Date?
     var baseAmount: Decimal
-    var isOnCall: Bool
+    var isOnCall: Bool = false
     var onCallAmount: Decimal?
     var splashAmount: Decimal?
     var bonusSplashAmount: Decimal?
@@ -208,7 +208,7 @@ final class Shift {
     var streakQualifiedShiftCount: Int?
     var streakPerDayBonusAmount: Decimal?
     var streakPayoutSchedule: BonusPayoutSchedule?
-    var streakQualifiedForPayout: Bool
+    var streakQualifiedForPayout: Bool = false
     var customBonuses: [AppliedCustomBonus]?
     var notes: String?
     var sourceNote: SourceNote?
@@ -316,9 +316,9 @@ final class StreakRule {
     var windowDays: Int?
     var bonusAmount: Decimal
     var postThresholdPerDayAmount: Decimal?
-    var payoutSchedule: BonusPayoutSchedule
-    var countsPartialDaysAsFullShift: Bool
-    var awardsOnShiftsAfterThreshold: Bool
+    var payoutSchedule: BonusPayoutSchedule = BonusPayoutSchedule.nextQuarterlyPayout
+    var countsPartialDaysAsFullShift: Bool = true
+    var awardsOnShiftsAfterThreshold: Bool = true
     var isActive: Bool
     var createdAt: Date
 

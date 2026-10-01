@@ -10,6 +10,7 @@ Last updated: 2026-10-01
 - CI: `.github/workflows/build.yml` runs every `scripts/verify_*.py` and builds Release and Debug for the iOS Simulator on pushes to `main`, `hermes/**` and `claude/**`.
 - Build 5 also fixes: (1) editing a saved shift no longer reprices it to the site's current rate; (2) employers without a known pay-period end date no longer have guessed pay-period dates presented as fact (Home hides the work-period card, Pay Periods shows an "estimated" warning, setup warns). Verifier: `scripts/verify_history_and_pay_schedule_safety.py`.
 - Test plan: `docs/QA_TEST_PLAN.md`.
+- Build 5 adds declaration-level defaults to eight required model properties that were added after their entities were created (e.g. `Employer.defaultOnCallAmount`). Without them, stores from before June 1 failed to migrate; TestFlight stores (June 11+) were never affected. Verifier: `scripts/verify_model_migration_defaults.py`.
 - The old sample employer still exists on the tester's phone. Do not delete it (or its sites, which cascade to shifts) until she confirms no real shifts are attached.
 
 ## TL;DR (2026-06-28)

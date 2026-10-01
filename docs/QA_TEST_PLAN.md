@@ -53,8 +53,9 @@ These are the functions where a mistake changes someone's pay or loses data. Tod
 6. **Streaks** — `StreakEngine.recomputeStreaks(for:)`, `StreakEngine.progress(for:relativeTo:)`
    - Each window type (rolling days, calendar month, calendar quarter, pay period); the threshold shift; post-threshold per-day earning; only one active rule; totals recompute after a shift is edited or deleted.
 7. **History safety** — editing a saved shift after its site's rate changed must keep the shift's original rate (fixed 2026-10-01; statically checked by `verify_history_and_pay_schedule_safety.py`).
-8. **Data safety** — `StoreSafety.backUpStoreIfNeeded()` copies the store once per build and keeps the last three; a store that can't be opened shows `StoreOpenFailedView` and deletes nothing; a store written by builds 1–4 opens in the current build with every record intact.
-9. **Reconciliation invariant** — for any set of shifts, the sum of Pay Periods totals equals the sum of Paycheck Estimator rows (once every row's paycheck date has passed).
+8. **Migration defaults** — every required stored property added after its entity was created declares a default (`verify_model_migration_defaults.py`). Missing defaults made pre-June-1 development stores fail to open with "missing attribute values on mandatory destination attribute" (found 2026-10-01 in the simulator; fixed for build 5).
+9. **Data safety** — `StoreSafety.backUpStoreIfNeeded()` copies the store once per build and keeps the last three; a store that can't be opened shows `StoreOpenFailedView` and deletes nothing; a store written by builds 1–4 opens in the current build with every record intact.
+10. **Reconciliation invariant** — for any set of shifts, the sum of Pay Periods totals equals the sum of Paycheck Estimator rows (once every row's paycheck date has passed).
 
 ---
 
