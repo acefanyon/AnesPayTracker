@@ -62,13 +62,7 @@ struct ContentView: View {
                 }
                 .tag(AppTab.settings)
         }
-        .overlay(alignment: .bottomTrailing) {
-            AddShiftButton {
-                showAddShift = true
-            }
-            .padding(.bottom, 72)
-            .padding(.trailing, 20)
-        }
+        .environment(\.addShift, { showAddShift = true })
         .tint(Color.accent)
     }
 }
@@ -117,21 +111,40 @@ struct WelcomeView: View {
     }
 }
 
-// MARK: - Add Shift Floating Button
+// MARK: - Add Shift Toolbar Button
 
-struct AddShiftButton: View {
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "plus")
-                .font(.title2.bold())
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(Color.accent, in: Circle())
-                .shadow(color: Color.accent.opacity(0.4), radius: 8, y: 4)
+/// Opens the app-wide Add Shift sheet owned by ContentView. Shift-related tabs
+/// put it in their navigation bar instead of a floating button that covers
+/// content.
+private struct AddShiftActionKey: EnvironmentKey {
+    static let defaultValue: () -> Void = {}
+}
+
+extension EnvironmentValues {
+    var addShift: () -> Void {
+        get { self[AddShiftActionKey.self] }
+        set { self[AddShiftActionKey.self] = newValue }
+    }
+}
+
+private struct AddShiftToolbarModifier: ViewModifier {
+    @Environment(\.addShift) private var addShift
+
+    func body(content: Content) -> some View {
+        content.toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: addShift) {
+                    Label("Add Shift", systemImage: "plus")
+                }
+                .accessibilityLabel("Add Shift")
+            }
         }
-        .accessibilityLabel("Add Shift")
+    }
+}
+
+extension View {
+    func addShiftToolbarButton() -> some View {
+        modifier(AddShiftToolbarModifier())
     }
 }
 

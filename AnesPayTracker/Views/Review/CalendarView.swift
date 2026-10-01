@@ -110,6 +110,7 @@ struct CalendarView: View {
                 }
             }
             .navigationTitle("Calendar")
+            .addShiftToolbarButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Today") {

@@ -55,10 +55,11 @@ struct PayPeriodView: View {
                         }
                     }
                     .padding(16)
-                    .padding(.bottom, 180)
+                    .padding(.bottom, 24)
                 }
             }
             .navigationTitle("Pay Periods")
+            .addShiftToolbarButton()
             .sheet(item: $selectedShift) { shift in
                 ShiftDetailView(shift: shift)
             }

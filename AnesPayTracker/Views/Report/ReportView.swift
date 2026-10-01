@@ -165,9 +165,10 @@ struct ReportView: View {
                     }
                 }
                 .padding(16)
-                .padding(.bottom, 180)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Report")
+            .addShiftToolbarButton()
             .sheet(item: $pdfPreviewItem) { item in
                 PDFPreviewSheet(url: item.url)
             }

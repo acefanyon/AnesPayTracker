@@ -15,6 +15,7 @@ struct HomeView: View {
     @Query(sort: \Shift.date, order: .reverse) private var allShifts: [Shift]
 
     @State private var selectedShift: Shift?
+    @State private var employerToSetUp: Employer?
 
     private var recentShifts: [Shift] {
         let endOfToday = Calendar.current.endOfDay(for: Date())
@@ -32,7 +33,8 @@ struct HomeView: View {
                     ForEach(employers) { employer in
                         EmployerPayOverview(
                             employer: employer,
-                            showEmployerName: employers.count > 1
+                            showEmployerName: employers.count > 1,
+                            onSetUpPaySchedule: { employerToSetUp = employer }
                         )
                     }
 
@@ -73,11 +75,15 @@ struct HomeView: View {
                     }
                 }
                 .padding(16)
-                .padding(.bottom, 180)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Home")
+            .addShiftToolbarButton()
             .sheet(item: $selectedShift) { shift in
                 ShiftDetailView(shift: shift)
+            }
+            .sheet(item: $employerToSetUp) { employer in
+                EmployerSetupWizard(mode: .edit, sourceEmployer: employer)
             }
         }
     }
@@ -91,6 +97,7 @@ struct HomeView: View {
 struct EmployerPayOverview: View {
     let employer: Employer
     let showEmployerName: Bool
+    let onSetUpPaySchedule: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -105,15 +112,10 @@ struct EmployerPayOverview: View {
             }
             if employer.hasPaycheckAnchors {
                 NextPaycheckCard(employer: employer)
-            } else if employer.hasReliablePayPeriods {
-                PayScheduleSetupCard(
-                    title: "Paydays not set up",
-                    message: "To see when you'll be paid, add the paycheck date for a known pay period: Settings → \(employer.name) → Open Full Employer Editor → Use paycheck calendar anchors."
-                )
             } else {
-                PayScheduleSetupCard(
-                    title: "Pay schedule not set up",
-                    message: "To see your current pay period and paydays, add a known pay-period end date and the paycheck date for that period: Settings → \(employer.name) → Open Full Employer Editor → Use paycheck calendar anchors."
+                PayScheduleReminderRow(
+                    title: employer.hasReliablePayPeriods ? "Set up paydays" : "Set up pay schedule",
+                    action: onSetUpPaySchedule
                 )
             }
         }
@@ -294,6 +296,44 @@ struct NextPaycheckCard: View {
         guard let start = baseRows.map(\.aggregationStart).min(),
               let end = baseRows.map(\.aggregationEnd).max() else { return nil }
         return "For work \(HomeFormat.range(start, end))"
+    }
+}
+
+// MARK: - Pay Schedule Reminder
+
+/// One compact, tappable line instead of a paragraph of directions. Opens the
+/// employer editor, where "Use paycheck calendar anchors" lives.
+struct PayScheduleReminderRow: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: "calendar.badge.exclamationmark")
+                    .font(.title3)
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                    Text("Add a pay-period end date and its paycheck date")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens the employer editor")
     }
 }
 

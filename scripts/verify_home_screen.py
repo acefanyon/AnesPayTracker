@@ -32,7 +32,22 @@ checks = {
         ".totalPay" in HOME and "baseAmount" not in HOME and "multiplier" not in HOME
     ),
     "Payday cards should require both paycheck anchors (same rule as the report)": (
-        "if employer.hasPaycheckAnchors {" in HOME and "PayScheduleSetupCard(" in HOME
+        "if employer.hasPaycheckAnchors {" in HOME and "PayScheduleReminderRow(" in HOME
+    ),
+    "Missing pay-schedule setup should be a compact row that opens the employer editor": (
+        "struct PayScheduleReminderRow" in HOME and "EmployerSetupWizard(mode: .edit, sourceEmployer: employer)" in HOME
+    ),
+    "No floating add button should cover tab content": (
+        "AddShiftButton" not in CONTENT and ".overlay(alignment: .bottomTrailing)" not in CONTENT
+    ),
+    "Add Shift should be in the navigation bar of every shift-related tab": all(
+        ".addShiftToolbarButton()" in (ROOT / "AnesPayTracker" / path).read_text()
+        for path in [
+            "Views/Home/HomeView.swift",
+            "Views/Review/CalendarView.swift",
+            "Views/Review/PayPeriodView.swift",
+            "Views/Report/ReportView.swift",
+        ]
     ),
     "The work-period card should only show real (anchored or monthly) pay periods": (
         "if employer.hasReliablePayPeriods {\n                CurrentWorkPeriodCard(" in HOME

@@ -97,6 +97,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 - [ ] The setup wizard opens and the employer above can be created.
 
 **C2. Shift entry**
+- [ ] The **+** button in the top-right corner of Home, Calendar, Pay Periods and Report opens Add Shift; no floating button covers content on any tab.
 - [ ] Each shift's preview total matches the table *before* saving, and Shift Detail shows the same total after saving.
 - [ ] Clock In/Out shows 8.25 hours for 7:00 → 3:01.
 - [ ] Copy a shift and paste it onto another day; the pasted shift has the same total. Delete the copy afterward.
@@ -111,7 +112,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 - [ ] Values match the table above.
 - [ ] Streaks card shows **5 of 10 days** (when testing on or before Oct 5; the 14-day window then starts dropping the Sep 22 shift); **Details** opens the full streak screen and Back returns to Home.
 - [ ] Recent shifts lists the five shifts newest first; tapping one opens its detail.
-- [ ] Turn off **Use paycheck calendar anchors** in the employer editor → Home hides both cards and shows **Pay schedule not set up**; Pay Periods shows **Pay period dates are estimated**; the editor shows an orange warning under the toggle. Turn it back on with the same dates.
+- [ ] Turn off **Use paycheck calendar anchors** in the employer editor → Home hides both cards and shows a one-line **Set up pay schedule** reminder (tapping it opens the employer editor); Pay Periods shows **Pay period dates are estimated**; the editor shows an orange warning under the toggle. Turn it back on with the same dates.
 
 **C4. Same numbers everywhere**
 - [ ] **Pay Periods:** Sep 14–27 = **$2,862.50**; Sep 28–Oct 11 = **$2,000.00**.
