@@ -1,0 +1,55 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - "hermes/**"
+      - "claude/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Verify and build (iOS Simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run project verifier scripts
+        run: |
+          set -e
+          for f in scripts/verify_*.py; do
+            echo "== $f"
+            python3 "$f"
+          done
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build for iOS Simulator (no code signing)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project AnesPayTracker.xcodeproj \
+            -target AnesPayTracker \
+            -sdk iphonesimulator \
+            -configuration Release \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            ARCHS=arm64
+
+      - name: Build Debug configuration (covers DEBUG-only code such as sample data)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project AnesPayTracker.xcodeproj \
+            -target AnesPayTracker \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            ARCHS=arm64

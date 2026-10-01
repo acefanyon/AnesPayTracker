@@ -6,23 +6,29 @@ APP = (ROOT / "AnesPayTracker" / "App" / "AnesPayTrackerApp.swift").read_text()
 WIZARD = (ROOT / "AnesPayTracker" / "Views" / "Setup" / "EmployerSetupWizard.swift").read_text()
 SEED = (ROOT / "AnesPayTracker" / "Engine" / "SeedData.swift").read_text()
 
+backup_call = APP.find("StoreSafety.backUpStoreIfNeeded()")
+open_call = APP.find("try Self.makeContainer()")
+
 checks = {
-    "TestFlight/release builds should not auto-seed sample employers on first launch": (
+    "Sample data should only be inserted in DEBUG builds, never TestFlight/release": (
         "#if DEBUG" in APP
         and "SeedData.insertIfNeeded(into: container.mainContext)" in APP
-        and "#else\n            // One-time safety cleanup for TestFlight/release users" in APP
-        and "SeedData.removeLegacyDemoDataIfNeeded(into: container.mainContext)" in APP
+        and "#else" not in APP.split("SeedData.insertIfNeeded")[1].split("#endif")[0]
     ),
-    "There should be no unconditional seed call in the app initializer body": (
-        "// Seed on first launch\n            SeedData.insertIfNeeded(into: container.mainContext)" not in APP
-        and "SeedData.insertIfNeeded(into: container.mainContext)\n            } catch" not in APP
+    # A tester's real shifts can live under the old sample employer/sites, and
+    # deleting a site cascades to its shifts. Nothing may be deleted automatically.
+    "Launch must never automatically delete sample-looking records": (
+        "removeLegacyDemoDataIfNeeded" not in APP
+        and "removeLegacyDemoDataIfNeeded" not in SEED
+        and "context.delete(" not in SEED
     ),
-    "Legacy sample cleanup should remove known demo records without wiping user-created employers": (
-        "static func removeLegacyDemoDataIfNeeded(into context: ModelContext)" in SEED
-        and "legacyDemoContactNames" in SEED
-        and "legacyDemoSiteNames" in SEED
-        and "legacyDemoBonusNames" in SEED
-        and "context.delete(employer)" in SEED
+    "A failed store open/migration must never delete the user's store": (
+        "removeItem(at: storeURL" not in APP
+        and "fatalError" not in APP
+        and "StoreOpenFailedView" in APP
+    ),
+    "The store should be copied aside before it is opened (and possibly migrated)": (
+        backup_call != -1 and open_call != -1 and backup_call < open_call
     ),
     "Saving an existing employer should let contact deletions persist instead of re-appending sample contacts": (
         "syncContacts(for: employer, allowDeletes: true, insertNewObjects: insertNewObjects)" in WIZARD

@@ -7,6 +7,7 @@ Covers:
 - Next beta upload should be visibly distinguishable from earlier 1.0 builds.
 """
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 CALENDAR = ROOT / "AnesPayTracker" / "Views" / "Review" / "CalendarView.swift"
@@ -35,7 +36,8 @@ def main() -> int:
     require("No sites configured" in add_shift, "Add Shift needs a visible empty state if no sites are available", failures)
 
     require("MARKETING_VERSION = 1.1;" in project, "Next TestFlight-visible version should be 1.1", failures)
-    require("CURRENT_PROJECT_VERSION = 3;" in project, "Next TestFlight build should increment to 3", failures)
+    build_numbers = [int(n) for n in re.findall(r"CURRENT_PROJECT_VERSION = (\d+);", project)]
+    require(bool(build_numbers) and min(build_numbers) >= 3, "TestFlight build number must stay above the expired builds (>= 3)", failures)
 
     if failures:
         print("TestFlight UI regression verifier failed:")
