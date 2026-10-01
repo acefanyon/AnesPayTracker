@@ -24,8 +24,15 @@ struct AnesPayTrackerApp: App {
             let container = try ModelContainer(for: schema, configurations: [config])
             modelContainer = container
 
-            // Seed on first launch
+            #if DEBUG
+            // Development/demo seed data only.
             SeedData.insertIfNeeded(into: container.mainContext)
+            #else
+            // One-time safety cleanup for TestFlight/release users who already
+            // received legacy demo data. This removes only known sample records
+            // and leaves user-created employers/data intact.
+            SeedData.removeLegacyDemoDataIfNeeded(into: container.mainContext)
+            #endif
         } catch {
             // If migration fails (e.g. new non-optional attribute added), delete
             // the old store and start fresh. Acceptable for a development build.
@@ -50,7 +57,10 @@ struct AnesPayTrackerApp: App {
                 )
                 let container = try ModelContainer(for: schema, configurations: [config])
                 modelContainer = container
+                #if DEBUG
+                // Development/demo seed data only.
                 SeedData.insertIfNeeded(into: container.mainContext)
+                #endif
             } catch {
                 fatalError("Failed to create ModelContainer after store reset: \(error)")
             }

@@ -4,6 +4,10 @@ import SwiftData
 // MARK: - Seed Data
 
 struct SeedData {
+    static let legacyDemoEmployerName = "Valley Anesthesia Partners"
+    static let legacyDemoContactNames: Set<String> = ["Tanya Reeves", "Marcos Ibáñez"]
+    static let legacyDemoSiteNames: Set<String> = ["Riverside Surgical", "Summit General"]
+    static let legacyDemoBonusNames: Set<String> = ["High Need Bonus", "Hard-to-Fill Bonus"]
 
     static func insertIfNeeded(into context: ModelContext) {
         // Check if already seeded
@@ -13,7 +17,7 @@ struct SeedData {
 
         // --- Employer 1: Valley Anesthesia Partners ---
         let vap = Employer(
-            name: "Valley Anesthesia Partners",
+            name: legacyDemoEmployerName,
             contactPersons: [],
             payCadence: .biweekly,
             defaultOnCallAmount: 250
@@ -199,5 +203,65 @@ struct SeedData {
         context.insert(shift7)
 
         try? context.save()
+    }
+
+    static func removeLegacyDemoDataIfNeeded(into context: ModelContext) {
+        guard let employers = try? context.fetch(FetchDescriptor<Employer>()) else { return }
+        var didChange = false
+
+        for employer in employers {
+            let hasDemoEmployerName = employer.name == legacyDemoEmployerName
+            let hasDemoContact = employer.contactPersons.contains { legacyDemoContactNames.contains($0.name) }
+            let hasDemoSite = employer.sites.contains { legacyDemoSiteNames.contains($0.name) }
+            let hasDemoBonus = employer.customBonusTypes.contains { legacyDemoBonusNames.contains($0.name) }
+            let hasDemoSignature = hasDemoEmployerName || hasDemoContact || hasDemoSite || hasDemoBonus
+            guard hasDemoSignature else { continue }
+
+            let remainingContacts = employer.contactPersons.filter { !legacyDemoContactNames.contains($0.name) }
+            for contact in employer.contactPersons where legacyDemoContactNames.contains(contact.name) {
+                context.delete(contact)
+                didChange = true
+            }
+            employer.contactPersons = remainingContacts
+
+            let remainingSites = employer.sites.filter { !legacyDemoSiteNames.contains($0.name) }
+            for site in employer.sites where legacyDemoSiteNames.contains(site.name) {
+                context.delete(site)
+                didChange = true
+            }
+            employer.sites = remainingSites
+
+            let remainingBonuses = employer.customBonusTypes.filter { !legacyDemoBonusNames.contains($0.name) }
+            for bonus in employer.customBonusTypes where legacyDemoBonusNames.contains(bonus.name) {
+                context.delete(bonus)
+                didChange = true
+            }
+            employer.customBonusTypes = remainingBonuses
+
+            let remainingRules = employer.streakRules.filter { rule in
+                !(rule.requiredDays == 12
+                  && rule.windowType == .calendarQuarter
+                  && rule.postThresholdPerDayAmount == 200
+                  && rule.payoutSchedule == .nextQuarterlyPayout)
+            }
+            for rule in employer.streakRules where !remainingRules.contains(where: { $0.id == rule.id }) {
+                context.delete(rule)
+                didChange = true
+            }
+            employer.streakRules = remainingRules
+
+            if hasDemoEmployerName
+                && employer.contactPersons.isEmpty
+                && employer.sites.isEmpty
+                && employer.customBonusTypes.isEmpty
+                && employer.streakRules.isEmpty {
+                context.delete(employer)
+                didChange = true
+            }
+        }
+
+        if didChange {
+            try? context.save()
+        }
     }
 }

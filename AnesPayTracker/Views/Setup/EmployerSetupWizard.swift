@@ -275,7 +275,11 @@ struct EmployerSetupWizard: View {
         employer.paycheckAnchorDate = usesPaycheckAnchor ? paycheckAnchorDate : nil
         employer.defaultOnCallAmount = defaultOnCallAmount
 
-        syncContacts(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
+        // Contacts are setup metadata, not pay history. If a user removes a
+        // contact in the full editor, persist that removal instead of silently
+        // re-appending stale/sample contacts on save. Sites/rules/bonuses still
+        // use the caller's history-protection policy below.
+        syncContacts(for: employer, allowDeletes: true, insertNewObjects: insertNewObjects)
         syncSites(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
         syncStreakRules(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
         syncCustomBonuses(for: employer, allowDeletes: allowDeletes, insertNewObjects: insertNewObjects)
