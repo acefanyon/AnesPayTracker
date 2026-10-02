@@ -11,6 +11,14 @@ struct SettingsView: View {
     @State private var showCalendarSettings = false
     @State private var selectedEmployer: Employer?
     
+    /// Version and build from the app bundle, e.g. "1.1 (6)", so testers can
+    /// tell which TestFlight build is installed.
+    private var appVersionText: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -59,12 +67,13 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0").foregroundStyle(.secondary)
+                        Text(appVersionText).foregroundStyle(.secondary)
                     }
                     HStack {
                         Text("Data Storage")
                         Spacer()
-                        Text("On-device + iCloud").foregroundStyle(.secondary).font(.footnote)
+                        // The iCloud capability is not enabled, so nothing syncs.
+                        Text("This device only").foregroundStyle(.secondary).font(.footnote)
                     }
                 } header: {
                     Text("About")

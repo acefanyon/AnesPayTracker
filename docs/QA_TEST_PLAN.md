@@ -148,6 +148,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 
 **C10. Data safety and persistence**
 - [ ] Stop the app in Xcode (■) and run it again: every shift and setting is still there.
+- [ ] Settings → About shows the real version and build, e.g. **1.1 (6)**, and Data Storage says **This device only**.
 - [ ] **Upgrade test** — mirrors what happens on a tester's phone. First delete the app from the simulator so the test starts clean. Then in Terminal:
   ```
   git switch --detach f5531f6
@@ -160,7 +161,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
   ```
   open "$(xcrun simctl get_app_container booted com.anespay.tracker data)/Library/Application Support/StoreBackups"
   ```
-  shows a `before-build-5` folder.
+  shows a `before-build-<N>` folder, where N is the build number being tested (for 1.1 (6), `before-build-6`). The folder is only created when the build opens data saved by an earlier build.
 
 **C11. Display**
 - [ ] Repeat Home, Add Shift and Calendar on an **iPhone SE (3rd generation)** simulator (smallest screen) and an **iPhone Pro Max**.
