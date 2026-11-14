@@ -19,7 +19,7 @@ final class Employer {
     var paysCaseTimeOnly: Bool = false
     /// Hours paid on a light day at case-time sites. nil = no minimum.
     var dailyMinimumHours: Double?
-    /// Two-character code used in invoice numbers (EN in EN-BM-041326).
+    /// Two-character code used in invoice numbers (EN in EN-041326).
     var invoiceCode: String?
     /// Name and address printed under "Invoice for". nil = use `name`.
     var billingName: String?
@@ -172,8 +172,6 @@ final class Site {
     var baseAmount: Decimal
     /// Turns case-time pay off for this site when its employer has it on.
     var optsOutOfCaseTime: Bool = false
-    /// Two-character code used in invoice numbers (BM in EN-BM-041326).
-    var invoiceCode: String?
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Shift.site)
@@ -384,9 +382,7 @@ final class Invoice {
     var id: UUID
     var number: String
     var employerID: UUID?
-    var siteID: UUID?
     var billToName: String
-    var siteName: String
     var periodStart: Date
     var periodEnd: Date
     var issuedOn: Date
@@ -400,9 +396,7 @@ final class Invoice {
         id: UUID = UUID(),
         number: String,
         employerID: UUID?,
-        siteID: UUID?,
         billToName: String,
-        siteName: String,
         periodStart: Date,
         periodEnd: Date,
         issuedOn: Date,
@@ -415,9 +409,7 @@ final class Invoice {
         self.id = id
         self.number = number
         self.employerID = employerID
-        self.siteID = siteID
         self.billToName = billToName
-        self.siteName = siteName
         self.periodStart = periodStart
         self.periodEnd = periodEnd
         self.issuedOn = issuedOn

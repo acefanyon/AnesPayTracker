@@ -66,16 +66,21 @@ enum InvoiceBuilder {
             add(bonus.name, detail, bonus.totalAmount)
         }
 
-        return InvoiceDay(id: shift.id, date: shift.date, caseLines: caseLines, charges: charges)
+        return InvoiceDay(id: shift.id, date: shift.date, siteName: shift.site?.name ?? "", caseLines: caseLines, charges: charges)
     }
 
-    /// The site's shifts dated from `start` through `end`, oldest first.
-    static func candidateShifts(at site: Site, from start: Date, through end: Date, calendar: Calendar = .current) -> [Shift] {
+    /// The employer's shifts at all of its sites, dated from `start` through
+    /// `end`, oldest first.
+    static func candidateShifts(for employer: Employer, from start: Date, through end: Date, calendar: Calendar = .current) -> [Shift] {
         let lower = calendar.startOfDay(for: start)
         let upper = calendar.endOfDay(for: end)
-        return site.shifts
+        return employer.sites
+            .flatMap(\.shifts)
             .filter { $0.date >= lower && $0.date <= upper }
-            .sorted { $0.date < $1.date }
+            .sorted {
+                if $0.date != $1.date { return $0.date < $1.date }
+                return ($0.site?.name ?? "") < ($1.site?.name ?? "")
+            }
     }
 
     /// Shift ID → the number of the invoice that already bills it.
@@ -92,7 +97,6 @@ enum InvoiceBuilder {
     static func makeInvoice(
         number: String,
         employer: Employer,
-        site: Site,
         periodStart: Date,
         periodEnd: Date,
         issuedOn: Date,
@@ -103,9 +107,7 @@ enum InvoiceBuilder {
         Invoice(
             number: number,
             employerID: employer.id,
-            siteID: site.id,
             billToName: snapshot.billToName,
-            siteName: snapshot.siteName,
             periodStart: periodStart,
             periodEnd: periodEnd,
             issuedOn: issuedOn,

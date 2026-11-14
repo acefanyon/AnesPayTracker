@@ -101,15 +101,11 @@ struct InvoicePDFGenerator {
             y1 += 14
         }
 
-        // Column 2: who is paid, and where the work was done.
+        // Column 2: who is paid. Each day names its own site below.
         var y2 = top
         canvas.draw("Payable to", x: canvas.left + 215, y: y2, width: 150, font: labelFont)
         y2 += 15
         canvas.draw(snapshot.senderName, x: canvas.left + 215, y: y2, width: 150, font: valueFont, color: .darkGray)
-        y2 += 22
-        canvas.draw("Location", x: canvas.left + 215, y: y2, width: 150, font: labelFont)
-        y2 += 15
-        canvas.draw(snapshot.siteName, x: canvas.left + 215, y: y2, width: 150, font: valueFont, color: .darkGray)
         y2 += 14
 
         // Column 3: invoice facts.
@@ -145,7 +141,8 @@ struct InvoicePDFGenerator {
         // Keep the date with at least its first rows.
         canvas.ensureSpace(64)
 
-        canvas.draw(Self.longDate.string(from: day.date), x: canvas.left + 6, y: canvas.y, width: canvas.width - 12, font: .systemFont(ofSize: 11, weight: .bold))
+        canvas.draw(Self.longDate.string(from: day.date), x: canvas.left + 6, y: canvas.y, width: 230, font: .systemFont(ofSize: 11, weight: .bold))
+        canvas.draw(day.siteName, x: canvas.left + 240, y: canvas.y + 1, width: canvas.width - 246, font: .systemFont(ofSize: 10, weight: .semibold), color: .darkGray, alignment: .right)
         canvas.y += 18
 
         let rowFont = UIFont.systemFont(ofSize: 10)

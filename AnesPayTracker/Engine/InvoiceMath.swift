@@ -25,6 +25,8 @@ struct InvoiceDay: Codable, Equatable, Identifiable {
     /// The shift this day was built from.
     var id: UUID
     var date: Date
+    /// Where the work was done. One invoice can cover several sites.
+    var siteName: String
     var caseLines: [InvoiceCaseLine]
     var charges: [InvoiceCharge]
 
@@ -40,17 +42,25 @@ struct InvoiceSnapshot: Codable, Equatable {
     var senderEmail: String
     var billToName: String
     var billToAddress: String
-    var siteName: String
     var days: [InvoiceDay]
 
     var totalCents: Int { days.reduce(0) { $0 + $1.totalCents } }
+
+    /// The sites worked, each once, in the order they first appear.
+    var siteNames: [String] {
+        var names: [String] = []
+        for day in days where !day.siteName.isEmpty && !names.contains(day.siteName) {
+            names.append(day.siteName)
+        }
+        return names
+    }
 }
 
 // MARK: - Invoice Math
 
 enum InvoiceMath {
 
-    // MARK: Numbering — EMPLOYER-SITE-MMDDYY, for example EN-BM-041326
+    // MARK: Numbering — EMPLOYER-MMDDYY from the invoice date, for example EN-041326
 
     /// Up to two letters or digits, uppercased.
     static func sanitizedCode(_ text: String) -> String {
@@ -71,8 +81,8 @@ enum InvoiceMath {
         return String(format: "%02d%02d%02d", parts.month ?? 0, parts.day ?? 0, (parts.year ?? 0) % 100)
     }
 
-    static func invoiceNumber(employerCode: String, siteCode: String, date: Date, calendar: Calendar) -> String {
-        [sanitizedCode(employerCode), sanitizedCode(siteCode), dateCode(date, calendar: calendar)].joined(separator: "-")
+    static func invoiceNumber(employerCode: String, date: Date, calendar: Calendar) -> String {
+        [sanitizedCode(employerCode), dateCode(date, calendar: calendar)].joined(separator: "-")
     }
 
     /// The base number, or the base with -2, -3 … when it is already taken.
@@ -115,6 +125,6 @@ enum InvoiceMath {
         func minute(_ date: Date) -> Int { Int((date.timeIntervalSinceReferenceDate / 60).rounded(.down)) }
         let cases = day.caseLines.map { "\($0.label)|\(minute($0.startAt))|\(minute($0.endAt))|\($0.minutes)" }
         let charges = day.charges.map { "\($0.label)|\($0.detail)|\($0.amountCents)" }
-        return ([day.id.uuidString, "\(minute(day.date))"] + cases + charges).joined(separator: ";")
+        return ([day.id.uuidString, "\(minute(day.date))", day.siteName] + cases + charges).joined(separator: ";")
     }
 }

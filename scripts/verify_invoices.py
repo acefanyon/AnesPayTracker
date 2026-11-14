@@ -2,10 +2,12 @@
 """Invoices: worked examples plus checks that the app is wired to the rules.
 
 Rules:
-- an invoice number is EMPLOYER-SITE-MMDDYY from two-character codes and the
-  invoice date (EN-BM-041326 = April 13, 2026); a taken number gets -2, -3 ...;
-- each billed day lists its cases in order as "Anesthesia services, case N"
-  with times, then its charges (base pay, on-call, add-ons) and a day total;
+- one invoice bills one employer for a date range, across all of its sites;
+- an invoice number is EMPLOYER-MMDDYY from a two-character employer code and
+  the invoice date (EN-041326 = April 13, 2026); a taken number gets -2, -3 ...;
+- each billed day names its site and lists its cases in order as "Anesthesia
+  services, case N" with times, then its charges (base pay, on-call, add-ons)
+  and a day total;
 - streak bonuses are not invoiced; nothing identifying a patient is stored;
 - money is whole cents, each charge rounded half-up, and totals are sums;
 - a created invoice is a frozen copy: editing shifts later never changes it;
@@ -40,8 +42,8 @@ def code(text: str) -> str:
     return "".join(ch for ch in text.upper() if ch.isalnum())[:2]
 
 
-def number(employer: str, site: str, year: int, month: int, day: int) -> str:
-    return f"{code(employer)}-{code(site)}-{month:02d}{day:02d}{year % 100:02d}"
+def number(employer: str, year: int, month: int, day: int) -> str:
+    return f"{code(employer)}-{month:02d}{day:02d}{year % 100:02d}"
 
 
 def unique(base: str, existing: set) -> str:
@@ -58,10 +60,10 @@ def cents(amount: str) -> int:
 
 
 oracle = {
-    "April 13, 2026 for employer EN at site BM": (number("EN", "BM", 2026, 4, 13), "EN-BM-041326"),
-    "codes are cleaned to two uppercase characters": (number("en", "b-m3", 2026, 11, 3), "EN-BM-110326"),
-    "a second invoice on the same date gets -2": (unique("EN-BM-041326", {"EN-BM-041326"}), "EN-BM-041326-2"),
-    "a third gets -3": (unique("EN-BM-041326", {"EN-BM-041326", "EN-BM-041326-2"}), "EN-BM-041326-3"),
+    "April 13, 2026 for employer EN": (number("EN", 2026, 4, 13), "EN-041326"),
+    "the code is cleaned to two uppercase characters": (number("e-n3", 2026, 11, 3), "EN-110326"),
+    "a second invoice on the same date gets -2": (unique("EN-041326", {"EN-041326"}), "EN-041326-2"),
+    "a third gets -3": (unique("EN-041326", {"EN-041326", "EN-041326-2"}), "EN-041326-3"),
     "7 h 31 m at $400/hr in cents": (cents("3006.67"), 300667),
     "that day with a $200 flat recovery fee": (cents("3006.67") + cents("200"), 320667),
     "two such days": (2 * 320667, 641334),
@@ -82,7 +84,7 @@ checks.update({
         re.findall(r"^import (\w+)", MATH, re.M) == ["Foundation"]
     ),
     "The Swift numbering matches the oracle's shape": (
-        '.joined(separator: "-")' in MATH
+        '[sanitizedCode(employerCode), dateCode(date, calendar: calendar)].joined(separator: "-")' in MATH
         and 'String(format: "%02d%02d%02d", parts.month ?? 0, parts.day ?? 0, (parts.year ?? 0) % 100)' in MATH
         and "prefix(2)" in MATH
         and 'while existing.contains("\\(base)-\\(suffix)")' in MATH
@@ -108,9 +110,8 @@ checks.update({
         and "@Relationship" not in (invoice_model.group(1) if invoice_model else "@Relationship")
         and "var snapshotData: Data" in MODELS
     ),
-    "New employer and site fields are optional, so existing data opens unchanged": (
-        "var invoiceCode: String?" in MODELS
-        and MODELS.count("var invoiceCode: String?") == 2
+    "New employer fields are optional, so existing data opens unchanged": (
+        MODELS.count("var invoiceCode: String?") == 1
         and "var billingName: String?" in MODELS
         and "var billingAddress: String?" in MODELS
     ),
@@ -118,6 +119,14 @@ checks.update({
         "document.snapshot.days" in PDF
         and "InvoiceDocument(invoice: invoice)" in DETAIL
         and "shift." not in PDF
+    ),
+    "One invoice covers all of the employer's sites, and each day names its site": (
+        "static func candidateShifts(for employer: Employer" in BUILDER
+        and "employer.sites\n            .flatMap(\\.shifts)" in BUILDER
+        and 'siteName: shift.site?.name ?? ""' in BUILDER
+        and "InvoiceBuilder.candidateShifts(for: employer" in EDITOR
+        and "day.siteName" in PDF
+        and "day.siteName" in DETAIL
     ),
     "A shift already on an invoice cannot be billed twice": (
         "InvoiceBuilder.invoiceNumbersByShift(invoices)" in EDITOR
@@ -158,7 +167,7 @@ checks.update({
     ),
     "CI runs the Swift invoice tests": "AnesPayTracker/Engine/InvoiceMath.swift" in WORKFLOW,
     "Swift tests cover the worked examples": (
-        '"EN-BM-041326"' in SWIFT_TESTS and '"EN-BM-041326-2"' in SWIFT_TESTS and "641334" in SWIFT_TESTS
+        '"EN-041326"' in SWIFT_TESTS and '"EN-041326-2"' in SWIFT_TESTS and "641334" in SWIFT_TESTS
     ),
 })
 

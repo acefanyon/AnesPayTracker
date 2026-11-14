@@ -64,6 +64,7 @@ struct AddShiftView: View {
     @State private var clockInAt: Date = Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var clockOutAt: Date = Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var cases: [ShiftCase] = []
+    @State private var appliesMinimum: Bool = true
     @State private var isOnCall: Bool = false
     @State private var onCallAmount: Decimal = 0
     @State private var customBonuses: [DraftAppliedCustomBonus] = []
@@ -131,14 +132,24 @@ struct AddShiftView: View {
         return site.tracksCaseTime
     }
 
-    /// The daily minimum this shift is paid under: its saved one when editing,
-    /// the employer's current one for a new shift or a site change.
-    private var effectiveMinimumHours: Double? {
+    /// The daily minimum this shift can be paid under: its saved one when
+    /// editing, otherwise the employer's current one.
+    private var availableMinimumHours: Double? {
         guard usesCases, let site = selectedSite else { return nil }
-        if let existing = editingShift, existing.site?.id == site.id, existing.cases != nil {
-            return existing.guaranteedMinimumHours
+        var candidate = site.employer?.dailyMinimumHours
+        if let existing = editingShift, existing.site?.id == site.id, existing.cases != nil,
+           let saved = existing.guaranteedMinimumHours {
+            candidate = saved
         }
-        return site.employer?.dailyMinimumHours
+        guard let hours = candidate, hours > 0 else { return nil }
+        return hours
+    }
+
+    /// The minimum actually applied. It can be switched off for a day it
+    /// doesn't cover; a shift saved without one stays without one until
+    /// it is switched on.
+    private var effectiveMinimumHours: Double? {
+        appliesMinimum ? availableMinimumHours : nil
     }
 
     private var caseMinutes: Int { CaseTimeCalculator.totalMinutes(cases) }
@@ -240,6 +251,18 @@ struct AddShiftView: View {
                                     serviceDate: date,
                                     minimumHours: effectiveMinimumHours
                                 )
+                                if let minimum = availableMinimumHours {
+                                    Toggle(isOn: $appliesMinimum) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Daily minimum applies (\(CaseTimeCalculator.durationLabel(minutes: CaseTimeCalculator.minimumMinutes(minimum))))")
+                                                .font(.subheadline)
+                                            Text("Switch off for a day the minimum doesn't cover.")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .frame(minHeight: 44)
+                                }
                             } else {
                                 HoursEntry(
                                     hoursWorked: $hoursWorked,
@@ -331,6 +354,7 @@ struct AddShiftView: View {
             syncCustomBonusesForSelectedSite()
             syncOnCallForSelectedSite()
             syncHoursFromCasesIfNeeded()
+            if editingShift == nil { appliesMinimum = true }
         }
         .onChange(of: cases) { _, _ in syncHoursFromCasesIfNeeded() }
         .onChange(of: hoursWorked) { oldValue, newValue in
@@ -512,6 +536,9 @@ struct AddShiftView: View {
                 let after = CaseTimeCalculator.durationLabel(minutes: CaseTimeCalculator.totalMinutes(orderedCases))
                 changes.append("cases changed: \(shift.cases?.count ?? 0) (\(before)) → \(orderedCases.count) (\(after))")
             }
+            if shift.cases != nil, shift.guaranteedMinimumHours != effectiveMinimumHours {
+                changes.append(effectiveMinimumHours == nil ? "daily minimum switched off" : "daily minimum switched on")
+            }
         } else {
             if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }
             if shift.clockInAt != clockInAt && usesClockTimes { changes.append("clock-in changed") }
@@ -593,6 +620,8 @@ struct AddShiftView: View {
         dayFraction = shift.dayFraction ?? .full
         hoursWorked = shift.hoursWorked ?? 8.0
         cases = shift.cases ?? []
+        // A case shift saved without a minimum stays without one.
+        appliesMinimum = shift.cases == nil || shift.guaranteedMinimumHours != nil
         usesClockTimes = shift.clockInAt != nil && shift.clockOutAt != nil
         clockInAt = shift.clockInAt ?? Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: shift.date) ?? shift.date
         clockOutAt = shift.clockOutAt ?? Calendar.current.date(byAdding: .minute, value: Int((shift.hoursWorked ?? 8.0) * 60), to: clockInAt) ?? shift.date

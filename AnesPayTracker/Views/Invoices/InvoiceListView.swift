@@ -68,7 +68,7 @@ struct InvoiceListView: View {
         } description: {
             Text(employers.isEmpty
                  ? "Add an employer in Settings, log some shifts, then create an invoice here."
-                 : "Create an invoice from the shifts you have logged. Each day lists its cases with times, add-ons and a daily total.")
+                 : "Create one invoice per employer for the shifts you have logged. Each day lists its site, its cases with times, add-ons and a daily total.")
         } actions: {
             if !employers.isEmpty {
                 Button("New Invoice") { showEditor = true }
@@ -101,7 +101,7 @@ private struct InvoiceRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(invoice.number)
                     .font(.headline)
-                Text("\(invoice.billToName) · \(invoice.siteName)")
+                Text(invoice.billToName)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

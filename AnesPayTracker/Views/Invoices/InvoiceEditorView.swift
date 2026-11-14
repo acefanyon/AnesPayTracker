@@ -14,7 +14,7 @@ enum InvoiceSenderKey {
 
 // MARK: - Invoice Editor
 
-/// Creates an invoice from logged shifts at one employer and site.
+/// Creates an invoice from an employer's logged shifts, across all of its sites.
 struct InvoiceEditorView: View {
     let onCreated: (Invoice) -> Void
 
@@ -29,11 +29,9 @@ struct InvoiceEditorView: View {
     @AppStorage(InvoiceSenderKey.email) private var senderEmail = ""
 
     @State private var employerID: UUID?
-    @State private var siteID: UUID?
     @State private var billToName = ""
     @State private var billToAddress = ""
     @State private var employerCode = ""
-    @State private var siteCode = ""
     @State private var periodStart = Date()
     @State private var periodEnd = Date()
     @State private var issuedOn = Date()
@@ -59,14 +57,10 @@ struct InvoiceEditorView: View {
 
     private var employer: Employer? { employers.first { $0.id == employerID } }
 
-    private var sortedSites: [Site] { (employer?.sites ?? []).sorted { $0.name < $1.name } }
-
-    private var site: Site? { sortedSites.first { $0.id == siteID } }
-
     private var shiftRows: [ShiftRow] {
-        guard let site else { return [] }
+        guard let employer else { return [] }
         let invoiced = InvoiceBuilder.invoiceNumbersByShift(invoices)
-        return InvoiceBuilder.candidateShifts(at: site, from: periodStart, through: periodEnd, calendar: calendar).map {
+        return InvoiceBuilder.candidateShifts(for: employer, from: periodStart, through: periodEnd, calendar: calendar).map {
             ShiftRow(shift: $0, day: InvoiceBuilder.day(for: $0), invoicedOn: invoiced[$0.id])
         }
     }
@@ -77,7 +71,7 @@ struct InvoiceEditorView: View {
 
     private var number: String {
         InvoiceMath.uniqueNumber(
-            base: InvoiceMath.invoiceNumber(employerCode: employerCode, siteCode: siteCode, date: issuedOn, calendar: calendar),
+            base: InvoiceMath.invoiceNumber(employerCode: employerCode, date: issuedOn, calendar: calendar),
             existing: Set(invoices.map(\.number))
         )
     }
@@ -86,10 +80,9 @@ struct InvoiceEditorView: View {
     private func problem(_ rows: [ShiftRow]) -> String? {
         if senderName.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter your name under Your Details." }
         if employer == nil { return "Choose an employer." }
-        if site == nil { return "Choose a site." }
         if billToName.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter who the invoice is for." }
-        if InvoiceMath.sanitizedCode(employerCode).isEmpty || InvoiceMath.sanitizedCode(siteCode).isEmpty {
-            return "Enter the employer and site codes for the invoice number."
+        if InvoiceMath.sanitizedCode(employerCode).isEmpty {
+            return "Enter the employer code for the invoice number."
         }
         if calendar.startOfDay(for: periodEnd) < calendar.startOfDay(for: periodStart) {
             return "The last service date is before the first."
@@ -110,7 +103,6 @@ struct InvoiceEditorView: View {
             senderEmail: senderEmail.trimmingCharacters(in: .whitespacesAndNewlines),
             billToName: billToName.trimmingCharacters(in: .whitespacesAndNewlines),
             billToAddress: billToAddress.trimmingCharacters(in: .whitespacesAndNewlines),
-            siteName: site?.name ?? "",
             days: includedRows(rows).map(\.day)
         )
     }
@@ -202,23 +194,6 @@ struct InvoiceEditorView: View {
                 }
             }
 
-            if sortedSites.count > 1 {
-                Picker("Site", selection: Binding(
-                    get: { siteID },
-                    set: { newID in
-                        if let employer, let picked = sortedSites.first(where: { $0.id == newID }) {
-                            select(site: picked, employer: employer)
-                        }
-                    }
-                )) {
-                    ForEach(sortedSites) { option in
-                        Text(option.name).tag(Optional(option.id))
-                    }
-                }
-            } else if let site {
-                LabeledContent("Site", value: site.name)
-            }
-
             TextField("Name to bill", text: $billToName)
             TextField("Billing address", text: $billToAddress, axis: .vertical)
                 .lineLimit(2...4)
@@ -226,13 +201,10 @@ struct InvoiceEditorView: View {
             LabeledContent("Employer code") {
                 codeField("EN", text: $employerCode)
             }
-            LabeledContent("Site code") {
-                codeField("BM", text: $siteCode)
-            }
         } header: {
             Text("Invoice For")
         } footer: {
-            Text("The codes make the invoice number, for example EN-BM-041326. They are saved with the employer and site.")
+            Text("The code and the invoice date make the invoice number, for example EN-041326. The code is saved with the employer.")
         }
     }
 
@@ -252,7 +224,7 @@ struct InvoiceEditorView: View {
     private func shiftsSection(_ rows: [ShiftRow]) -> some View {
         Section {
             if rows.isEmpty {
-                Text(site == nil ? "Choose an employer and site." : "No shifts at this site in these dates.")
+                Text(employer == nil ? "Choose an employer." : "No shifts for this employer in these dates.")
                     .foregroundStyle(.secondary)
             }
             ForEach(rows) { row in
@@ -277,7 +249,7 @@ struct InvoiceEditorView: View {
         } header: {
             Text("Shifts")
         } footer: {
-            Text("Each day lists its cases with times, then add-ons and a daily total. Streak bonuses are not invoiced.")
+            Text("Shifts at all of this employer's sites. Each day shows its site, its cases with times, then add-ons and a daily total. Streak bonuses are not invoiced.")
         }
     }
 
@@ -295,6 +267,11 @@ struct InvoiceEditorView: View {
     }
 
     private func detail(for row: ShiftRow) -> String {
+        let status = status(for: row)
+        return row.day.siteName.isEmpty ? status : "\(row.day.siteName) · \(status)"
+    }
+
+    private func status(for row: ShiftRow) -> String {
         if let invoicedOn = row.invoicedOn { return "Already on invoice \(invoicedOn)" }
         if row.day.totalCents == 0 { return "Nothing to bill yet" }
         if row.shift.runningCase != nil { return "A case is still running" }
@@ -366,27 +343,17 @@ struct InvoiceEditorView: View {
         billToName = employer.billingName ?? employer.name
         billToAddress = employer.billingAddress ?? ""
         employerCode = employer.invoiceCode ?? InvoiceMath.suggestedCode(from: employer.name)
-        let sites = employer.sites.sorted { $0.name < $1.name }
-        if let first = employer.caseTimeSites.first ?? sites.first {
-            select(site: first, employer: employer)
-        } else {
-            siteID = nil
-        }
-    }
-
-    private func select(site: Site, employer: Employer) {
-        siteID = site.id
-        siteCode = site.invoiceCode ?? InvoiceMath.suggestedCode(from: site.name)
         excludedShiftIDs = []
 
-        // Default to what hasn't been invoiced yet at this site, going back
-        // to the start of last month so a long history isn't all listed.
+        // Default to what hasn't been invoiced yet for this employer, going
+        // back to the start of last month so a long history isn't all listed.
         let today = Date()
         let invoiced = InvoiceBuilder.invoiceNumbersByShift(invoices)
         let endOfToday = calendar.endOfDay(for: today)
         let thisMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: today)) ?? today
         let earliest = calendar.date(byAdding: .month, value: -1, to: thisMonth) ?? thisMonth
-        let unbilledDates = site.shifts
+        let unbilledDates = employer.sites
+            .flatMap(\.shifts)
             .filter { invoiced[$0.id] == nil && $0.date >= earliest && $0.date <= endOfToday }
             .map(\.date)
         periodStart = unbilledDates.min() ?? today
@@ -423,12 +390,11 @@ struct InvoiceEditorView: View {
 
     private func create() {
         let rows = shiftRows
-        guard let employer, let site, problem(rows) == nil else { return }
+        guard let employer, problem(rows) == nil else { return }
         do {
             let invoice = try InvoiceBuilder.makeInvoice(
                 number: number,
                 employer: employer,
-                site: site,
                 periodStart: periodStart,
                 periodEnd: periodEnd,
                 issuedOn: issuedOn,
@@ -440,7 +406,6 @@ struct InvoiceEditorView: View {
             employer.invoiceCode = InvoiceMath.sanitizedCode(employerCode)
             employer.billingName = billToName.trimmingCharacters(in: .whitespacesAndNewlines)
             employer.billingAddress = trimmedAddress.isEmpty ? nil : trimmedAddress
-            site.invoiceCode = InvoiceMath.sanitizedCode(siteCode)
             modelContext.insert(invoice)
             try modelContext.save()
             dismiss()

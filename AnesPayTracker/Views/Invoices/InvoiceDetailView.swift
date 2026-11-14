@@ -112,7 +112,7 @@ struct InvoiceDetailView: View {
             VStack(spacing: 0) {
                 MetaRow(label: "Invoice for", value: snapshot.billToName)
                 Divider()
-                MetaRow(label: "Location", value: snapshot.siteName)
+                MetaRow(label: snapshot.siteNames.count == 1 ? "Location" : "Locations", value: snapshot.siteNames.joined(separator: ", "))
                 Divider()
                 MetaRow(label: "Invoice date", value: InvoiceFormat.day(document.issuedOn))
                 if let dueOn = document.dueOn {
@@ -152,6 +152,11 @@ private struct InvoiceDayCard: View {
     var body: some View {
         InfoCard(title: day.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().year())) {
             VStack(alignment: .leading, spacing: 8) {
+                if !day.siteName.isEmpty {
+                    Text(day.siteName)
+                        .font(.subheadline.bold())
+                }
+
                 ForEach(Array(day.caseLines.enumerated()), id: \.offset) { _, line in
                     HStack(alignment: .firstTextBaseline) {
                         Text(line.label)

@@ -16,7 +16,7 @@ Source: the employer agreement, as read by Jason on 2026-11-14.
    - Confirmed by the user 2026-11-14: exact minutes, no rounding to quarter or half hours.
 2. **Employer-level setting.** "Paid for case time only" is set on the employer and applies to all of its per-hour sites. A site can turn it off.
 3. **Flat add-ons.** Extra duties (for example staying to recover the last patient) are flat fees the user marks herself. These are the existing custom bonus types: flat, not prorated, paid with the shift.
-4. **Daily minimum (optional).** An employer can guarantee a minimum number of paid hours on a light day. Off unless set. Confirmed by the employer 2026-11-14: the minimum for a half day is $2,000, which at $400/hr is entered as **5 hours**. Open: whether a full day has its own, higher minimum. The app has one minimum per employer, applied to every shift.
+4. **Daily minimum (optional).** An employer can guarantee a minimum number of paid hours on a light day. Off unless set. Confirmed by the employer 2026-11-14: the minimum for a half day is $2,000, which at $400/hr is entered as **5 hours**. Clarified 2026-11-14: there is no separate full-day minimum. The half-day minimum is the floor for a day scheduled as a full day that ends early. The app has one minimum per employer; it applies to each new shift by default and can be switched off on a single shift it doesn't cover (**Daily minimum applies** in Add/Edit Shift). A shift saved without the minimum stays without it.
 5. **Pay timing.** Paid by the 15th of each month for the prior month: monthly cadence, period-end anchor on a month end, paycheck anchor on the following 15th. The user's other employers pay every two weeks, so the monthly payday fix does not change their paydays.
 6. **History safety.** A shift keeps how it was saved (cases or plain hours), its rate and its minimum. Changing employer settings never changes past shifts.
 7. **Privacy.** Cases store times only. No patient information anywhere, including invoices.
@@ -40,11 +40,11 @@ Known limits:
 Where: Report tab → **Invoices**.
 
 Rules:
-- One PDF invoice for a date range at one employer and site. Any employer can be invoiced, not only case-time ones.
+- One PDF invoice per employer for a date range (she submits one every two weeks), covering all of that employer's sites. Any employer can be invoiced, not only case-time ones.
 - The top shows the user's name, address, phone and email (kept in app settings on the device); "Invoice for" shows the employer's billing name and address.
-- Each day lists its cases in clock order as "Anesthesia services, case 1" with start and stop times and duration, then its charges (anesthesia time at the rate, on-call, each add-on such as a recovery fee) and a day total. A day raised to the daily minimum says so and shows the time worked.
+- Each day names its site, then lists its cases in clock order as "Anesthesia services, case 1" with start and stop times and duration, then its charges (anesthesia time at the rate, on-call, each add-on such as a recovery fee) and a day total. A day raised to the daily minimum says so and shows the time worked.
 - Streak bonuses are not invoiced: they are paid on their own schedule.
-- Invoice number: employer code, site code, invoice date as MMDDYY, for example `EN-BM-041326`. The two-character codes are suggested from the names, editable, and saved on the employer and the site. If the number is already used, `-2`, `-3` … is added.
+- Invoice number: two-character employer code and the date the invoice is made, as MMDDYY, for example `EN-041326`. The code is suggested from the employer's name, editable, and saved on the employer. If the number is already used, `-2`, `-3` … is added. (Decided 2026-11-14; an earlier draft also had a site code.)
 - The due date is optional. When the employer's paycheck anchors are set it defaults to the payday for the last service date.
 - A shift can be on only one invoice. A day with a running case cannot be invoiced. A day with nothing to bill is skipped.
 - A created invoice is a frozen copy (`Invoice.snapshotData`, money in whole cents). Editing or deleting its shifts later does not change it; the invoice screen flags that they changed. To bill new amounts, delete the invoice and create it again.
@@ -53,7 +53,7 @@ Rules:
 
 Code: `Engine/InvoiceMath.swift` (numbering, cents, frozen content; Foundation only, run by `scripts/swift_tests/pay_math`), `Engine/InvoiceBuilder.swift` (shift → invoice day), `Views/Report/InvoicePDFGenerator.swift`, `Views/Invoices/`. Verifier: `scripts/verify_invoices.py`. Manual tests: section C13 of `docs/QA_TEST_PLAN.md`.
 
-Open questions: whether the number should use the invoice date (current) or the service date; payment-terms wording; whether one invoice may cover more than one site (currently one site per invoice).
+Open questions: payment-terms wording; whether the app should suggest the two-week invoice period automatically (today it defaults to everything not yet invoiced since the start of last month).
 
 ## Phase 3 — invoice tracking
 

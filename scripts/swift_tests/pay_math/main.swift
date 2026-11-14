@@ -68,6 +68,8 @@ check(CaseTimeCalculator.paidMinutes(caseMinutes: 150, minimumHours: nil), 150, 
 check(CaseTimeCalculator.paidMinutes(caseMinutes: 150, minimumHours: 0), 150, "zero minimum is no minimum")
 check(CaseTimeCalculator.paidMinutes(caseMinutes: 100, minimumHours: 2.5), 150, "half-hour minimums")
 check(CaseTimeCalculator.pay(rate: 400, paidMinutes: CaseTimeCalculator.paidMinutes(caseMinutes: 150, minimumHours: 4)), money("1600"), "light day with 4 h minimum at $400/hr = $1,600.00")
+check(CaseTimeCalculator.pay(rate: 400, paidMinutes: CaseTimeCalculator.paidMinutes(caseMinutes: 150, minimumHours: 5)), money("2000"), "half-day minimum: 5 h at $400/hr = $2,000.00")
+check(CaseTimeCalculator.pay(rate: 400, paidMinutes: CaseTimeCalculator.paidMinutes(caseMinutes: 150, minimumHours: nil)), money("1000"), "minimum switched off for the day: 2 h 30 m = $1,000.00")
 
 // MARK: Validation
 
@@ -118,12 +120,12 @@ check(monthlyPayday(periodEnd: at(2027, 1, 31), endAnchor: at(2026, 12, 31), pay
 
 // MARK: Invoices
 
-check(InvoiceMath.invoiceNumber(employerCode: "EN", siteCode: "BM", date: at(2026, 4, 13), calendar: calendar), "EN-BM-041326", "invoice number is EMPLOYER-SITE-MMDDYY")
-check(InvoiceMath.invoiceNumber(employerCode: "en", siteCode: "b-m3", date: at(2026, 11, 3), calendar: calendar), "EN-BM-110326", "codes are cleaned to two uppercase characters")
+check(InvoiceMath.invoiceNumber(employerCode: "EN", date: at(2026, 4, 13), calendar: calendar), "EN-041326", "invoice number is EMPLOYER-MMDDYY")
+check(InvoiceMath.invoiceNumber(employerCode: "e-n3", date: at(2026, 11, 3), calendar: calendar), "EN-110326", "the code is cleaned to two uppercase characters")
 check(InvoiceMath.dateCode(at(2027, 1, 5), calendar: calendar), "010527", "date code pads month and day")
-check(InvoiceMath.uniqueNumber(base: "EN-BM-041326", existing: []), "EN-BM-041326", "an unused number is kept")
-check(InvoiceMath.uniqueNumber(base: "EN-BM-041326", existing: ["EN-BM-041326"]), "EN-BM-041326-2", "a used number gets -2")
-check(InvoiceMath.uniqueNumber(base: "EN-BM-041326", existing: ["EN-BM-041326", "EN-BM-041326-2"]), "EN-BM-041326-3", "then -3")
+check(InvoiceMath.uniqueNumber(base: "EN-041326", existing: []), "EN-041326", "an unused number is kept")
+check(InvoiceMath.uniqueNumber(base: "EN-041326", existing: ["EN-041326"]), "EN-041326-2", "a used number gets -2")
+check(InvoiceMath.uniqueNumber(base: "EN-041326", existing: ["EN-041326", "EN-041326-2"]), "EN-041326-3", "then -3")
 check(InvoiceMath.suggestedCode(from: "Example Surgery Center"), "ES", "suggested code uses the first two initials")
 check(InvoiceMath.suggestedCode(from: "Northside"), "NO", "one word uses its first two letters")
 check(InvoiceMath.suggestedCode(from: "  st. mary's  "), "SM", "punctuation and spacing are ignored")
@@ -142,6 +144,7 @@ check(InvoiceMath.addressLines(" 1 Example St \n\nSuite 2\nAnytown, ST 00000 "),
 let invoiceDay = InvoiceDay(
     id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
     date: at(2026, 11, 11),
+    siteName: "Example Surgery Center",
     caseLines: [
         InvoiceCaseLine(label: InvoiceMath.caseLabel(1), startAt: at(2026, 11, 11, 7, 30), endAt: at(2026, 11, 11, 9, 14), minutes: 104),
         InvoiceCaseLine(label: InvoiceMath.caseLabel(2), startAt: at(2026, 11, 11, 9, 40), endAt: at(2026, 11, 11, 15, 27), minutes: 347),
@@ -154,10 +157,17 @@ let invoiceDay = InvoiceDay(
 check(invoiceDay.totalCents, 320667, "a day's total is the sum of its charges")
 let snapshot = InvoiceSnapshot(
     senderName: "Sample Physician, MD", senderAddress: "1 Example St\nAnytown, ST 00000", senderPhone: "555-0100", senderEmail: "",
-    billToName: "Example Group PLLC", billToAddress: "PO Box 1\nAnytown, ST 00000", siteName: "Example Surgery Center",
+    billToName: "Example Group PLLC", billToAddress: "PO Box 1\nAnytown, ST 00000",
     days: [invoiceDay, invoiceDay]
 )
 check(snapshot.totalCents, 641334, "an invoice's total is the sum of its days")
+check(snapshot.siteNames, ["Example Surgery Center"], "a site worked on several days is listed once")
+var otherSiteDay = invoiceDay
+otherSiteDay.siteName = "Example Eye Center"
+var twoSites = snapshot
+twoSites.days = [invoiceDay, otherSiteDay, invoiceDay]
+check(twoSites.siteNames, ["Example Surgery Center", "Example Eye Center"], "one invoice can cover several sites")
+check(InvoiceMath.fingerprint(of: otherSiteDay) == InvoiceMath.fingerprint(of: invoiceDay), false, "moving a shift to another site changes the fingerprint")
 let decoded = try! JSONDecoder().decode(InvoiceSnapshot.self, from: try! JSONEncoder().encode(snapshot))
 check(decoded.totalCents, 641334, "a saved invoice reads back with the same total")
 check(decoded.days.map { InvoiceMath.fingerprint(of: $0) }, snapshot.days.map { InvoiceMath.fingerprint(of: $0) }, "a saved invoice reads back unchanged")

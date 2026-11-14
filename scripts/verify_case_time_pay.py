@@ -3,7 +3,8 @@
 
 Rule (sites where the employer "pays for case time only"):
 - each case counts whole minutes from start to stop; a running case counts 0;
-- the day's minutes are summed, then raised to the daily minimum if one is set;
+- the day's minutes are summed, then raised to the daily minimum if one is set
+  (the minimum can be switched off on a single shift it doesn't cover);
 - base pay = hourly rate x paid minutes / 60, rounded half-up to the cent;
 - flat add-ons (for example a recovery fee) are ordinary custom bonuses on top.
 
@@ -55,6 +56,8 @@ oracle = {
     "light day raised to a 4 h minimum": (pay("400", paid_minutes(150, 4)), Decimal("1600.00")),
     "full day unaffected by the minimum": (paid_minutes(451, 4), 451),
     "no minimum set": (paid_minutes(150, None), 150),
+    "half-day minimum of $2,000 is 5 h at $400/hr": (pay("400", paid_minutes(150, 5)), Decimal("2000.00")),
+    "minimum switched off for the day": (pay("400", paid_minutes(150, None)), Decimal("1000.00")),
     "November work paid December 15": (monthly_payday((2026, 11), (2026, 10), (2026, 11, 15)), (2026, 12, 15)),
     "December work paid January 15": (monthly_payday((2026, 12), (2026, 10), (2026, 11, 15)), (2027, 1, 15)),
 }
@@ -87,7 +90,15 @@ checks.update({
         and "var guaranteedMinimumHours: Double?" in MODELS
     ),
     "Editing keeps how a shift was saved (cases or plain hours) and its saved minimum": (
-        "return existing.cases != nil" in ADD and "return existing.guaranteedMinimumHours" in ADD
+        "return existing.cases != nil" in ADD
+        and "let saved = existing.guaranteedMinimumHours" in ADD
+        and "appliesMinimum = shift.cases == nil || shift.guaranteedMinimumHours != nil" in ADD
+    ),
+    "The minimum can be switched off for one shift, and is on by default": (
+        "@State private var appliesMinimum: Bool = true" in ADD
+        and "appliesMinimum ? availableMinimumHours : nil" in ADD
+        and "Toggle(isOn: $appliesMinimum)" in ADD
+        and "daily minimum switched off" in ADD
     ),
     "The minimum is snapshotted onto the shift when saved": "shift.guaranteedMinimumHours = minimumHours" in ADD,
     "Overlapping or inconsistent cases block saving": (

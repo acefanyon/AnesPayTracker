@@ -184,6 +184,7 @@ Set up: create an employer **Case Group**, monthly cadence, anchors: pay-period 
 - [ ] Open today's shift from the card, edit a time, save: Home totals update.
 - [ ] Start a case, stop the app in Xcode, run again: the case is still running. Stop it.
 - [ ] Edit the employer: turn on **Daily minimum hours**, 4. Existing shifts keep their totals. A new shift with one 30-minute case previews **$1,600.00** with a "Daily minimum applies" note.
+- [ ] Edit the 30-minute shift: switch **Daily minimum applies** off. The preview drops to **$200.00**; save, and shift detail shows $200.00 with an edit-history entry. Edit again: the switch is still off. Switch it back on and save: **$1,600.00**.
 - [ ] Turn **Paid for case time only** off for the employer: existing case shifts still show their cases and totals; a new shift at the site uses plain hours.
 - [ ] Home's work-period card for Case Group shows the current month and **Paid Dec 15** for November; Report → Paycheck Estimator shows November work on the **Dec 15** check.
 - [ ] Earnings report and its PDF show the case shift's time as "7h 31m".
@@ -194,16 +195,17 @@ Set up: create an employer **Case Group**, monthly cadence, anchors: pay-period 
 Uses the **Case Group** employer and the 7 h 31 m shift with Recovery from C12 (**$3,206.67**). Use made-up names and addresses.
 
 - [ ] Report shows an **Invoices** row at the top. It opens an empty list with a **New Invoice** button.
-- [ ] New Invoice: Case Group and Case Center are preselected, the codes are suggested (**CG** and **CC**), and the shift list shows the C12 shifts with their amounts. **Create** is disabled with an orange note until your name is entered.
-- [ ] Enter a name and address under Your Details and a billing address. Set the invoice date to a known date: the invoice number reads **CG-CC-MMDDYY** for that date.
+- [ ] New Invoice: Case Group is preselected, the employer code is suggested (**CG**), and the shift list shows the C12 shifts with their site name and amounts. **Create** is disabled with an orange note until your name is entered.
+- [ ] Enter a name and address under Your Details and a billing address. Set the invoice date to a known date: the invoice number reads **CG-MMDDYY** for that date.
 - [ ] The due date is on and shows the payday for the last service date (Dec 15 for November work). Switch it off and on.
-- [ ] Switch off every shift except the 7 h 31 m day: Days billed **1**, Total **$3,206.67**. **Preview PDF** shows your details, the employer's, four lines "Anesthesia services, case 1…4" in time order with times, "Anesthesia time: 7 h 31 m at $400.00/hr" **$3,006.67**, Recovery **$200.00**, Day total and Total due **$3,206.67**.
+- [ ] Switch off every shift except the 7 h 31 m day: Days billed **1**, Total **$3,206.67**. **Preview PDF** shows your details, the employer's, the date with **Case Center** beside it, four lines "Anesthesia services, case 1…4" in time order with times, "Anesthesia time: 7 h 31 m at $400.00/hr" **$3,006.67**, Recovery **$200.00**, Day total and Total due **$3,206.67**.
 - [ ] Tap **Create**: the invoice opens. **View / Share PDF** shows the same PDF and the share button offers Mail, Messages, Save to Files.
 - [ ] Back in the list the invoice shows its number, dates and total. Stop the app in Xcode and run again: it is still there.
-- [ ] New Invoice again with the same invoice date: the number ends in **-2**; the invoiced day is greyed out with "Already on invoice …". Your details and the codes are remembered. Cancel.
+- [ ] New Invoice again with the same invoice date: the number ends in **-2**; the invoiced day is greyed out with "Already on invoice …". Your details and the employer code are remembered. Cancel.
 - [ ] Edit the invoiced shift (change a case time). Open the invoice: an orange "Shifts changed since" note names the day; the amounts and PDF are unchanged.
 - [ ] Start a case from Home and leave it running. New Invoice including today: Create is disabled with "A case is still running…". Stop the case.
 - [ ] A day billed at the daily minimum (the 30-minute shift from C12) prints "Anesthesia time: 4 h at $400.00/hr (daily minimum; 30 m worked)" and **$1,600.00**.
+- [ ] Add a second per-hour site **Case Annex** to Case Group and log a shift there in the same dates. New Invoice lists shifts from both sites; the PDF shows each day with its own site name, and the invoice's Details show both under **Locations**.
 - [ ] Create an invoice for a per-day employer: each day shows "Anesthesia services: Full day at …/day" with no case lines; a streak bonus on a shift is not included in the total.
 - [ ] Delete an invoice (confirmation appears): it leaves the list, its shifts are untouched and can be selected on a new invoice.
 - [ ] An invoice covering 20 or more days produces a multi-page PDF with a page number on each page and no row cut in half.

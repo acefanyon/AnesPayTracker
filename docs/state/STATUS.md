@@ -5,7 +5,8 @@ Last updated: 2026-11-14
 ## 2026-11-14 update (case-time pay and invoices, build 7, not yet on phones)
 
 - New feature work is specified in `docs/CASE_TIME_AND_INVOICING_PLAN.md`. Phase 1 (case-time pay) and phase 2 (invoices) are built and ship together in build 7; phase 3 (invoice tracking) is next.
-- Phase 2: Report → Invoices creates a PDF invoice for a date range at one employer and site, numbered like `EN-BM-041326`. Each day lists its cases with times, charges and a day total. A created invoice is a frozen copy; deleting one never touches shifts. New `Invoice` entity plus optional `invoiceCode` / billing fields on employer and site (lightweight-migration safe). Verifier: `scripts/verify_invoices.py`.
+- Phase 2: Report → Invoices creates one PDF invoice per employer for a date range, across all of its sites, numbered from the employer code and invoice date like `EN-041326`. Each day names its site and lists its cases with times, charges and a day total. A created invoice is a frozen copy; deleting one never touches shifts. New `Invoice` entity plus optional `invoiceCode` / billing fields on the employer (lightweight-migration safe). Verifier: `scripts/verify_invoices.py`.
+- The daily minimum can be switched off on a single shift (Add/Edit Shift → **Daily minimum applies**); it is on by default. There is no separate full-day minimum.
 - Phase 1: employers can be "paid for case time only" with an optional daily minimum; shifts at their per-hour sites are a list of cases paid by the minute; Home has a Start/Stop Case card. See the plan for files and rules.
 - Behavior change for existing data: monthly employers with both paycheck anchors now get the payday the anchors describe (previously one month late). Other cadences are unchanged.
 - CI now also compiles and runs `scripts/swift_tests/pay_math` (the app's real pay math). Source build number is 7.
