@@ -13,10 +13,11 @@ Source: the employer agreement, as read by Jason on 2026-11-14.
    - Each case counts whole minutes (seconds are dropped). A case still running counts nothing.
    - The day's minutes are added up. Base pay = rate × minutes ÷ 60, rounded to the nearest cent.
    - Example: 7 h 31 m at $400/hr = $3,006.67.
+   - Confirmed by the user 2026-11-14: exact minutes, no rounding to quarter or half hours.
 2. **Employer-level setting.** "Paid for case time only" is set on the employer and applies to all of its per-hour sites. A site can turn it off.
 3. **Flat add-ons.** Extra duties (for example staying to recover the last patient) are flat fees the user marks herself. These are the existing custom bonus types: flat, not prorated, paid with the shift.
-4. **Daily minimum (optional).** An employer can guarantee a minimum number of paid hours on a light day. Off unless set. The quoted agreement text does not mention one; the number is still to be confirmed.
-5. **Pay timing.** Paid by the 15th of each month for the prior month: monthly cadence, period-end anchor on a month end, paycheck anchor on the following 15th.
+4. **Daily minimum (optional).** An employer can guarantee a minimum number of paid hours on a light day. Off unless set. Confirmed by the employer 2026-11-14: the minimum for a half day is $2,000, which at $400/hr is entered as **5 hours**. Open: whether a full day has its own, higher minimum. The app has one minimum per employer, applied to every shift.
+5. **Pay timing.** Paid by the 15th of each month for the prior month: monthly cadence, period-end anchor on a month end, paycheck anchor on the following 15th. The user's other employers pay every two weeks, so the monthly payday fix does not change their paydays.
 6. **History safety.** A shift keeps how it was saved (cases or plain hours), its rate and its minimum. Changing employer settings never changes past shifts.
 7. **Privacy.** Cases store times only. No patient information anywhere, including invoices.
 
