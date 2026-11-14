@@ -14,8 +14,8 @@ This checklist assumes the preferred path is:
 
 Verified from the repo/machine during the latest resumption pass:
 
-- Project path: `/Users/jasonvargas/Projects/AnesPayTracker`
-- Branch: `hermes/initial-mac-plan`
+- Project path: your clone of `acefanyon/AnesPayTracker` (usually `~/Projects/AnesPayTracker`); run `git pull --ff-only` first
+- Branch: `main`
 - iOS bundle ID in current project history: `com.anespay.tracker`
 - Mac Catalyst bundle ID in current project history: `maccatalyst.com.anespay.tracker`
 - Version: `1.0`
@@ -104,7 +104,7 @@ That decision affects whether you use only internal testers or also add external
 Open:
 
 ```text
-/Users/jasonvargas/Projects/AnesPayTracker/AnesPayTracker.xcodeproj
+<your clone>/AnesPayTracker.xcodeproj
 ```
 
 ### 6. Confirm signing in Xcode

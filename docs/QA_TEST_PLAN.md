@@ -155,7 +155,7 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
   ```
   This checks out build 3 (the build testers had). Run in Xcode (⌘R) — it creates the old sample data — and add one shift of your own. Then return to the current code:
   ```
-  git switch hermes/initial-mac-plan
+  git switch main
   ```
   Run again (⌘R). The shift is still there, and the store was copied aside first:
   ```

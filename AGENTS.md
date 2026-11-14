@@ -1,30 +1,39 @@
 # AGENTS.md — AnesPayTracker
 
-This is the model-agnostic entrypoint for agents resuming work on AnesPayTracker.
+This is the tool-agnostic entrypoint for anyone resuming work on AnesPayTracker: people, and coding agents such as Codex, Claude Code and Hermes. Tools that look for their own file name (for example `CLAUDE.md`) are pointed here; keep project instructions in this file only.
 
 ## Project
 
 AnesPayTracker is a native SwiftUI / SwiftData iOS app for tracking contract anesthesiology shift pay, bonuses, streaks, pay periods, paycheck estimation, calendar exports, and reports.
 
-Repository path:
+## Source of truth and syncing
 
-```text
-/Users/jasonvargas/Projects/AnesPayTracker
+- The GitHub repository `acefanyon/AnesPayTracker` is the source of truth. Every computer and agent works in its own clone and syncs only through GitHub.
+- Work on the `main` branch. Short-lived feature branches are fine, but merge them back into `main` promptly.
+- Clone locations differ per machine (on Jason's Macs it is usually `~/Projects/AnesPayTracker`). Run every command in this file from the repository root, wherever that is.
+- **Pull before starting, push when done.** Unpushed work exists only on that one machine; another computer or agent cannot see it.
+
+```bash
+git pull --ff-only     # before starting
+git push               # after committing
 ```
 
-Current branch:
+If `git pull --ff-only` refuses, the clone has local commits that are not on GitHub: stop and reconcile them rather than discarding them.
 
-```text
-hermes/initial-mac-plan
-```
+## Building, by platform
+
+- The source is plain text (Swift, a standard Xcode project, Markdown, Python verifiers); any editor or agent can read and change it.
+- **Building and running the app requires macOS with Xcode.** Agents on Linux or other non-macOS hosts (for example cloud sandboxes) cannot compile it. They must run the verifier scripts below and rely on GitHub Actions (`.github/workflows/build.yml`), which runs every verifier and compiles Release and Debug for the iOS Simulator on each push to `main`, `hermes/**` and `claude/**`.
+- A pushed change is not done until that workflow passes.
 
 ## Start here every session
 
-1. Inspect live state, not memory alone:
+1. Inspect live state, not memory alone, from the repository root:
 
 ```bash
-cd /Users/jasonvargas/Projects/AnesPayTracker
+git fetch origin
 git status --short --branch
+git pull --ff-only
 git log --oneline -8
 ```
 
@@ -37,6 +46,7 @@ docs/state/STATUS.md
 3. If you need product/history context, read:
 
 ```text
+docs/QA_TEST_PLAN.md
 docs/RUNTIME_FEEDBACK_BACKLOG.md
 docs/APP_STORE_LISTING.md
 docs/HERMES_SESSION_HANDOFF.md
@@ -49,7 +59,10 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 
 - This is a money/pay app. Do not change pay, bonus, streak, payout, paycheck, or rounding rules without adding/updating a verifier.
 - Preserve history safety: employer/site/rate/rule changes must not silently rewrite past shifts.
-- Keep SwiftData migrations lightweight-safe. New non-optional `@Model` properties need declaration-level defaults or optional storage.
+- Testers' pay records exist only on their phones (the iCloud capability is not enabled). Launch must never delete or reset the store: a store that cannot be opened shows `StoreOpenFailedView`, and `StoreSafety` copies the store aside before each new build opens it.
+- Keep SwiftData migrations lightweight-safe. New non-optional `@Model` properties need declaration-level defaults or optional storage (`scripts/verify_model_migration_defaults.py`).
+- Editing a saved shift keeps its saved rate (`Shift.baseAmount`); only a new shift or a site change takes the site's current rate.
+- Bind list rows by ID (`$array.element(item)`), never `ForEach($array)`; index-based row bindings crash when the list shrinks (`scripts/verify_list_binding_safety.py`).
 - Do not rename persisted `String` enum raw values after shipped/test data exists. Add `displayName`/`descriptiveLabel` instead.
 - Do not commit local Xcode user data, `.DS_Store`, signing noise, or build archives.
 - Keep product changes small and independently verifiable.
@@ -71,6 +84,18 @@ Run all static/domain verifiers:
 ```bash
 for f in scripts/verify_*.py; do python3 "$f"; done
 ```
+
+These run on any platform with Python 3. Add or update a verifier with every behavior change.
+
+Build for the iOS Simulator exactly as CI does (works on a fresh clone; macOS only):
+
+```bash
+xcodebuild -project AnesPayTracker.xcodeproj -target AnesPayTracker \
+  -sdk iphonesimulator -configuration Release build \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" ARCHS=arm64
+```
+
+The `-scheme` commands below need a scheme; on a fresh clone, open the project in Xcode once if `xcodebuild` reports that the scheme is missing.
 
 Build iOS Simulator:
 
@@ -110,13 +135,11 @@ Already prepared:
 - Current bundle ID observed in builds: `com.anespay.tracker` for iOS, `maccatalyst.com.anespay.tracker` for Catalyst
 - Team ID observed from Xcode build settings: configured locally, but provisioning can still fail from CLI if profiles are absent
 
-Known likely remaining external/manual items:
+- App icon, App Store Connect app record and TestFlight distribution are in place; 1.1 (6) is installed on the testers' phones (see `docs/state/STATUS.md`).
+- Build numbers: Xcode Organizer can auto-assign the next unused build number on upload, so App Store Connect can be ahead of the source. Check App Store Connect's TestFlight build list before choosing the next number.
+- Archiving and uploading need Xcode on a Mac signed in to the Apple developer account (Xcode → Settings → Accounts) on that Mac.
 
-- Real app icon in `AnesPayTracker/Assets.xcassets/AppIcon.appiconset/`
-- Confirm Apple Developer/App Store Connect account path
-- Create App Store Connect app record if submitting/TestFlighting
-- Archive/upload via Xcode Organizer after provisioning is healthy
-- Manual real-device QA for final scrolling/share/export feel
+Remaining before a public App Store release: privacy policy page, App Privacy questionnaire, age rating, review submission.
 
 ## Useful code map
 
@@ -141,4 +164,4 @@ git diff --check
 git status --short
 ```
 
-Commit only intentional source/docs/script changes. Avoid `build/`, `screenshots/`, `.DS_Store`, and Xcode `xcuserdata`.
+Commit only intentional source/docs/script changes. Avoid `build/`, `screenshots/`, `.DS_Store`, and Xcode `xcuserdata`. Then `git push`, and check that the GitHub Actions run passes.

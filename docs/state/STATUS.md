@@ -1,6 +1,11 @@
 # AnesPayTracker Status
 
-Last updated: 2026-10-01
+Last updated: 2026-11-14
+
+## 2026-11-14 update
+
+- `main` is the working branch and matches what shipped as TestFlight 1.1 (6) (installed on both testers' phones 2026-10-02). It was fast-forwarded from the old May snapshot to the former `hermes/initial-mac-plan` branch, with no history lost; `hermes/initial-mac-plan` is kept only so older clones can still pull.
+- GitHub is the source of truth for every computer and agent; see "Source of truth and syncing" in `AGENTS.md`. `CLAUDE.md` only points to `AGENTS.md`.
 
 ## 2026-10-01 update
 
