@@ -35,6 +35,7 @@ struct AnesPayTrackerApp: App {
             StreakRule.self,
             CustomBonusType.self,
             ContactPerson.self,
+            Invoice.self,
         ])
         let config = ModelConfiguration(
             schema: schema,

@@ -143,6 +143,8 @@ struct ReportView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    InvoicesLinkCard()
+
                     ReportFiltersCard(
                         reportMode: $reportMode,
                         dateRange: $dateRange,
@@ -1060,6 +1062,41 @@ struct PaycheckEstimatorTableCard: View {
         let start = row.aggregationStart.formatted(.dateTime.month(.twoDigits).day(.twoDigits))
         let end = row.aggregationEnd.formatted(.dateTime.month(.twoDigits).day(.twoDigits))
         return "Worked \(worked) · Aggregates \(start)–\(end)"
+    }
+}
+
+// MARK: - Invoices Link
+
+/// Opens the invoice list from the top of the Report tab.
+struct InvoicesLinkCard: View {
+    var body: some View {
+        NavigationLink {
+            InvoiceListView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "doc.text.fill")
+                    .font(.title3)
+                    .foregroundStyle(Color.accent)
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Invoices")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("Create, view and share invoices")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(16)
+            .frame(minHeight: 44)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens your invoices")
     }
 }
 

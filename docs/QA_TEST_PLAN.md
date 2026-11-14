@@ -189,6 +189,25 @@ Set up: create an employer **Case Group**, monthly cadence, anchors: pay-period 
 - [ ] Earnings report and its PDF show the case shift's time as "7h 31m".
 - [ ] Existing employers (per-day, plain hourly, clock in/out) behave exactly as before.
 
+**C13. Invoices (build 7)**
+
+Uses the **Case Group** employer and the 7 h 31 m shift with Recovery from C12 (**$3,206.67**). Use made-up names and addresses.
+
+- [ ] Report shows an **Invoices** row at the top. It opens an empty list with a **New Invoice** button.
+- [ ] New Invoice: Case Group and Case Center are preselected, the codes are suggested (**CG** and **CC**), and the shift list shows the C12 shifts with their amounts. **Create** is disabled with an orange note until your name is entered.
+- [ ] Enter a name and address under Your Details and a billing address. Set the invoice date to a known date: the invoice number reads **CG-CC-MMDDYY** for that date.
+- [ ] The due date is on and shows the payday for the last service date (Dec 15 for November work). Switch it off and on.
+- [ ] Switch off every shift except the 7 h 31 m day: Days billed **1**, Total **$3,206.67**. **Preview PDF** shows your details, the employer's, four lines "Anesthesia services, case 1…4" in time order with times, "Anesthesia time: 7 h 31 m at $400.00/hr" **$3,006.67**, Recovery **$200.00**, Day total and Total due **$3,206.67**.
+- [ ] Tap **Create**: the invoice opens. **View / Share PDF** shows the same PDF and the share button offers Mail, Messages, Save to Files.
+- [ ] Back in the list the invoice shows its number, dates and total. Stop the app in Xcode and run again: it is still there.
+- [ ] New Invoice again with the same invoice date: the number ends in **-2**; the invoiced day is greyed out with "Already on invoice …". Your details and the codes are remembered. Cancel.
+- [ ] Edit the invoiced shift (change a case time). Open the invoice: an orange "Shifts changed since" note names the day; the amounts and PDF are unchanged.
+- [ ] Start a case from Home and leave it running. New Invoice including today: Create is disabled with "A case is still running…". Stop the case.
+- [ ] A day billed at the daily minimum (the 30-minute shift from C12) prints "Anesthesia time: 4 h at $400.00/hr (daily minimum; 30 m worked)" and **$1,600.00**.
+- [ ] Create an invoice for a per-day employer: each day shows "Anesthesia services: Full day at …/day" with no case lines; a streak bonus on a shift is not included in the total.
+- [ ] Delete an invoice (confirmation appears): it leaves the list, its shifts are untouched and can be selected on a new invoice.
+- [ ] An invoice covering 20 or more days produces a multi-page PDF with a page number on each page and no row cut in half.
+
 ---
 
 ## Fixed issues (found while writing this plan, fixed 2026-10-01 for build 5)

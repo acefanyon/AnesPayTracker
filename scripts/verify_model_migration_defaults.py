@@ -19,6 +19,8 @@ MODELS = (ROOT / "AnesPayTracker" / "Model" / "Models.swift").read_text()
 
 ORIGINAL_REQUIRED = {
     "ContactPerson": {"id", "name"},
+    # Invoice was added whole on 2026-11-14; a new entity needs no defaults.
+    "Invoice": {"id", "number", "billToName", "siteName", "periodStart", "periodEnd", "issuedOn", "totalCents", "snapshotData", "createdAt"},
     "CustomBonusType": {"id", "name", "payUnit", "createdAt"},
     "Employer": {"id", "name", "contactPersons", "payCadence", "createdAt", "sites", "streakRules", "customBonusTypes"},
     "Shift": {"id", "date", "payUnit", "baseAmount", "editHistory", "createdAt"},

@@ -35,18 +35,25 @@ Known limits:
 - The daily minimum is applied per shift. Two shifts on one day for the same employer would each get it.
 - A case that runs past midnight stays on the shift's start day.
 
-## Phase 2 — invoices (next)
+## Phase 2 — invoices (built, build 7, not yet tested on a phone)
 
-Decided:
-- One PDF invoice for a date range, employer and site.
-- Shows the user's name and address, and the employer's name and address.
-- Each day lists its cases in clock order as "Anesthesia services, case 1" with start and stop times and duration, then add-ons, any minimum adjustment, and a daily total.
-- Invoice number: employer code, site code, date as MMDDYY, for example `EN-BM-041326`. Two-letter codes are stored on the employer and the site and are editable. A letter suffix is added if the number is already used.
-- A sent invoice is frozen: later edits to shifts do not change it; the app flags that the shifts changed.
+Where: Report tab → **Invoices**.
 
-Needs: a "my details" settings screen (name, address, phone), employer billing address, employer and site codes, an `Invoice` record (number, range, issued date, status, frozen line items).
+Rules:
+- One PDF invoice for a date range at one employer and site. Any employer can be invoiced, not only case-time ones.
+- The top shows the user's name, address, phone and email (kept in app settings on the device); "Invoice for" shows the employer's billing name and address.
+- Each day lists its cases in clock order as "Anesthesia services, case 1" with start and stop times and duration, then its charges (anesthesia time at the rate, on-call, each add-on such as a recovery fee) and a day total. A day raised to the daily minimum says so and shows the time worked.
+- Streak bonuses are not invoiced: they are paid on their own schedule.
+- Invoice number: employer code, site code, invoice date as MMDDYY, for example `EN-BM-041326`. The two-character codes are suggested from the names, editable, and saved on the employer and the site. If the number is already used, `-2`, `-3` … is added.
+- The due date is optional. When the employer's paycheck anchors are set it defaults to the payday for the last service date.
+- A shift can be on only one invoice. A day with a running case cannot be invoiced. A day with nothing to bill is skipped.
+- A created invoice is a frozen copy (`Invoice.snapshotData`, money in whole cents). Editing or deleting its shifts later does not change it; the invoice screen flags that they changed. To bill new amounts, delete the invoice and create it again.
+- Deleting an invoice never touches shifts; they can be invoiced again.
+- No patient information: case lines hold a generic label and times only.
 
-Open questions: which date the number uses (invoice date assumed); payment terms text; whether one invoice may cover more than one site.
+Code: `Engine/InvoiceMath.swift` (numbering, cents, frozen content; Foundation only, run by `scripts/swift_tests/pay_math`), `Engine/InvoiceBuilder.swift` (shift → invoice day), `Views/Report/InvoicePDFGenerator.swift`, `Views/Invoices/`. Verifier: `scripts/verify_invoices.py`. Manual tests: section C13 of `docs/QA_TEST_PLAN.md`.
+
+Open questions: whether the number should use the invoice date (current) or the service date; payment-terms wording; whether one invoice may cover more than one site (currently one site per invoice).
 
 ## Phase 3 — invoice tracking
 

@@ -2,13 +2,14 @@
 
 Last updated: 2026-11-14
 
-## 2026-11-14 update (case-time pay, build 7, not yet on phones)
+## 2026-11-14 update (case-time pay and invoices, build 7, not yet on phones)
 
-- New feature work is specified in `docs/CASE_TIME_AND_INVOICING_PLAN.md`. Phase 1 (case-time pay) is built; phase 2 (invoices) is next.
+- New feature work is specified in `docs/CASE_TIME_AND_INVOICING_PLAN.md`. Phase 1 (case-time pay) and phase 2 (invoices) are built and ship together in build 7; phase 3 (invoice tracking) is next.
+- Phase 2: Report → Invoices creates a PDF invoice for a date range at one employer and site, numbered like `EN-BM-041326`. Each day lists its cases with times, charges and a day total. A created invoice is a frozen copy; deleting one never touches shifts. New `Invoice` entity plus optional `invoiceCode` / billing fields on employer and site (lightweight-migration safe). Verifier: `scripts/verify_invoices.py`.
 - Phase 1: employers can be "paid for case time only" with an optional daily minimum; shifts at their per-hour sites are a list of cases paid by the minute; Home has a Start/Stop Case card. See the plan for files and rules.
 - Behavior change for existing data: monthly employers with both paycheck anchors now get the payday the anchors describe (previously one month late). Other cadences are unchanged.
 - CI now also compiles and runs `scripts/swift_tests/pay_math` (the app's real pay math). Source build number is 7.
-- Not yet tested in the simulator or on a phone. Run section C12 of `docs/QA_TEST_PLAN.md` before uploading.
+- Not yet tested in the simulator or on a phone. Run sections C12 and C13 of `docs/QA_TEST_PLAN.md` before uploading.
 
 ## 2026-11-14 update
 

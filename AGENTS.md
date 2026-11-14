@@ -46,7 +46,7 @@ docs/state/STATUS.md
 3. If you need product/history context, read:
 
 ```text
-docs/CASE_TIME_AND_INVOICING_PLAN.md   (current feature work)
+docs/CASE_TIME_AND_INVOICING_PLAN.md   (current feature work: case time, invoices)
 docs/QA_TEST_PLAN.md
 docs/RUNTIME_FEEDBACK_BACKLOG.md
 docs/APP_STORE_LISTING.md
@@ -79,6 +79,7 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 - Paycheck estimator now stores two anchors for employer paycheck calendars: a known pay-period end date and the actual paycheck date for that same period. Example: work period Jun 7–20 paid on Jun 26 uses period-end anchor Jun 20 and paycheck anchor Jun 26. Do not model this as a whole-pay-period delay stepper.
 - Monthly pay cadence with both anchors keeps the anchor pairing month to month: period ending Oct 31 paid Nov 15 means period ending Nov 30 is paid Dec 15 (`PaycheckDateMath`).
 - Case-time sites (employer "paid for case time only"): each case counts whole minutes from start to stop, a running case counts nothing, the day's minutes are summed and raised to the employer's daily minimum if set, and base pay is rate × minutes ÷ 60 rounded to the nearest cent. Example: 7 h 31 m at $400/hr = $3,006.67. A shift keeps its saved cases, rate and minimum.
+- Invoices: number is employer code, site code and invoice date as MMDDYY (`EN-BM-041326`), with `-2`, `-3` … when taken. A created invoice is a frozen copy in whole cents; later shift edits never change it, and deleting an invoice never touches shifts. Streak bonuses are not invoiced. A shift is on at most one invoice.
 - Monthly aggregation payout defaults to the last day/check of the following month.
 - Quarterly aggregation payout defaults to the last day/check of the month after the quarter ends: Q1 → Apr 30, Q2 → Jul 31, Q3 → Oct 31, Q4 → Jan 31.
 
@@ -98,6 +99,7 @@ Run the real Swift pay math (case time, monthly paydays) outside the app; needs 
 swiftc -o /tmp/pay_math_tests \
   AnesPayTracker/Engine/CaseTimeCalculator.swift \
   AnesPayTracker/Engine/PaycheckDateMath.swift \
+  AnesPayTracker/Engine/InvoiceMath.swift \
   scripts/swift_tests/pay_math/main.swift && /tmp/pay_math_tests
 ```
 
@@ -163,6 +165,8 @@ Remaining before a public App Store release: privacy policy page, App Privacy qu
 - `AnesPayTracker/Engine/StreakEngine.swift` — streak computation, pay periods, bonus payout and paycheck aggregation logic
 - `AnesPayTracker/Engine/CaseTimeCalculator.swift` — `ShiftCase` and case-time pay math (Foundation only)
 - `AnesPayTracker/Engine/PaycheckDateMath.swift` — monthly payday math (Foundation only)
+- `AnesPayTracker/Engine/InvoiceMath.swift` — invoice numbering, cents and frozen invoice content (Foundation only)
+- `AnesPayTracker/Engine/InvoiceBuilder.swift` — turns saved shifts into invoice days
 - `AnesPayTracker/Engine/CalendarSync.swift` — EventKit and `.ics` export
 - `AnesPayTracker/Views/Entry/AddShiftView.swift` — shift entry, custom bonuses, clock-in/out rounding UI
 - `AnesPayTracker/Views/Entry/CaseTimeEntry.swift` — case list editor inside Add/Edit Shift
@@ -173,6 +177,8 @@ Remaining before a public App Store release: privacy policy page, App Privacy qu
 - `AnesPayTracker/Views/Review/ShiftDetailView.swift` — shift details, pay breakdown, `.ics` sharing
 - `AnesPayTracker/Views/Report/ReportView.swift` — earnings, bonus payout, paycheck estimator UI
 - `AnesPayTracker/Views/Report/PDFReportGenerator.swift` — report PDF generation
+- `AnesPayTracker/Views/Report/InvoicePDFGenerator.swift` — invoice PDF layout
+- `AnesPayTracker/Views/Invoices/` — invoice list, new-invoice form and invoice detail (opened from Report)
 - `AnesPayTracker/Views/Setup/EmployerSetupWizard.swift` — initial employer/pay/bonus/streak/paycheck setup
 - `AnesPayTracker/Views/Settings/SettingsView.swift` — editing employers/sites/rules and calendar settings
 

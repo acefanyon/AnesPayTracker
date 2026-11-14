@@ -25,6 +25,12 @@
 		B021 /* Engine/PaycheckDateMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = A021 /* Engine/PaycheckDateMath.swift */; };
 		B022 /* Views/Entry/CaseTimeEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A022 /* Views/Entry/CaseTimeEntry.swift */; };
 		B023 /* Views/Entry/CaseTrackerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A023 /* Views/Entry/CaseTrackerCard.swift */; };
+		B024 /* Engine/InvoiceMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = A024 /* Engine/InvoiceMath.swift */; };
+		B025 /* Engine/InvoiceBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A025 /* Engine/InvoiceBuilder.swift */; };
+		B026 /* Views/Report/InvoicePDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A026 /* Views/Report/InvoicePDFGenerator.swift */; };
+		B027 /* Views/Invoices/InvoiceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A027 /* Views/Invoices/InvoiceListView.swift */; };
+		B028 /* Views/Invoices/InvoiceEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A028 /* Views/Invoices/InvoiceEditorView.swift */; };
+		B029 /* Views/Invoices/InvoiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A029 /* Views/Invoices/InvoiceDetailView.swift */; };
 		B014 /* Views/Report/ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* Views/Report/ReportView.swift */; };
 		B015 /* Views/Report/PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* Views/Report/PDFReportGenerator.swift */; };
 		B016 /* Views/Settings/SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* Views/Settings/SettingsView.swift */; };
@@ -51,6 +57,12 @@
 		A021 /* Engine/PaycheckDateMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/PaycheckDateMath.swift; sourceTree = "<group>"; };
 		A022 /* Views/Entry/CaseTimeEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Entry/CaseTimeEntry.swift; sourceTree = "<group>"; };
 		A023 /* Views/Entry/CaseTrackerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Entry/CaseTrackerCard.swift; sourceTree = "<group>"; };
+		A024 /* Engine/InvoiceMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/InvoiceMath.swift; sourceTree = "<group>"; };
+		A025 /* Engine/InvoiceBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/InvoiceBuilder.swift; sourceTree = "<group>"; };
+		A026 /* Views/Report/InvoicePDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/InvoicePDFGenerator.swift; sourceTree = "<group>"; };
+		A027 /* Views/Invoices/InvoiceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceListView.swift; sourceTree = "<group>"; };
+		A028 /* Views/Invoices/InvoiceEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceEditorView.swift; sourceTree = "<group>"; };
+		A029 /* Views/Invoices/InvoiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceDetailView.swift; sourceTree = "<group>"; };
 		A014 /* Views/Report/ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/ReportView.swift; sourceTree = "<group>"; };
 		A015 /* Views/Report/PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/PDFReportGenerator.swift; sourceTree = "<group>"; };
 		A016 /* Views/Settings/SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -108,6 +120,8 @@
 				A007 /* Engine/SeedData.swift */,
 				A020 /* Engine/CaseTimeCalculator.swift */,
 				A021 /* Engine/PaycheckDateMath.swift */,
+				A024 /* Engine/InvoiceMath.swift */,
+				A025 /* Engine/InvoiceBuilder.swift */,
 			);
 			name = Engine;
 			sourceTree = "<group>";
@@ -143,6 +157,7 @@
 			children = (
 				A014 /* Views/Report/ReportView.swift */,
 				A015 /* Views/Report/PDFReportGenerator.swift */,
+				A026 /* Views/Report/InvoicePDFGenerator.swift */,
 			);
 			name = Report;
 			sourceTree = "<group>";
@@ -153,6 +168,16 @@
 				A019 /* Views/Home/HomeView.swift */,
 			);
 			name = Home;
+			sourceTree = "<group>";
+		};
+		INVOICESGRP /* Invoices */ = {
+			isa = PBXGroup;
+			children = (
+				A027 /* Views/Invoices/InvoiceListView.swift */,
+				A028 /* Views/Invoices/InvoiceEditorView.swift */,
+				A029 /* Views/Invoices/InvoiceDetailView.swift */,
+			);
+			name = Invoices;
 			sourceTree = "<group>";
 		};
 		REVIEWGRP /* Review */ = {
@@ -198,6 +223,7 @@
 				ENTRYGRP /* Entry */,
 				REVIEWGRP /* Review */,
 				REPORTGRP /* Report */,
+				INVOICESGRP /* Invoices */,
 				SETTINGSGRP /* Settings */,
 				COMPONENTSGRP /* Components */,
 			);
@@ -291,6 +317,12 @@
 				B021 /* Engine/PaycheckDateMath.swift in Sources */,
 				B022 /* Views/Entry/CaseTimeEntry.swift in Sources */,
 				B023 /* Views/Entry/CaseTrackerCard.swift in Sources */,
+				B024 /* Engine/InvoiceMath.swift in Sources */,
+				B025 /* Engine/InvoiceBuilder.swift in Sources */,
+				B026 /* Views/Report/InvoicePDFGenerator.swift in Sources */,
+				B027 /* Views/Invoices/InvoiceListView.swift in Sources */,
+				B028 /* Views/Invoices/InvoiceEditorView.swift in Sources */,
+				B029 /* Views/Invoices/InvoiceDetailView.swift in Sources */,
 				B014 /* Views/Report/ReportView.swift in Sources */,
 				B015 /* Views/Report/PDFReportGenerator.swift in Sources */,
 				B016 /* Views/Settings/SettingsView.swift in Sources */,
