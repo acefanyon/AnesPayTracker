@@ -26,10 +26,20 @@ struct HomeView: View {
         employers.filter { $0.activeStreakRule != nil }
     }
 
+    private var caseTimeSites: [Site] {
+        employers.flatMap(\.caseTimeSites)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    // The summary below only reads data; this card is the
+                    // one control on Home that records anything.
+                    if !caseTimeSites.isEmpty {
+                        CaseTrackerCard(sites: caseTimeSites, onOpenShift: { selectedShift = $0 })
+                    }
+
                     ForEach(employers) { employer in
                         EmployerPayOverview(
                             employer: employer,
@@ -416,7 +426,7 @@ struct RecentShiftsCard: View {
             let fraction = shift.dayFraction ?? .full
             return fraction == .full ? "Full day" : "\(fraction.label) day"
         case .perHour:
-            return "\((shift.hoursWorked ?? 0).formatted()) hrs"
+            return shift.hoursLabel
         }
     }
 }

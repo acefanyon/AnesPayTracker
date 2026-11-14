@@ -598,8 +598,7 @@ struct PDFReportGenerator {
         switch shift.payUnit {
         case .perDay: return shift.dayFraction?.label ?? "Full"
         case .perHour:
-            let h = shift.hoursWorked ?? 0
-            return "\(h.formatted())h"
+            return shift.compactHoursLabel
         }
     }
 }

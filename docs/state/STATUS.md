@@ -2,6 +2,14 @@
 
 Last updated: 2026-11-14
 
+## 2026-11-14 update (case-time pay, build 7, not yet on phones)
+
+- New feature work is specified in `docs/CASE_TIME_AND_INVOICING_PLAN.md`. Phase 1 (case-time pay) is built; phase 2 (invoices) is next.
+- Phase 1: employers can be "paid for case time only" with an optional daily minimum; shifts at their per-hour sites are a list of cases paid by the minute; Home has a Start/Stop Case card. See the plan for files and rules.
+- Behavior change for existing data: monthly employers with both paycheck anchors now get the payday the anchors describe (previously one month late). Other cadences are unchanged.
+- CI now also compiles and runs `scripts/swift_tests/pay_math` (the app's real pay math). Source build number is 7.
+- Not yet tested in the simulator or on a phone. Run section C12 of `docs/QA_TEST_PLAN.md` before uploading.
+
 ## 2026-11-14 update
 
 - `main` is the working branch and matches what shipped as TestFlight 1.1 (6) (installed on both testers' phones 2026-10-02). It was fast-forwarded from the old May snapshot to the former `hermes/initial-mac-plan` branch, with no history lost; `hermes/initial-mac-plan` is kept only so older clones can still pull.

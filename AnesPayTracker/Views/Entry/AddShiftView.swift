@@ -63,6 +63,7 @@ struct AddShiftView: View {
     @State private var usesClockTimes: Bool = false
     @State private var clockInAt: Date = Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var clockOutAt: Date = Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var cases: [ShiftCase] = []
     @State private var isOnCall: Bool = false
     @State private var onCallAmount: Decimal = 0
     @State private var customBonuses: [DraftAppliedCustomBonus] = []
@@ -119,11 +120,46 @@ struct AddShiftView: View {
             && existing.baseAmount != site.baseAmount
     }
 
+    /// Whether this shift is entered as a list of cases. An edited shift keeps
+    /// the way it was saved, so changing an employer's case-time setting never
+    /// converts (and reprices) past shifts.
+    private var usesCases: Bool {
+        guard let site = selectedSite, site.payUnit == .perHour else { return false }
+        if let existing = editingShift, existing.site?.id == site.id, existing.payUnit == .perHour {
+            return existing.cases != nil
+        }
+        return site.tracksCaseTime
+    }
+
+    /// The daily minimum this shift is paid under: its saved one when editing,
+    /// the employer's current one for a new shift or a site change.
+    private var effectiveMinimumHours: Double? {
+        guard usesCases, let site = selectedSite else { return nil }
+        if let existing = editingShift, existing.site?.id == site.id, existing.cases != nil {
+            return existing.guaranteedMinimumHours
+        }
+        return site.employer?.dailyMinimumHours
+    }
+
+    private var caseMinutes: Int { CaseTimeCalculator.totalMinutes(cases) }
+
+    private var paidCaseMinutes: Int {
+        CaseTimeCalculator.paidMinutes(caseMinutes: caseMinutes, minimumHours: effectiveMinimumHours)
+    }
+
+    private var caseProblem: String? {
+        usesCases ? CaseTimeCalculator.blockingProblem(in: cases) : nil
+    }
+
     private var computedBase: Decimal {
         guard selectedSite != nil else { return 0 }
         switch payUnit {
         case .perDay: return effectiveRate * (dayFraction.multiplier)
-        case .perHour: return effectiveRate * Decimal(hoursWorked)
+        case .perHour:
+            if usesCases {
+                return CaseTimeCalculator.pay(rate: effectiveRate, paidMinutes: paidCaseMinutes)
+            }
+            return effectiveRate * Decimal(hoursWorked)
         }
     }
 
@@ -198,6 +234,12 @@ struct AddShiftView: View {
                             // Duration
                             if payUnit == .perDay {
                                 DayFractionPicker(selection: $dayFraction)
+                            } else if usesCases {
+                                CasesEntry(
+                                    cases: $cases,
+                                    serviceDate: date,
+                                    minimumHours: effectiveMinimumHours
+                                )
                             } else {
                                 HoursEntry(
                                     hoursWorked: $hoursWorked,
@@ -265,7 +307,7 @@ struct AddShiftView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     ModalSaveButton(
                         title: editingShift == nil ? "Save" : "Update",
-                        isDisabled: selectedSite == nil || isSaving
+                        isDisabled: selectedSite == nil || isSaving || caseProblem != nil
                     ) {
                         saveShift()
                     }
@@ -288,7 +330,9 @@ struct AddShiftView: View {
         .onChange(of: selectedSite?.id) { _, _ in
             syncCustomBonusesForSelectedSite()
             syncOnCallForSelectedSite()
+            syncHoursFromCasesIfNeeded()
         }
+        .onChange(of: cases) { _, _ in syncHoursFromCasesIfNeeded() }
         .onChange(of: hoursWorked) { oldValue, newValue in
             syncPerHourCustomBonusQuantities(from: oldValue, to: newValue)
         }
@@ -301,6 +345,7 @@ struct AddShiftView: View {
             clockInAt = moveClockTime(clockInAt, to: newDate)
             clockOutAt = moveClockTime(clockOutAt, to: newDate)
             syncHoursFromClockTimesIfNeeded()
+            cases = CaseTimeCalculator.moving(cases, toDay: newDate, calendar: .current)
         }
         .onChange(of: dayFraction) { oldValue, newValue in
             syncProratedPerDayCustomBonusQuantities(from: oldValue, to: newValue)
@@ -315,9 +360,11 @@ struct AddShiftView: View {
     }
 
     private func saveShift() {
-        guard let site = selectedSite else { return }
+        guard let site = selectedSite, caseProblem == nil else { return }
         isSaving = true
         // Read before the shift's site/pay unit are overwritten below.
+        let savesCases = usesCases
+        let minimumHours = effectiveMinimumHours
         let rate = effectiveRate
 
         let shift: Shift
@@ -336,9 +383,20 @@ struct AddShiftView: View {
         shift.date = date
         shift.payUnit = site.payUnit
         shift.dayFraction = site.payUnit == .perDay ? dayFraction : nil
-        shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
-        shift.clockInAt = site.payUnit == .perHour && usesClockTimes ? clockInAt : nil
-        shift.clockOutAt = site.payUnit == .perHour && usesClockTimes ? clockOutAt : nil
+        if savesCases {
+            let orderedCases = CaseTimeCalculator.sorted(cases)
+            shift.cases = orderedCases
+            shift.guaranteedMinimumHours = minimumHours
+            shift.hoursWorked = Double(CaseTimeCalculator.totalMinutes(orderedCases)) / 60
+            shift.clockInAt = nil
+            shift.clockOutAt = nil
+        } else {
+            shift.cases = nil
+            shift.guaranteedMinimumHours = nil
+            shift.hoursWorked = site.payUnit == .perHour ? hoursWorked : nil
+            shift.clockInAt = site.payUnit == .perHour && usesClockTimes ? clockInAt : nil
+            shift.clockOutAt = site.payUnit == .perHour && usesClockTimes ? clockOutAt : nil
+        }
         shift.baseAmount = rate
         shift.isOnCall = isOnCall
         shift.onCallAmount = isOnCall ? onCallAmount : nil
@@ -447,9 +505,18 @@ struct AddShiftView: View {
         }
         if shift.date != date { changes.append("date changed") }
         if shift.dayFraction != dayFraction && payUnit == .perDay { changes.append("fraction changed to \(dayFraction.label)") }
-        if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }
-        if shift.clockInAt != clockInAt && usesClockTimes { changes.append("clock-in changed") }
-        if shift.clockOutAt != clockOutAt && usesClockTimes { changes.append("clock-out changed") }
+        if usesCases {
+            let orderedCases = CaseTimeCalculator.sorted(cases)
+            if (shift.cases ?? []) != orderedCases {
+                let before = CaseTimeCalculator.durationLabel(minutes: shift.caseMinutes)
+                let after = CaseTimeCalculator.durationLabel(minutes: CaseTimeCalculator.totalMinutes(orderedCases))
+                changes.append("cases changed: \(shift.cases?.count ?? 0) (\(before)) → \(orderedCases.count) (\(after))")
+            }
+        } else {
+            if shift.hoursWorked != hoursWorked && payUnit == .perHour { changes.append("hours changed to \(hoursWorked)") }
+            if shift.clockInAt != clockInAt && usesClockTimes { changes.append("clock-in changed") }
+            if shift.clockOutAt != clockOutAt && usesClockTimes { changes.append("clock-out changed") }
+        }
         return changes.isEmpty ? "Minor edit" : changes.joined(separator: ", ")
     }
 
@@ -525,6 +592,7 @@ struct AddShiftView: View {
         date = shift.date
         dayFraction = shift.dayFraction ?? .full
         hoursWorked = shift.hoursWorked ?? 8.0
+        cases = shift.cases ?? []
         usesClockTimes = shift.clockInAt != nil && shift.clockOutAt != nil
         clockInAt = shift.clockInAt ?? Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: shift.date) ?? shift.date
         clockOutAt = shift.clockOutAt ?? Calendar.current.date(byAdding: .minute, value: Int((shift.hoursWorked ?? 8.0) * 60), to: clockInAt) ?? shift.date
@@ -554,6 +622,17 @@ struct AddShiftView: View {
         let oldHours = hoursWorked
         hoursWorked = rounded
         syncPerHourCustomBonusQuantities(from: oldHours, to: rounded)
+    }
+
+    /// Keeps `hoursWorked` equal to the worked case hours, so per-hour bonuses follow the cases.
+    private func syncHoursFromCasesIfNeeded() {
+        guard usesCases else {
+            // Leaving a case-time site for a regular hourly one: don't carry over zero hours.
+            if payUnit == .perHour && hoursWorked <= 0 { hoursWorked = 8 }
+            return
+        }
+        let caseHours = Double(caseMinutes) / 60
+        if hoursWorked != caseHours { hoursWorked = caseHours }
     }
 
     private func moveClockTime(_ clockTime: Date, to newDate: Date) -> Date {

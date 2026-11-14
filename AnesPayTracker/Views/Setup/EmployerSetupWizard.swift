@@ -46,6 +46,9 @@ struct EmployerSetupWizard: View {
     @State private var payPeriodEndAnchorDate: Date
     @State private var paycheckAnchorDate: Date
     @State private var defaultOnCallAmount: Decimal
+    @State private var paysCaseTimeOnly: Bool
+    @State private var usesDailyMinimum: Bool
+    @State private var dailyMinimumHours: Double
     @State private var contactPersons: [DraftContact]
     @State private var sites: [DraftSite]
     @State private var streakRules: [DraftStreakRule]
@@ -69,6 +72,9 @@ struct EmployerSetupWizard: View {
         _payPeriodEndAnchorDate = State(initialValue: sourceEmployer?.payPeriodEndAnchorDate ?? sourceEmployer?.paycheckAnchorDate ?? Date())
         _paycheckAnchorDate = State(initialValue: sourceEmployer?.paycheckAnchorDate ?? Date())
         _defaultOnCallAmount = State(initialValue: sourceEmployer?.defaultOnCallAmount ?? 0)
+        _paysCaseTimeOnly = State(initialValue: sourceEmployer?.paysCaseTimeOnly ?? false)
+        _usesDailyMinimum = State(initialValue: sourceEmployer?.dailyMinimumHours != nil)
+        _dailyMinimumHours = State(initialValue: sourceEmployer?.dailyMinimumHours ?? 4)
         _contactPersons = State(initialValue: sourceEmployer?.contactPersons.map { DraftContact(contact: $0) } ?? [])
 
         let seededSites = sourceEmployer?.sites.sorted { $0.createdAt < $1.createdAt }.map { DraftSite(site: $0) } ?? [DraftSite()]
@@ -155,10 +161,24 @@ struct EmployerSetupWizard: View {
                                     payPeriodEndAnchorDate: $payPeriodEndAnchorDate,
                                     paycheckAnchorDate: $paycheckAnchorDate,
                                     defaultOnCallAmount: $defaultOnCallAmount,
+                                    paysCaseTimeOnly: $paysCaseTimeOnly,
+                                    usesDailyMinimum: $usesDailyMinimum,
+                                    dailyMinimumHours: $dailyMinimumHours,
                                     contactPersons: $contactPersons
                                 )
+                                .onChange(of: paysCaseTimeOnly) { _, isOn in
+                                    // Case time is hourly pay: start untouched new sites as per-hour.
+                                    guard isOn else { return }
+                                    for index in sites.indices where sites[index].sourceID == nil && sites[index].name.isEmpty && sites[index].baseAmount == 0 {
+                                        sites[index].payUnit = .perHour
+                                    }
+                                }
                             case .sites:
-                                SitesStep(sites: $sites, isEditingExistingEmployer: isEditingExistingEmployer)
+                                SitesStep(
+                                    sites: $sites,
+                                    isEditingExistingEmployer: isEditingExistingEmployer,
+                                    employerPaysCaseTime: paysCaseTimeOnly
+                                )
                             case .customBonuses:
                                 CustomBonusesStep(customBonusTypes: $customBonusTypes, isEditingExistingEmployer: isEditingExistingEmployer)
                             case .streakRules:
@@ -172,6 +192,8 @@ struct EmployerSetupWizard: View {
                                     payPeriodEndAnchorDate: payPeriodEndAnchorDate,
                                     paycheckAnchorDate: paycheckAnchorDate,
                                     defaultOnCallAmount: defaultOnCallAmount,
+                                    paysCaseTimeOnly: paysCaseTimeOnly,
+                                    dailyMinimumHours: paysCaseTimeOnly && usesDailyMinimum ? dailyMinimumHours : nil,
                                     sites: sites,
                                     streakRules: streakRules,
                                     customBonusTypes: customBonusTypes
@@ -274,6 +296,8 @@ struct EmployerSetupWizard: View {
         employer.payPeriodEndAnchorDate = usesPaycheckAnchor ? payPeriodEndAnchorDate : nil
         employer.paycheckAnchorDate = usesPaycheckAnchor ? paycheckAnchorDate : nil
         employer.defaultOnCallAmount = defaultOnCallAmount
+        employer.paysCaseTimeOnly = paysCaseTimeOnly
+        employer.dailyMinimumHours = paysCaseTimeOnly && usesDailyMinimum ? dailyMinimumHours : nil
 
         // Contacts are setup metadata, not pay history. If a user removes a
         // contact in the full editor, persist that removal instead of silently
@@ -333,10 +357,12 @@ struct EmployerSetupWizard: View {
                 existing.name = trimmedName
                 existing.payUnit = draft.payUnit
                 existing.baseAmount = draft.baseAmount
+                existing.optsOutOfCaseTime = draft.optsOutOfCaseTime
                 retainedIDs.insert(existing.id)
                 updatedSites.append(existing)
             } else {
                 let site = Site(name: trimmedName, employer: employer, payUnit: draft.payUnit, baseAmount: draft.baseAmount)
+                site.optsOutOfCaseTime = draft.optsOutOfCaseTime
                 if insertNewObjects { modelContext.insert(site) }
                 retainedIDs.insert(site.id)
                 updatedSites.append(site)
@@ -516,6 +542,7 @@ struct DraftSite: Identifiable {
     var name: String = ""
     var payUnit: PayUnit = .perDay
     var baseAmount: Decimal = 0
+    var optsOutOfCaseTime: Bool = false
 
     init() {}
 
@@ -525,6 +552,7 @@ struct DraftSite: Identifiable {
         self.name = site.name
         self.payUnit = site.payUnit
         self.baseAmount = site.baseAmount
+        self.optsOutOfCaseTime = site.optsOutOfCaseTime
     }
 }
 
@@ -582,6 +610,9 @@ struct EmployerInfoStep: View {
     @Binding var payPeriodEndAnchorDate: Date
     @Binding var paycheckAnchorDate: Date
     @Binding var defaultOnCallAmount: Decimal
+    @Binding var paysCaseTimeOnly: Bool
+    @Binding var usesDailyMinimum: Bool
+    @Binding var dailyMinimumHours: Double
     @Binding var contactPersons: [DraftContact]
 
     @State private var showAddContact = false
@@ -636,6 +667,32 @@ struct EmployerInfoStep: View {
                         )
                         .font(.footnote)
                         .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            WizardField(label: "Hourly Pay") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Paid for case time only", isOn: $paysCaseTimeOnly)
+
+                    Text("Turn on if this employer pays by the hour only while a case is running, not for time between cases. It applies to every per-hour site of this employer unless you turn it off for a site.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    if paysCaseTimeOnly {
+                        Toggle("Daily minimum hours", isOn: $usesDailyMinimum)
+
+                        if usesDailyMinimum {
+                            Stepper(
+                                "Paid for at least \(dailyMinimumHours.formatted()) hours a day",
+                                value: $dailyMinimumHours,
+                                in: 0.5...24,
+                                step: 0.5
+                            )
+                            Text("On a light day, the shift is paid for this many hours even if the cases add up to less.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -867,6 +924,7 @@ struct AddContactSheet: View {
 struct SitesStep: View {
     @Binding var sites: [DraftSite]
     let isEditingExistingEmployer: Bool
+    var employerPaysCaseTime: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -879,12 +937,15 @@ struct SitesStep: View {
                     canDelete: !(isEditingExistingEmployer && site.sourceID != nil),
                     onDelete: {
                         sites.removeAll { $0.id == site.id }
-                    }
+                    },
+                    employerPaysCaseTime: employerPaysCaseTime
                 )
             }
 
             Button {
-                sites.append(DraftSite())
+                var draft = DraftSite()
+                if employerPaysCaseTime { draft.payUnit = .perHour }
+                sites.append(draft)
             } label: {
                 Label("Add Another Site", systemImage: "plus.circle")
                     .font(.body)
@@ -897,6 +958,7 @@ struct SiteEditorCard: View {
     @Binding var site: DraftSite
     let canDelete: Bool
     let onDelete: () -> Void
+    var employerPaysCaseTime: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -930,6 +992,19 @@ struct SiteEditorCard: View {
                 }
             }
 
+            if employerPaysCaseTime {
+                if site.payUnit == .perHour {
+                    Toggle("Paid for case time only", isOn: Binding(
+                        get: { !site.optsOutOfCaseTime },
+                        set: { site.optsOutOfCaseTime = !$0 }
+                    ))
+                    .font(.footnote)
+                } else {
+                    Text("Case-time pay applies to per-hour sites only.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .padding(12)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
@@ -1115,6 +1190,8 @@ struct WizardReviewStep: View {
     let payPeriodEndAnchorDate: Date
     let paycheckAnchorDate: Date
     let defaultOnCallAmount: Decimal
+    let paysCaseTimeOnly: Bool
+    let dailyMinimumHours: Double?
     let sites: [DraftSite]
     let streakRules: [DraftStreakRule]
     let customBonusTypes: [DraftCustomBonusType]
@@ -1142,6 +1219,12 @@ struct WizardReviewStep: View {
             }
             if defaultOnCallAmount > 0 {
                 ReviewRow(label: "On-Call Default", value: defaultOnCallAmount.formatted(.currency(code: "USD")))
+            }
+            if paysCaseTimeOnly {
+                ReviewRow(
+                    label: "Hourly Pay",
+                    value: dailyMinimumHours.map { "Case time only, \($0.formatted()) h daily minimum" } ?? "Case time only"
+                )
             }
 
             Divider()

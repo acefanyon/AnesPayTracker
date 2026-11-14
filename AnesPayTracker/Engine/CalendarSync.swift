@@ -167,8 +167,13 @@ final class CalendarSyncManager {
         case .perDay:
             lines.append("Day fraction: \(shift.dayFraction?.label ?? "Full")")
         case .perHour:
-            let hrs = shift.hoursWorked ?? 0
-            lines.append("Hours: \(hrs.formatted())")
+            if shift.isCaseTracked {
+                let count = shift.cases?.count ?? 0
+                lines.append("Paid case time: \(shift.hoursLabel) (\(count) case\(count == 1 ? "" : "s"))")
+            } else {
+                let hrs = shift.hoursWorked ?? 0
+                lines.append("Hours: \(hrs.formatted())")
+            }
             if let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt {
                 lines.append("Clock: \(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute()))")
                 lines.append("Rounding: ceiling to nearest quarter hour")

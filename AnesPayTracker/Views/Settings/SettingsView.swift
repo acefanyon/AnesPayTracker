@@ -315,6 +315,13 @@ struct SiteDetailSettings: View {
                     ), placeholder: "0.00")
                     .frame(width: 120)
                 }
+
+                if site.payUnit == .perHour, site.employer?.paysCaseTimeOnly == true {
+                    Toggle("Paid for case time only", isOn: Binding(
+                        get: { !site.optsOutOfCaseTime },
+                        set: { site.optsOutOfCaseTime = !$0 }
+                    ))
+                }
             }
             
             Section {
@@ -412,7 +419,12 @@ struct AddSiteSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 ScrollView {
-                    SiteEditorCard(site: $draft, canDelete: true, onDelete: { dismiss() })
+                    SiteEditorCard(
+                        site: $draft,
+                        canDelete: true,
+                        onDelete: { dismiss() },
+                        employerPaysCaseTime: employer.paysCaseTimeOnly
+                    )
                         .padding(24)
                 }
                 .modifier(CatalystFriendlyScrollDismiss())
@@ -438,6 +450,7 @@ struct AddSiteSheet: View {
                             baseAmount: draft.baseAmount
                         )
                         site.employer = employer
+                        site.optsOutOfCaseTime = draft.optsOutOfCaseTime
                         modelContext.insert(site)
                         try? modelContext.save()
                         dismiss()

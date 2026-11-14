@@ -14,6 +14,11 @@ final class Employer {
     var paycheckAnchorDate: Date?
     var paycheckDelayPeriods: Int = 1
     var defaultOnCallAmount: Decimal = 0
+    /// Per-hour sites of this employer pay only for time inside cases, not
+    /// for time between them. A site can opt out (`Site.optsOutOfCaseTime`).
+    var paysCaseTimeOnly: Bool = false
+    /// Hours paid on a light day at case-time sites. nil = no minimum.
+    var dailyMinimumHours: Double?
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Site.employer)
@@ -73,6 +78,11 @@ final class Employer {
     /// engine falls back to guessed (Monday- or Jan-1-based) periods.
     var hasReliablePayPeriods: Bool {
         payCadence == .monthly || payPeriodEndAnchorDate != nil
+    }
+
+    /// Sites where shifts are entered as a list of cases.
+    var caseTimeSites: [Site] {
+        sites.filter(\.tracksCaseTime).sorted { $0.name < $1.name }
     }
 
     /// Both paycheck anchors are set, so paydays can be computed. Same rule
@@ -155,6 +165,8 @@ final class Site {
     var employer: Employer?
     var payUnit: PayUnit
     var baseAmount: Decimal
+    /// Turns case-time pay off for this site when its employer has it on.
+    var optsOutOfCaseTime: Bool = false
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Shift.site)
@@ -175,6 +187,11 @@ final class Site {
         self.baseAmount = baseAmount
         self.createdAt = createdAt
         self.shifts = []
+    }
+
+    /// New shifts at this site are entered as cases and paid for case time only.
+    var tracksCaseTime: Bool {
+        payUnit == .perHour && (employer?.paysCaseTimeOnly ?? false) && !optsOutOfCaseTime
     }
 
     var initials: String {
@@ -198,6 +215,12 @@ final class Shift {
     var hoursWorked: Double?
     var clockInAt: Date?
     var clockOutAt: Date?
+    /// Non-nil marks a case-time shift: pay comes from these cases, not from
+    /// `hoursWorked` (which then mirrors the worked case hours for display).
+    var cases: [ShiftCase]?
+    /// The employer's daily minimum when this shift was saved, so a later
+    /// change to the employer never rewrites this shift's pay.
+    var guaranteedMinimumHours: Double?
     var baseAmount: Decimal
     var isOnCall: Bool = false
     var onCallAmount: Decimal?
@@ -226,6 +249,8 @@ final class Shift {
         hoursWorked: Double? = nil,
         clockInAt: Date? = nil,
         clockOutAt: Date? = nil,
+        cases: [ShiftCase]? = nil,
+        guaranteedMinimumHours: Double? = nil,
         baseAmount: Decimal = 0,
         isOnCall: Bool = false,
         onCallAmount: Decimal? = nil,
@@ -252,6 +277,8 @@ final class Shift {
         self.hoursWorked = hoursWorked
         self.clockInAt = clockInAt
         self.clockOutAt = clockOutAt
+        self.cases = cases
+        self.guaranteedMinimumHours = guaranteedMinimumHours
         self.baseAmount = baseAmount
         self.isOnCall = isOnCall
         self.onCallAmount = onCallAmount
@@ -277,8 +304,43 @@ final class Shift {
         case .perDay:
             return baseAmount * (dayFraction?.multiplier ?? 1)
         case .perHour:
+            if isCaseTracked {
+                return CaseTimeCalculator.pay(rate: baseAmount, paidMinutes: paidCaseMinutes)
+            }
             return baseAmount * Decimal(hoursWorked ?? 0)
         }
+    }
+
+    // MARK: Case time
+
+    var isCaseTracked: Bool { payUnit == .perHour && cases != nil }
+
+    var sortedCases: [ShiftCase] { CaseTimeCalculator.sorted(cases ?? []) }
+
+    var runningCase: ShiftCase? { (cases ?? []).first(where: \.isRunning) }
+
+    /// Minutes actually worked inside cases.
+    var caseMinutes: Int { CaseTimeCalculator.totalMinutes(cases ?? []) }
+
+    /// Minutes paid: case minutes, raised to the daily minimum on a light day.
+    var paidCaseMinutes: Int {
+        CaseTimeCalculator.paidMinutes(caseMinutes: caseMinutes, minimumHours: guaranteedMinimumHours)
+    }
+
+    /// Extra minutes paid because of the daily minimum (0 on a normal day).
+    var minimumAdjustmentMinutes: Int { paidCaseMinutes - caseMinutes }
+
+    /// Paid time for an hourly shift: "7 h 31 m" for case shifts, "8 hrs" otherwise.
+    var hoursLabel: String {
+        isCaseTracked
+            ? CaseTimeCalculator.durationLabel(minutes: paidCaseMinutes)
+            : "\((hoursWorked ?? 0).formatted()) hrs"
+    }
+
+    var compactHoursLabel: String {
+        isCaseTracked
+            ? CaseTimeCalculator.durationLabel(minutes: paidCaseMinutes, compact: true)
+            : "\((hoursWorked ?? 0).formatted())h"
     }
 
     var bonusPay: Decimal {

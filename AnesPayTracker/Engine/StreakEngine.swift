@@ -223,6 +223,20 @@ struct StreakEngine {
     static func paycheckDate(for serviceDate: Date, employer: Employer, calendar: Calendar = .current) -> Date {
         let (_, periodEnd) = payPeriodBounds(containing: serviceDate, employer: employer)
 
+        // Monthly: keep the month-to-payday pairing the anchors describe
+        // (period ending Oct 31 paid Nov 15 → period ending Nov 30 paid Dec 15).
+        if employer.payCadence == .monthly,
+           let periodEndAnchor = employer.payPeriodEndAnchorDate,
+           let paycheckAnchor = employer.paycheckAnchorDate,
+           let paycheck = PaycheckDateMath.monthlyPaycheckDate(
+               periodEnd: periodEnd,
+               periodEndAnchor: periodEndAnchor,
+               paycheckAnchor: paycheckAnchor,
+               calendar: calendar
+           ) {
+            return paycheck
+        }
+
         if let payPeriodEndAnchorDate = employer.payPeriodEndAnchorDate,
            let paycheckAnchorDate = employer.paycheckAnchorDate,
            let days = employer.payCadence.periodLengthDays(customDays: employer.customCadenceDays),

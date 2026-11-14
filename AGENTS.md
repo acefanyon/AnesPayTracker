@@ -46,6 +46,7 @@ docs/state/STATUS.md
 3. If you need product/history context, read:
 
 ```text
+docs/CASE_TIME_AND_INVOICING_PLAN.md   (current feature work)
 docs/QA_TEST_PLAN.md
 docs/RUNTIME_FEEDBACK_BACKLOG.md
 docs/APP_STORE_LISTING.md
@@ -63,6 +64,8 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 - Keep SwiftData migrations lightweight-safe. New non-optional `@Model` properties need declaration-level defaults or optional storage (`scripts/verify_model_migration_defaults.py`).
 - Editing a saved shift keeps its saved rate (`Shift.baseAmount`); only a new shift or a site change takes the site's current rate.
 - Bind list rows by ID (`$array.element(item)`), never `ForEach($array)`; index-based row bindings crash when the list shrinks (`scripts/verify_list_binding_safety.py`).
+- Never store patient information. Cases hold times only, and nothing identifying goes on an invoice.
+- Do not commit real names, addresses, phone numbers or employer names; examples and tests use made-up data.
 - Do not rename persisted `String` enum raw values after shipped/test data exists. Add `displayName`/`descriptiveLabel` instead.
 - Do not commit local Xcode user data, `.DS_Store`, signing noise, or build archives.
 - Keep product changes small and independently verifiable.
@@ -74,6 +77,8 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 - Streak bonus prorates by day fraction when earned on a partial-day shift.
 - Clock-in / clock-out rounding uses ceiling to the next quarter hour.
 - Paycheck estimator now stores two anchors for employer paycheck calendars: a known pay-period end date and the actual paycheck date for that same period. Example: work period Jun 7–20 paid on Jun 26 uses period-end anchor Jun 20 and paycheck anchor Jun 26. Do not model this as a whole-pay-period delay stepper.
+- Monthly pay cadence with both anchors keeps the anchor pairing month to month: period ending Oct 31 paid Nov 15 means period ending Nov 30 is paid Dec 15 (`PaycheckDateMath`).
+- Case-time sites (employer "paid for case time only"): each case counts whole minutes from start to stop, a running case counts nothing, the day's minutes are summed and raised to the employer's daily minimum if set, and base pay is rate × minutes ÷ 60 rounded to the nearest cent. Example: 7 h 31 m at $400/hr = $3,006.67. A shift keeps its saved cases, rate and minimum.
 - Monthly aggregation payout defaults to the last day/check of the following month.
 - Quarterly aggregation payout defaults to the last day/check of the month after the quarter ends: Q1 → Apr 30, Q2 → Jul 31, Q3 → Oct 31, Q4 → Jan 31.
 
@@ -86,6 +91,17 @@ for f in scripts/verify_*.py; do python3 "$f"; done
 ```
 
 These run on any platform with Python 3. Add or update a verifier with every behavior change.
+
+Run the real Swift pay math (case time, monthly paydays) outside the app; needs a Swift toolchain, and CI runs it on every push:
+
+```bash
+swiftc -o /tmp/pay_math_tests \
+  AnesPayTracker/Engine/CaseTimeCalculator.swift \
+  AnesPayTracker/Engine/PaycheckDateMath.swift \
+  scripts/swift_tests/pay_math/main.swift && /tmp/pay_math_tests
+```
+
+Keep pay math in Foundation-only files like these so it can be tested this way.
 
 Build for the iOS Simulator exactly as CI does (works on a fresh clone; macOS only):
 
@@ -145,8 +161,13 @@ Remaining before a public App Store release: privacy policy page, App Privacy qu
 
 - `AnesPayTracker/Model/Models.swift` — SwiftData models and pay-related enums/value types
 - `AnesPayTracker/Engine/StreakEngine.swift` — streak computation, pay periods, bonus payout and paycheck aggregation logic
+- `AnesPayTracker/Engine/CaseTimeCalculator.swift` — `ShiftCase` and case-time pay math (Foundation only)
+- `AnesPayTracker/Engine/PaycheckDateMath.swift` — monthly payday math (Foundation only)
 - `AnesPayTracker/Engine/CalendarSync.swift` — EventKit and `.ics` export
 - `AnesPayTracker/Views/Entry/AddShiftView.swift` — shift entry, custom bonuses, clock-in/out rounding UI
+- `AnesPayTracker/Views/Entry/CaseTimeEntry.swift` — case list editor inside Add/Edit Shift
+- `AnesPayTracker/Views/Entry/CaseTrackerCard.swift` — Start/Stop Case on Home (`CaseTracker`)
+- `AnesPayTracker/Views/Home/HomeView.swift` — Home tab: work period, next paycheck, streaks, recent shifts
 - `AnesPayTracker/Views/Review/CalendarView.swift` — month/week calendar and day sheets
 - `AnesPayTracker/Views/Review/PayPeriodView.swift` — pay period view/filtering/reconciliation UI
 - `AnesPayTracker/Views/Review/ShiftDetailView.swift` — shift details, pay breakdown, `.ics` sharing

@@ -171,6 +171,24 @@ Pay periods produced by the anchors: **Sep 14–27 → paid Fri, Oct 2** and **S
 - [ ] iPad simulator: the app launches and is usable.
 - [ ] Mac Catalyst: choose **My Mac (Mac Catalyst)** and run; the app launches.
 
+**C12. Case-time pay (build 7)**
+
+Set up: create an employer **Case Group**, monthly cadence, anchors: pay-period end **Oct 31, 2026**, paycheck **Nov 15, 2026**. Turn on **Paid for case time only**. Add site **Case Center**, per hour, **$400**. Add a custom bonus **Recovery**, flat **$200**, prorate off.
+
+- [ ] In the site step the site shows **Paid for case time only** switched on; a per-day site shows the "per-hour sites only" note instead.
+- [ ] Add Shift at Case Center for a past day. Add four cases: 7:30–9:14, 9:40–11:05, 11:30–1:52 PM, 2:10–4:10 PM. Total shows **7 h 31 m** and the preview shows **$3,006.67**.
+- [ ] Turn on Recovery: total **$3,206.67**. Save. Shift detail lists the four cases in order and the same totals.
+- [ ] Edit the shift: change case 2 to start at 9:00. A red overlap message appears and Save is disabled. Set it back to 9:40 and save; edit history records the case change.
+- [ ] Set a case's stop time one hour before its start: the row shows "next day" and an orange 12-hour warning. Fix it.
+- [ ] Home shows a **Case tracker** card. Tap **Start Case**: a running timer appears. Tap **Stop Case** a minute later: today's shift shows 1 case, 1 m, **$6.67**. Start and stop again: case 2 is added.
+- [ ] Open today's shift from the card, edit a time, save: Home totals update.
+- [ ] Start a case, stop the app in Xcode, run again: the case is still running. Stop it.
+- [ ] Edit the employer: turn on **Daily minimum hours**, 4. Existing shifts keep their totals. A new shift with one 30-minute case previews **$1,600.00** with a "Daily minimum applies" note.
+- [ ] Turn **Paid for case time only** off for the employer: existing case shifts still show their cases and totals; a new shift at the site uses plain hours.
+- [ ] Home's work-period card for Case Group shows the current month and **Paid Dec 15** for November; Report → Paycheck Estimator shows November work on the **Dec 15** check.
+- [ ] Earnings report and its PDF show the case shift's time as "7h 31m".
+- [ ] Existing employers (per-day, plain hourly, clock in/out) behave exactly as before.
+
 ---
 
 ## Fixed issues (found while writing this plan, fixed 2026-10-01 for build 5)

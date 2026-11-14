@@ -21,6 +21,10 @@
 		B012 /* Views/Review/PayPeriodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* Views/Review/PayPeriodView.swift */; };
 		B013 /* Views/Review/StreakStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* Views/Review/StreakStatusView.swift */; };
 		B019 /* Views/Home/HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019 /* Views/Home/HomeView.swift */; };
+		B020 /* Engine/CaseTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A020 /* Engine/CaseTimeCalculator.swift */; };
+		B021 /* Engine/PaycheckDateMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = A021 /* Engine/PaycheckDateMath.swift */; };
+		B022 /* Views/Entry/CaseTimeEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A022 /* Views/Entry/CaseTimeEntry.swift */; };
+		B023 /* Views/Entry/CaseTrackerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A023 /* Views/Entry/CaseTrackerCard.swift */; };
 		B014 /* Views/Report/ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* Views/Report/ReportView.swift */; };
 		B015 /* Views/Report/PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* Views/Report/PDFReportGenerator.swift */; };
 		B016 /* Views/Settings/SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* Views/Settings/SettingsView.swift */; };
@@ -43,6 +47,10 @@
 		A012 /* Views/Review/PayPeriodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/PayPeriodView.swift; sourceTree = "<group>"; };
 		A013 /* Views/Review/StreakStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Review/StreakStatusView.swift; sourceTree = "<group>"; };
 		A019 /* Views/Home/HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/HomeView.swift; sourceTree = "<group>"; };
+		A020 /* Engine/CaseTimeCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/CaseTimeCalculator.swift; sourceTree = "<group>"; };
+		A021 /* Engine/PaycheckDateMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/PaycheckDateMath.swift; sourceTree = "<group>"; };
+		A022 /* Views/Entry/CaseTimeEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Entry/CaseTimeEntry.swift; sourceTree = "<group>"; };
+		A023 /* Views/Entry/CaseTrackerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Entry/CaseTrackerCard.swift; sourceTree = "<group>"; };
 		A014 /* Views/Report/ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/ReportView.swift; sourceTree = "<group>"; };
 		A015 /* Views/Report/PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Report/PDFReportGenerator.swift; sourceTree = "<group>"; };
 		A016 /* Views/Settings/SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -98,6 +106,8 @@
 				A005 /* Engine/StreakEngine.swift */,
 				A006 /* Engine/CalendarSync.swift */,
 				A007 /* Engine/SeedData.swift */,
+				A020 /* Engine/CaseTimeCalculator.swift */,
+				A021 /* Engine/PaycheckDateMath.swift */,
 			);
 			name = Engine;
 			sourceTree = "<group>";
@@ -106,6 +116,8 @@
 			isa = PBXGroup;
 			children = (
 				A009 /* Views/Entry/AddShiftView.swift */,
+				A022 /* Views/Entry/CaseTimeEntry.swift */,
+				A023 /* Views/Entry/CaseTrackerCard.swift */,
 			);
 			name = Entry;
 			sourceTree = "<group>";
@@ -275,6 +287,10 @@
 				B012 /* Views/Review/PayPeriodView.swift in Sources */,
 				B013 /* Views/Review/StreakStatusView.swift in Sources */,
 				B019 /* Views/Home/HomeView.swift in Sources */,
+				B020 /* Engine/CaseTimeCalculator.swift in Sources */,
+				B021 /* Engine/PaycheckDateMath.swift in Sources */,
+				B022 /* Views/Entry/CaseTimeEntry.swift in Sources */,
+				B023 /* Views/Entry/CaseTrackerCard.swift in Sources */,
 				B014 /* Views/Report/ReportView.swift in Sources */,
 				B015 /* Views/Report/PDFReportGenerator.swift in Sources */,
 				B016 /* Views/Settings/SettingsView.swift in Sources */,
@@ -417,7 +433,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";
@@ -443,7 +459,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "AnesPay can add your work shifts to your calendar.";

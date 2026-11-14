@@ -26,6 +26,15 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Run Swift pay-math tests
+        run: |
+          set -e
+          swiftc -o "$RUNNER_TEMP/pay_math_tests" \
+            AnesPayTracker/Engine/CaseTimeCalculator.swift \
+            AnesPayTracker/Engine/PaycheckDateMath.swift \
+            scripts/swift_tests/pay_math/main.swift
+          "$RUNNER_TEMP/pay_math_tests"
+
       - name: Build for iOS Simulator (no code signing)
         run: |
           set -o pipefail

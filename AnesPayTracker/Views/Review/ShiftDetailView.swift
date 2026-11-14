@@ -26,6 +26,10 @@ struct ShiftDetailView: View {
                         // Pay breakdown
                         PayBreakdownCard(shift: shift)
 
+                        if shift.isCaseTracked {
+                            CaseListCard(shift: shift)
+                        }
+
                         // Meta info
                         ShiftMetaCard(shift: shift)
 
@@ -174,6 +178,50 @@ struct ShiftDetailHeader: View {
     }
 }
 
+// MARK: - Case List Card
+
+/// The day's cases in clock order. Generic numbering only: no patient details.
+struct CaseListCard: View {
+    let shift: Shift
+
+    var body: some View {
+        InfoCard(title: "Cases") {
+            VStack(spacing: 0) {
+                let cases = shift.sortedCases
+                if cases.isEmpty {
+                    Text("No cases recorded yet.")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                }
+                ForEach(Array(cases.enumerated()), id: \.element.id) { index, shiftCase in
+                    if index > 0 { Divider() }
+                    HStack(spacing: 8) {
+                        Text("Case \(index + 1)")
+                        Spacer(minLength: 4)
+                        Text(timeRange(shiftCase))
+                            .foregroundStyle(.secondary)
+                        Text(shiftCase.isRunning ? "running" : CaseTimeCalculator.durationLabel(minutes: CaseTimeCalculator.minutes(of: shiftCase)))
+                            .bold()
+                            .foregroundStyle(shiftCase.isRunning ? .green : .primary)
+                            .frame(minWidth: 70, alignment: .trailing)
+                    }
+                    .font(.subheadline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    private func timeRange(_ shiftCase: ShiftCase) -> String {
+        let start = shiftCase.startAt.formatted(.dateTime.hour().minute())
+        if shiftCase.isRunning { return "\(start) –" }
+        return "\(start) – \(shiftCase.endAt.formatted(.dateTime.hour().minute()))"
+    }
+}
+
 // MARK: - Pay Breakdown Card
 
 struct PayBreakdownCard: View {
@@ -183,6 +231,18 @@ struct PayBreakdownCard: View {
         let schedule = shift.streakPayoutSchedule ?? .nextQuarterlyPayout
         let payoutDate = schedule.payoutDate(for: shift.date)
         return "Earned on this shift, paid \(payoutDate.formatted(.dateTime.month(.abbreviated).day().year()))"
+    }
+
+    private var caseTimeDetail: String {
+        let count = shift.cases?.count ?? 0
+        var text = "\(count) case\(count == 1 ? "" : "s"), paid by the minute"
+        if shift.minimumAdjustmentMinutes > 0 {
+            text += "; daily minimum applied (worked \(CaseTimeCalculator.durationLabel(minutes: shift.caseMinutes)))"
+        }
+        if shift.runningCase != nil {
+            text += "; one case still running"
+        }
+        return text
     }
 
     var body: some View {
@@ -196,17 +256,26 @@ struct PayBreakdownCard: View {
                         isBase: true
                     )
                 case .perHour:
-                    let hrs = shift.hoursWorked ?? 0
-                    let detail: String? = {
-                        guard let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt else { return nil }
-                        return "Clock \(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute())); ceiling quarter-hour rounded"
-                    }()
-                    BreakdownRow(
-                        label: "\(shift.baseAmount.formatted(.currency(code: "USD")))/hr × \(hrs.formatted()) hrs",
-                        detail: detail,
-                        value: shift.basePay,
-                        isBase: true
-                    )
+                    if shift.isCaseTracked {
+                        BreakdownRow(
+                            label: "\(shift.baseAmount.formatted(.currency(code: "USD")))/hr × \(CaseTimeCalculator.durationLabel(minutes: shift.paidCaseMinutes))",
+                            detail: caseTimeDetail,
+                            value: shift.basePay,
+                            isBase: true
+                        )
+                    } else {
+                        let hrs = shift.hoursWorked ?? 0
+                        let detail: String? = {
+                            guard let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt else { return nil }
+                            return "Clock \(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute())); ceiling quarter-hour rounded"
+                        }()
+                        BreakdownRow(
+                            label: "\(shift.baseAmount.formatted(.currency(code: "USD")))/hr × \(hrs.formatted()) hrs",
+                            detail: detail,
+                            value: shift.basePay,
+                            isBase: true
+                        )
+                    }
                 }
 
                 if let splash = shift.splashAmount, splash > 0 {
@@ -316,7 +385,7 @@ struct ShiftMetaCard: View {
                 case .perDay:
                     MetaRow(label: "Day Fraction", value: shift.dayFraction?.accessibilityLabel ?? "Full Day")
                 case .perHour:
-                    MetaRow(label: "Hours", value: "\(shift.hoursWorked?.formatted() ?? "0") hrs")
+                    MetaRow(label: shift.isCaseTracked ? "Paid Time" : "Hours", value: shift.hoursLabel)
                     if let clockIn = shift.clockInAt, let clockOut = shift.clockOutAt {
                         Divider()
                         MetaRow(label: "Clock", value: "\(clockIn.formatted(.dateTime.hour().minute()))–\(clockOut.formatted(.dateTime.hour().minute()))")

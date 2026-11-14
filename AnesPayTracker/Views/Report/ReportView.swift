@@ -781,7 +781,7 @@ struct ReportTableRow: View {
     var durationText: String {
         switch shift.payUnit {
         case .perDay: return shift.dayFraction?.label ?? "Full"
-        case .perHour: return "\((shift.hoursWorked ?? 0).formatted())h"
+        case .perHour: return shift.compactHoursLabel
         }
     }
 
