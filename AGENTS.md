@@ -67,7 +67,8 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 - Never store patient information. Cases hold times only, and nothing identifying goes on an invoice.
 - Do not commit real names, addresses, phone numbers or employer names; examples and tests use made-up data.
 - Do not rename persisted `String` enum raw values after shipped/test data exists. Add `displayName`/`descriptiveLabel` instead.
-- Do not commit local Xcode user data, `.DS_Store`, signing noise, or build archives.
+- Do not commit local Xcode user data, `.DS_Store`, signing noise, or build archives. The project's `DEVELOPMENT_TEAM` is committed on purpose so every Mac can archive; CI overrides it and builds unsigned.
+- When editing `project.pbxproj` by hand, insert entries in Xcode's sorted order (by ID within each section), or Xcode re-sorts the file and leaves an uncommitted change on the next open.
 - Keep product changes small and independently verifiable.
 
 ## Domain rules that have been corrected and must remain stable
@@ -151,9 +152,9 @@ Already prepared:
 - App Store listing draft: `docs/APP_STORE_LISTING.md`
 - App Store screenshots: `screenshots/appstore/`
 - Current bundle ID observed in builds: `com.anespay.tracker` for iOS, `maccatalyst.com.anespay.tracker` for Catalyst
-- Team ID observed from Xcode build settings: configured locally, but provisioning can still fail from CLI if profiles are absent
+- Signing team is set in the project (`DEVELOPMENT_TEAM`); provisioning can still fail from the command line if profiles are absent
 
-- App icon, App Store Connect app record and TestFlight distribution are in place; 1.1 (6) is installed on the testers' phones (see `docs/state/STATUS.md`).
+- App icon, App Store Connect app record and TestFlight distribution are in place; 1.1 (6) is installed on the testers' phones and build 7 was uploaded on 2026-11-15 (see `docs/state/STATUS.md`).
 - Build numbers: Xcode Organizer can auto-assign the next unused build number on upload, so App Store Connect can be ahead of the source. Check App Store Connect's TestFlight build list before choosing the next number.
 - Archiving and uploading need Xcode on a Mac signed in to the Apple developer account (Xcode → Settings → Accounts) on that Mac.
 

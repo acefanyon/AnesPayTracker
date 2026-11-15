@@ -1,8 +1,13 @@
 # AnesPayTracker Status
 
-Last updated: 2026-11-14
+Last updated: 2026-11-15
 
-## 2026-11-14 update (case-time pay and invoices, build 7, not yet on phones)
+## 2026-11-15 update
+
+- `main` holds everything below. Build 7 (case-time pay and invoices) was archived and uploaded to App Store Connect on 2026-11-15; check App Store Connect for the build number it was given. Not yet confirmed installed on the testers' phones: install on Jason's phone first and confirm existing Envision/Banner shifts are intact before the primary tester updates.
+- The signing team is now committed in the project file, and Xcode re-sorted the file's entries (no functional change).
+
+## 2026-11-14 update (case-time pay and invoices, build 7)
 
 - New feature work is specified in `docs/CASE_TIME_AND_INVOICING_PLAN.md`. Phase 1 (case-time pay) and phase 2 (invoices) are built and ship together in build 7; phase 3 (invoice tracking) is next.
 - Phase 2: Report → Invoices creates one PDF invoice per employer for a date range, across all of its sites, numbered from the employer code and invoice date like `EN-041326`. Each day names its site and lists its cases with times, charges and a day total. A created invoice is a frozen copy; deleting one never touches shifts. New `Invoice` entity plus optional `invoiceCode` / billing fields on the employer (lightweight-migration safe). Verifier: `scripts/verify_invoices.py`.
