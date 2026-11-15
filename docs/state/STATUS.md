@@ -11,7 +11,7 @@ Last updated: 2026-11-14
 - Behavior change for existing data: monthly employers with both paycheck anchors now get the payday the anchors describe (previously one month late). Other cadences are unchanged.
 - CI now also compiles and runs `scripts/swift_tests/pay_math` (the app's real pay math). Source build number is 7.
 - 2026-11-15: C12 and C13 passed in the simulator. Fixed afterwards: invoice addresses are entered as three lines; PDF previews (invoice and reports) have Done and a share button with Print; Add Shift now reports a failed save instead of closing as if it worked.
-- **Open, do not upload until resolved:** in that run a newly added shift was missing after the whole Simulator was quit and reopened, while the invoice that billed it remained. No code path was found that deletes shifts at launch or when invoicing, and it has not been reproduced. Repeat the persistence check in C13 first.
+- In that run a newly added shift appeared to be missing after the whole Simulator was quit and reopened, while the invoice that billed it remained. On re-checking the same day the shift was there, and no code path was found that deletes shifts at launch or when invoicing. Treated as not reproduced; the persistence check stays in C13. If it is ever seen again, record whether the invoice shows the orange "Shifts changed since" note.
 
 ## 2026-11-14 update
 
