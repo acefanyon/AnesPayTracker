@@ -4,7 +4,7 @@ Last updated: 2026-11-15
 
 ## 2026-11-15 update
 
-- `main` holds everything below. Build 7 (case-time pay and invoices) was archived and uploaded to App Store Connect on 2026-11-15; check App Store Connect for the build number it was given. Not yet confirmed installed on the testers' phones: install on Jason's phone first and confirm existing Envision/Banner shifts are intact before the primary tester updates.
+- `main` holds everything below. Build 7 (case-time pay and invoices) was archived and uploaded to App Store Connect on 2026-11-15; check App Store Connect for the build number it was given. Installed on Jason's phone on 2026-11-15 with existing data intact. Not yet on the primary tester's phone: back it up before she updates.
 - The signing team is now committed in the project file, and Xcode re-sorted the file's entries (no functional change).
 
 ## 2026-11-14 update (case-time pay and invoices, build 7)
