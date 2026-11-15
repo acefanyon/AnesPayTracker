@@ -112,6 +112,26 @@ enum InvoiceMath {
         "Anesthesia services, case \(number)"
     }
 
+    /// An address split into exactly `count` entry fields. Extra lines are
+    /// folded into the last field so nothing typed is ever dropped.
+    static func addressFields(_ text: String, count: Int = 3) -> [String] {
+        var parts = text.components(separatedBy: "\n")
+        if parts.count > count {
+            let extra = parts[(count - 1)...].filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            parts = Array(parts[..<(count - 1)]) + [extra.joined(separator: ", ")]
+        }
+        while parts.count < count { parts.append("") }
+        return parts
+    }
+
+    /// The address with one entry field replaced.
+    static func address(_ text: String, settingField index: Int, to value: String, count: Int = 3) -> String {
+        var fields = addressFields(text, count: count)
+        guard fields.indices.contains(index) else { return text }
+        fields[index] = value.replacingOccurrences(of: "\n", with: " ")
+        return fields.joined(separator: "\n")
+    }
+
     static func addressLines(_ text: String) -> [String] {
         text.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }

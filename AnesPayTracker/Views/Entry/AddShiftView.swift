@@ -78,6 +78,7 @@ struct AddShiftView: View {
     @State private var streakAlertText: String = ""
     @State private var showPasteHint: Bool = false
     @State private var isSaving: Bool = false
+    @State private var saveErrorText: String?
 
     // Recently used sites (last 5 unique)
     private var recentSites: [Site] {
@@ -336,6 +337,14 @@ struct AddShiftView: View {
                     }
                 }
             }
+            .alert(
+                "This shift was not saved",
+                isPresented: Binding(get: { saveErrorText != nil }, set: { if !$0 { saveErrorText = nil } })
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveErrorText ?? "")
+            }
             .alert("🎯 Streak Bonus!", isPresented: $showStreakAlert) {
                 Button("Great!") { dismiss() }
             } message: {
@@ -446,6 +455,17 @@ struct AddShiftView: View {
             StreakEngine.recomputeStreaks(for: employer)
         }
 
+        // Save before anything else. If the save fails, say so and keep the
+        // form open: closing it would make an unsaved shift look saved.
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            isSaving = false
+            saveErrorText = "Nothing was changed. Please try again. (\(error.localizedDescription))"
+            return
+        }
+
         // Calendar sync
         let calSync = CalendarSyncManager.shared
         if calSync.isOptedIn {
@@ -454,9 +474,8 @@ struct AddShiftView: View {
             } else {
                 shift.calendarEventID = calSync.addEvent(for: shift)
             }
+            try? modelContext.save()
         }
-
-        try? modelContext.save()
 
         // Check streak trigger
         if let bonus = shift.streakBonusAmount, bonus > 0, editingShift == nil {

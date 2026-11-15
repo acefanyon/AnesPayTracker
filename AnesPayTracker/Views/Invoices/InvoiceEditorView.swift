@@ -12,6 +12,27 @@ enum InvoiceSenderKey {
     static let email = "invoiceSender.email"
 }
 
+// MARK: - Address Fields
+
+/// Three single-line fields for one address, which is kept as lines of text
+/// and printed one line per field. (A multi-line text field can't be used:
+/// the keyboard's Return key ends editing instead of starting a new line.)
+private struct AddressFields: View {
+    @Binding var address: String
+
+    private static let prompts = ["Street address", "Suite or unit (optional)", "City, State ZIP"]
+
+    var body: some View {
+        ForEach(Self.prompts.indices, id: \.self) { index in
+            TextField(Self.prompts[index], text: Binding(
+                get: { InvoiceMath.addressFields(address)[index] },
+                set: { address = InvoiceMath.address(address, settingField: index, to: $0) }
+            ))
+            .textInputAutocapitalization(.words)
+        }
+    }
+}
+
 // MARK: - Invoice Editor
 
 /// Creates an invoice from an employer's logged shifts, across all of its sites.
@@ -166,8 +187,7 @@ struct InvoiceEditorView: View {
         Section {
             TextField("Your name, as it should appear", text: $senderName)
                 .textContentType(.name)
-            TextField("Address", text: $senderAddress, axis: .vertical)
-                .lineLimit(2...4)
+            AddressFields(address: $senderAddress)
             TextField("Phone (optional)", text: $senderPhone)
                 .keyboardType(.phonePad)
             TextField("Email (optional)", text: $senderEmail)
@@ -195,8 +215,7 @@ struct InvoiceEditorView: View {
             }
 
             TextField("Name to bill", text: $billToName)
-            TextField("Billing address", text: $billToAddress, axis: .vertical)
-                .lineLimit(2...4)
+            AddressFields(address: $billToAddress)
 
             LabeledContent("Employer code") {
                 codeField("EN", text: $employerCode)

@@ -5,6 +5,8 @@
    site's rate in Settings must never reprice past shifts when they are edited.
 2. Employers without a known pay-period end date get guessed pay periods, so
    the app must not present those dates as fact and must prompt for anchors.
+3. (2026-11-15) Saving a shift must never fail silently: the records exist
+   only on the phone, so a failed save has to be visible.
 """
 from pathlib import Path
 import sys
@@ -36,6 +38,13 @@ checks = {
         "effectiveRate * (dayFraction.multiplier)" in ADD and "effectiveRate * Decimal(hoursWorked)" in ADD
     ),
     "Edit history should record rate changes": 'changes.append("rate ' in ADD,
+    "A shift that fails to save must say so, undo the attempt and keep the form open": (
+        "try modelContext.save()" in save_body
+        and "modelContext.rollback()" in save_body
+        and "saveErrorText = " in save_body
+        and save_body.find("try modelContext.save()") < save_body.find("dismiss()")
+        and '"This shift was not saved"' in ADD
+    ),
     "Employer should define when pay periods are reliable": (
         "var hasReliablePayPeriods: Bool" in MODELS
         and "payCadence == .monthly || payPeriodEndAnchorDate != nil" in MODELS

@@ -140,6 +140,13 @@ check(InvoiceMath.cents(CaseTimeCalculator.pay(rate: 400, paidMinutes: 451)), 30
 
 check(InvoiceMath.caseLabel(3), "Anesthesia services, case 3", "generic case label")
 check(InvoiceMath.addressLines(" 1 Example St \n\nSuite 2\nAnytown, ST 00000 "), ["1 Example St", "Suite 2", "Anytown, ST 00000"], "address lines are trimmed and blank lines dropped")
+check(InvoiceMath.addressFields(""), ["", "", ""], "an empty address has three empty fields")
+check(InvoiceMath.addressFields("1 Example St"), ["1 Example St", "", ""], "a one-line address fills the first field")
+check(InvoiceMath.addressFields("1 Example St\nSuite 2\nAnytown, ST 00000\nUSA"), ["1 Example St", "Suite 2", "Anytown, ST 00000, USA"], "extra lines are kept in the last field")
+let typedAddress = InvoiceMath.address(InvoiceMath.address("", settingField: 0, to: "1 Example St"), settingField: 2, to: "Anytown, ST 00000")
+check(typedAddress, "1 Example St\n\nAnytown, ST 00000", "fields are stored as lines")
+check(InvoiceMath.addressLines(typedAddress), ["1 Example St", "Anytown, ST 00000"], "a blank middle field prints no blank line")
+check(InvoiceMath.address("1 Example St", settingField: 1, to: "Suite 2 "), "1 Example St\nSuite 2 \n", "typing is kept exactly, including a trailing space")
 
 let invoiceDay = InvoiceDay(
     id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,

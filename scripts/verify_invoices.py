@@ -153,6 +153,18 @@ checks.update({
         "InvoiceBuilder.changedDays(in: snapshot, shifts: shifts)" in DETAIL
         and "InvoiceMath.fingerprint(of: InvoiceBuilder.day(for: shift)) != InvoiceMath.fingerprint(of: day)" in BUILDER
     ),
+    "Addresses are typed as three lines and printed one line each": (
+        "AddressFields(address: $senderAddress)" in EDITOR
+        and "AddressFields(address: $billToAddress)" in EDITOR
+        and "axis: .vertical).lineLimit(2" not in EDITOR.replace("\n", "").replace(" ", "")
+        and "static func addressFields(_ text: String, count: Int = 3)" in MATH
+    ),
+    "The PDF preview has Done and a share button (print, mail, save)": (
+        "struct PDFPreviewSheet: View" in REPORT
+        and "ShareLink(item: url)" in REPORT
+        and 'Button("Done") { dismiss() }' in REPORT
+        and "QLPreviewController" in REPORT
+    ),
     "Invoices open from the Report tab": "InvoicesLinkCard()" in REPORT and "InvoiceListView()" in REPORT,
     "New files are compiled into the app": all(
         f"{path} in Sources */," in PROJECT

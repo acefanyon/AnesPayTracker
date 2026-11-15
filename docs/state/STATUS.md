@@ -10,7 +10,8 @@ Last updated: 2026-11-14
 - Phase 1: employers can be "paid for case time only" with an optional daily minimum; shifts at their per-hour sites are a list of cases paid by the minute; Home has a Start/Stop Case card. See the plan for files and rules.
 - Behavior change for existing data: monthly employers with both paycheck anchors now get the payday the anchors describe (previously one month late). Other cadences are unchanged.
 - CI now also compiles and runs `scripts/swift_tests/pay_math` (the app's real pay math). Source build number is 7.
-- Not yet tested in the simulator or on a phone. Run sections C12 and C13 of `docs/QA_TEST_PLAN.md` before uploading.
+- 2026-11-15: C12 and C13 passed in the simulator. Fixed afterwards: invoice addresses are entered as three lines; PDF previews (invoice and reports) have Done and a share button with Print; Add Shift now reports a failed save instead of closing as if it worked.
+- **Open, do not upload until resolved:** in that run a newly added shift was missing after the whole Simulator was quit and reopened, while the invoice that billed it remained. No code path was found that deletes shifts at launch or when invoicing, and it has not been reproduced. Repeat the persistence check in C13 first.
 
 ## 2026-11-14 update
 

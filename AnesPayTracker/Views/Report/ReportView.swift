@@ -1107,7 +1107,35 @@ struct PDFPreviewItem: Identifiable {
     let url: URL
 }
 
-struct PDFPreviewSheet: UIViewControllerRepresentable {
+/// A PDF shown in a sheet with its own bar: Done, and a share button whose
+/// sheet offers Print, Mail, Messages and Save to Files. Quick Look's own
+/// share button does not appear when it is hosted in a SwiftUI sheet.
+struct PDFPreviewSheet: View {
+    let url: URL
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            QuickLookPDFView(url: url)
+                .ignoresSafeArea(edges: .bottom)
+                .navigationTitle(url.deletingPathExtension().lastPathComponent)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        ShareLink(item: url) {
+                            Label("Share or Print", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
+        }
+    }
+}
+
+struct QuickLookPDFView: UIViewControllerRepresentable {
     let url: URL
 
     func makeCoordinator() -> Coordinator {
