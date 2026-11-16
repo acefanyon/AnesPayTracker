@@ -71,6 +71,24 @@ Note: `docs/HERMES_SESSION_HANDOFF.md` is older historical context. Prefer `docs
 - When editing `project.pbxproj` by hand, insert entries in Xcode's sorted order (by ID within each section), or Xcode re-sorts the file and leaves an uncommitted change on the next open.
 - Keep product changes small and independently verifiable.
 
+## Interface and Apple platform guidelines
+
+All interface work follows Apple's current guidelines for app development:
+
+- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) for layout, navigation, controls, typography, color, icons, accessibility and writing.
+- [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) for anything that could affect review: privacy, data use, payments, permissions and app completeness.
+
+Apple revises these every year, usually with each major iOS release. Check the current pages before designing or reviewing a screen; don't rely on memory or older examples in this codebase. In practice this means:
+
+- Use system components and patterns (`Form`, `List`, `NavigationStack`, sheets, toolbars, standard pickers) before custom ones. Put Cancel/Done and confirming actions where iOS puts them.
+- Support Dynamic Type (no fixed font sizes outside the `payDisplay` numerals), Dark Mode (system or asset-catalog colors) and VoiceOver (labels on icon-only buttons and on values whose meaning isn't in the text).
+- Keep tap targets at least 44 × 44 points.
+- Use SF Symbols for icons.
+- Ask for confirmation before destructive actions, and say plainly what will and won't be deleted.
+- Request permissions (calendar, notifications) only when the feature needs them, with a clear usage description.
+
+Many existing screens predate this rule. When you change a screen, bring the parts you touch into line. Record larger gaps you notice in `docs/RUNTIME_FEEDBACK_BACKLOG.md` rather than reworking screens outside the task.
+
 ## Domain rules that have been corrected and must remain stable
 
 - Per-day / flat bonuses can prorate for partial-day shifts via per-bonus toggle.
