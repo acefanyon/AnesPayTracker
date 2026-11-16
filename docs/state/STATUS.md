@@ -2,6 +2,10 @@
 
 Last updated: 2026-11-15
 
+## 2026-11-16 update
+
+- Interface work now follows Apple's current Human Interface Guidelines and App Store Review Guidelines (`AGENTS.md`). The next major version is a UI overhaul built to those guidelines; see "App structure" in `docs/CASE_TIME_AND_INVOICING_PLAN.md`.
+
 ## 2026-11-15 update
 
 - `main` holds everything below. Build 7 (case-time pay and invoices) was archived and uploaded to App Store Connect on 2026-11-15; check App Store Connect for the build number it was given. Installed on Jason's phone on 2026-11-15 with existing data intact. Not yet on the primary tester's phone: back it up before she updates.

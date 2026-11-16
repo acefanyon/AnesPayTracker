@@ -67,6 +67,13 @@ Per-employer and productivity reports (days, cases, case hours, add-ons, earning
 
 Start/end shift and start/stop case from the Watch and the iPhone Lock Screen, built on `CaseTracker`.
 
-## App structure (direction, not yet built)
+## App structure: the next major version (direction, not yet built)
 
-By how often each function is used: Today (start/stop, today's entry, earnings), Schedule (calendar), Admin (pay periods, invoices, reports, exports), with setup behind a gear icon. New features are placed where they will live after the tabs are merged.
+The next major version is a UI overhaul, organised by how often each function is used: Today (start/stop, today's entry, earnings), Schedule (calendar), Admin (pay periods, invoices, reports, exports), with setup behind a gear icon. New features are placed where they will live after the tabs are merged.
+
+Goal set by Jason on 2026-11-16: the overhaul is built to Apple's current Human Interface Guidelines and App Store Review Guidelines (see "Interface and Apple platform guidelines" in `AGENTS.md`). That means:
+
+- Start by reviewing every existing screen against the current guidelines (screenshots or a Simulator session on a Mac) and listing the gaps. Fold those gaps into the overhaul instead of fixing them one at a time beforehand.
+- Design the new screens from current guidelines, not from the existing screens.
+- Test with the largest text size, Dark Mode and VoiceOver as part of the QA pass for the overhaul.
+- The overhaul is also the natural point to prepare the public App Store release, which is reviewed against the same guidelines.
