@@ -60,6 +60,37 @@ extension XCTestCase {
         return target.exists
     }
 
+    /// Flips a switch by tapping the switch itself. In a Form the switch
+    /// element spans the whole row, and a tap in its middle lands on the label.
+    func flip(_ toggle: XCUIElement) {
+        let inner = toggle.switches.firstMatch
+        if inner.exists && inner.frame.width < toggle.frame.width {
+            inner.tap()
+        } else {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        }
+    }
+
+    /// Waits for `element`; if it never appears, fails with a list of what is
+    /// on screen, so the cause can be read from the log without screenshots.
+    func require(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        _ message: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        if element.waitForExistence(timeout: timeout) { return }
+        let kinds = ["Button", "Switch", "Alert", "Sheet", "StaticText", "NavigationBar", "Other, identifier"]
+        let onScreen = app.debugDescription
+            .split(separator: "\n")
+            .filter { line in kinds.contains { line.contains($0) } }
+            .prefix(80)
+            .joined(separator: "\n")
+        XCTFail("\(message)\nOn screen:\n\(onScreen)", file: file, line: line)
+    }
+
     func goBack(_ app: XCUIApplication) {
         let back = app.navigationBars.buttons.element(boundBy: 0)
         XCTAssertTrue(back.waitForExistence(timeout: 5), "A back button should exist")

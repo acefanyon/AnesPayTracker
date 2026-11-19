@@ -104,10 +104,10 @@ final class InvoiceRemindersUITests: XCTestCase {
         let tracking = app.switches["Track invoice payments"]
         XCTAssertTrue(tracking.waitForExistence(timeout: 10))
         XCTAssertEqual(tracking.value as? String, "0", "Payment tracking should be off by default")
-        tracking.tap()
+        flip(tracking)
 
         let leaveUnpaid = app.buttons["Leave Them Unpaid"]
-        XCTAssertTrue(leaveUnpaid.waitForExistence(timeout: 10), "Turning tracking on should offer to mark existing invoices paid")
+        require(leaveUnpaid, in: app, "Turning tracking on should offer to mark existing invoices paid")
         XCTAssertTrue(app.buttons["Mark 1 as Paid Today"].exists, "Both choices should be visible")
         screenshot(app, "12 Mark existing invoices as paid?")
         leaveUnpaid.tap()
@@ -117,7 +117,7 @@ final class InvoiceRemindersUITests: XCTestCase {
 
         openTab(app, "Home")
         let unpaidCard = app.buttons["invoices.unpaidCard"]
-        XCTAssertTrue(unpaidCard.waitForExistence(timeout: 10), "Home should show the unpaid invoice")
+        require(unpaidCard, in: app, "Home should show the unpaid invoice")
         XCTAssertTrue(text(app, containing: "1 overdue").exists, "The old invoice is past its due date")
         screenshot(app, "13 Home shows unpaid invoice")
 
@@ -127,8 +127,8 @@ final class InvoiceRemindersUITests: XCTestCase {
 
         element(app.buttons, containing: "CG-").tap()
         let paid = app.switches["invoice.paidToggle"]
-        XCTAssertTrue(paid.waitForExistence(timeout: 10), "The invoice should have a Paid switch")
-        paid.tap()
+        require(paid, in: app, "The invoice should have a Paid switch")
+        flip(paid)
         XCTAssertTrue(text(app, containing: "Paid ").waitForExistence(timeout: 5), "The invoice should show Paid with a date")
         XCTAssertTrue(app.datePickers["Paid on"].exists, "A paid date should appear")
         screenshot(app, "15 Invoice marked paid")
