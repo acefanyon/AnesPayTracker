@@ -5,6 +5,7 @@ Last updated: 2026-11-15
 ## 2026-11-19 update (automated UI tests)
 
 - Added automated UI tests: a UI test target (`AnesPayTrackerUITests`), a shared scheme, a Debug-only test launch mode with made-up data (`App/UITestSupport.swift`), and the **UI Tests** GitHub workflow, which uploads a summary and screenshots. The first suite covers QA section C14. See "Automated UI tests" in `AGENTS.md`.
+- First passing run 2026-11-19: 4 of 4 C14 tests pass. Getting there found one real app issue, now fixed: turning payment tracking on showed the "mark existing invoices paid?" question and the notification prompt at once, and its Cancel-style choice can be hidden on newer iOS. The UI Tests workflow runs automatically only when the UI test files change; otherwise start it by hand.
 
 ## 2026-11-19 update (phase 3, not yet tested)
 
