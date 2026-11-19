@@ -105,12 +105,14 @@ final class InvoiceRemindersUITests: XCTestCase {
         XCTAssertTrue(tracking.waitForExistence(timeout: 10))
         XCTAssertEqual(tracking.value as? String, "0", "Payment tracking should be off by default")
         tracking.tap()
-        allowNotificationsIfAsked()
 
         let leaveUnpaid = app.buttons["Leave Them Unpaid"]
         XCTAssertTrue(leaveUnpaid.waitForExistence(timeout: 10), "Turning tracking on should offer to mark existing invoices paid")
+        XCTAssertTrue(app.buttons["Mark 1 as Paid Today"].exists, "Both choices should be visible")
         screenshot(app, "12 Mark existing invoices as paid?")
         leaveUnpaid.tap()
+        // The notification prompt comes after the answer, never on top of it.
+        allowNotificationsIfAsked()
         XCTAssertEqual(tracking.value as? String, "1", "Payment tracking should now be on")
 
         openTab(app, "Home")

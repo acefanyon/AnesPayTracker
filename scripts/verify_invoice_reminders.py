@@ -169,8 +169,13 @@ checks.update({
         and "periodEnd = prefill.period.end" in EDITOR
     ),
     "Settings links to reminders and payments": "InvoiceSettingsView()" in SETTINGS_ROOT,
-    "Turning tracking on offers to mark existing invoices paid": (
-        "Mark existing invoices as paid?" in SETTINGS and "Leave Them Unpaid" in SETTINGS
+    "Turning tracking on offers to mark existing invoices paid, both choices always visible": (
+        "Mark existing invoices as paid?" in SETTINGS
+        and 'Button("Leave Them Unpaid") {' in SETTINGS
+        and "role: .cancel" not in SETTINGS.split("Mark existing invoices as paid?")[1].split(".alert(")[0]
+    ),
+    "The notification prompt waits until that question is answered": (
+        SETTINGS.split("private func setTracksPayments")[1].split("private func askForNotificationsAndReschedule")[0].count("askForNotificationsAndReschedule()") == 1
     ),
     "Saving a payment reports failures and refreshes reminders": (
         "private func setPaid(_ invoice: Invoice, on date: Date?)" in LIST

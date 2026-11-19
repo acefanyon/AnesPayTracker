@@ -65,8 +65,13 @@ struct InvoiceSettingsView: View {
             isPresented: $showMarkExistingPaid,
             titleVisibility: .visible
         ) {
-            Button("Mark \(unpaidCount) as Paid Today") { markExistingPaid() }
-            Button("Leave Them Unpaid", role: .cancel) {}
+            // Neither is a Cancel button: newer iOS versions can hide Cancel
+            // in this menu, and both choices should always be visible.
+            Button("Mark \(unpaidCount) as Paid Today") {
+                markExistingPaid()
+                askForNotificationsAndReschedule()
+            }
+            Button("Leave Them Unpaid") { askForNotificationsAndReschedule() }
         } message: {
             Text("You already have \(unpaidCount) invoice\(unpaidCount == 1 ? "" : "s"). Unpaid invoices get weekly reminders. You can change each paid date on the invoice.")
         }
@@ -82,9 +87,19 @@ struct InvoiceSettingsView: View {
 
     private func setTracksPayments(_ isOn: Bool) {
         tracksPayments = isOn
-        if isOn && unpaidCount > 0 { showMarkExistingPaid = true }
+        if isOn && unpaidCount > 0 {
+            // One question at a time: the notification prompt follows the answer.
+            showMarkExistingPaid = true
+        } else if isOn {
+            askForNotificationsAndReschedule()
+        } else {
+            Task { await InvoiceNotificationScheduler.reschedule(context: modelContext) }
+        }
+    }
+
+    private func askForNotificationsAndReschedule() {
         Task {
-            if isOn { _ = await InvoiceNotificationScheduler.requestAuthorization() }
+            _ = await InvoiceNotificationScheduler.requestAuthorization()
             notificationsDenied = await InvoiceNotificationScheduler.isDenied()
             await InvoiceNotificationScheduler.reschedule(context: modelContext)
         }
@@ -101,7 +116,6 @@ struct InvoiceSettingsView: View {
             modelContext.rollback()
             errorMessage = "Nothing was changed. Please try again. (\(error.localizedDescription))"
         }
-        Task { await InvoiceNotificationScheduler.reschedule(context: modelContext) }
     }
 }
 
