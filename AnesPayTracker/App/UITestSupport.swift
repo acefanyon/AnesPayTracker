@@ -11,6 +11,7 @@ import SwiftData
 /// `-UITestScenario`, which only the UI tests pass. It then uses its own
 /// store in the app's temporary folder, filled with made-up data, and never
 /// opens or touches the real store or its backups.
+@MainActor
 enum UITestSupport {
     static let scenarioArgument = "-UITestScenario"
     /// Reuse the test store from the previous launch (for "still there after
