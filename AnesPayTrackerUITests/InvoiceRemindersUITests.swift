@@ -79,7 +79,10 @@ final class InvoiceRemindersUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Each pay period"].waitForExistence(timeout: 5), "Each pay period should be offered for Case Group")
         app.buttons["Every month"].tap()
         XCTAssertTrue(text(app, containing: "Current period").waitForExistence(timeout: 5))
-        XCTAssertFalse(app.datePickers["A period ends on"].exists, "Monthly schedules don't need a period end date")
+        XCTAssertFalse(
+            app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "A period ends on")).firstMatch.exists,
+            "Monthly schedules don't need a period end date"
+        )
         screenshot(app, "09 Case Group every month")
 
         element(app.buttons, containing: "Remind me to invoice").tap()
@@ -130,7 +133,9 @@ final class InvoiceRemindersUITests: XCTestCase {
         require(paid, in: app, "The invoice should have a Paid switch")
         flip(paid)
         XCTAssertTrue(text(app, containing: "Paid ").waitForExistence(timeout: 5), "The invoice should show Paid with a date")
-        XCTAssertTrue(app.datePickers["Paid on"].exists, "A paid date should appear")
+        // A compact date picker isn't reported as a date picker, so find it by its label.
+        let paidOn = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Paid on")).firstMatch
+        require(paidOn, in: app, timeout: 5, "A paid date should appear")
         screenshot(app, "15 Invoice marked paid")
 
         // Close and reopen with the same data.
