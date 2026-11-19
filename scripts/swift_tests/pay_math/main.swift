@@ -4,6 +4,7 @@
 //     AnesPayTracker/Engine/CaseTimeCalculator.swift \
 //     AnesPayTracker/Engine/PaycheckDateMath.swift \
 //     AnesPayTracker/Engine/InvoiceMath.swift \
+//     AnesPayTracker/Engine/InvoiceScheduleMath.swift \
 //     scripts/swift_tests/pay_math/main.swift && /tmp/pay_math_tests
 //
 // CI runs this on every push. All names and amounts here are made up.
@@ -184,6 +185,53 @@ check(InvoiceMath.fingerprint(of: editedDay) == InvoiceMath.fingerprint(of: invo
 var repricedDay = invoiceDay
 repricedDay.charges[0].amountCents = 300000
 check(InvoiceMath.fingerprint(of: repricedDay) == InvoiceMath.fingerprint(of: invoiceDay), false, "changing an amount changes the fingerprint")
+
+// MARK: Invoice schedules and reminders
+
+func span(_ y1: Int, _ m1: Int, _ d1: Int, _ y2: Int, _ m2: Int, _ d2: Int) -> InvoicePeriod {
+    InvoicePeriod(start: at(y1, m1, d1), end: at(y2, m2, d2))
+}
+func period(_ date: Date, _ cadence: InvoiceCadence, anchor: Date? = nil) -> InvoicePeriod? {
+    InvoiceScheduleMath.period(containing: date, cadence: cadence, anchorEnd: anchor, calendar: calendar)
+}
+
+let twoWeekAnchor = at(2026, 11, 22)
+check(period(at(2026, 11, 19, 14, 5), .everyTwoWeeks, anchor: twoWeekAnchor), span(2026, 11, 9, 2026, 11, 22), "every 2 weeks: a day inside the anchor's period")
+check(period(at(2026, 11, 22), .everyTwoWeeks, anchor: twoWeekAnchor), span(2026, 11, 9, 2026, 11, 22), "every 2 weeks: the anchor day ends its period")
+check(period(at(2026, 11, 23), .everyTwoWeeks, anchor: twoWeekAnchor), span(2026, 11, 23, 2026, 12, 6), "every 2 weeks: the day after starts the next period")
+check(period(at(2026, 11, 8), .everyTwoWeeks, anchor: twoWeekAnchor), span(2026, 10, 26, 2026, 11, 8), "every 2 weeks: earlier periods count back from the anchor")
+check(period(at(2026, 11, 19), .everyTwoWeeks, anchor: at(2026, 12, 20)), span(2026, 11, 9, 2026, 11, 22), "every 2 weeks: an anchor in the future works too")
+check(period(at(2026, 11, 19), .weekly, anchor: at(2026, 11, 21)), span(2026, 11, 15, 2026, 11, 21), "weekly: Sunday to Saturday from a Saturday anchor")
+check(period(at(2026, 11, 19), .everyTwoWeeks), nil, "every 2 weeks needs its anchor")
+check(period(at(2026, 11, 19), .payPeriod), nil, "pay periods come from the pay-period engine, not here")
+check(period(at(2026, 11, 15), .twiceMonthly), span(2026, 11, 1, 2026, 11, 15), "twice a month: the 15th ends the first half")
+check(period(at(2026, 11, 16), .twiceMonthly), span(2026, 11, 16, 2026, 11, 30), "twice a month: the 16th starts the second half")
+check(period(at(2027, 2, 20), .twiceMonthly), span(2027, 2, 16, 2027, 2, 28), "twice a month: February's second half ends on the 28th")
+check(period(at(2028, 2, 20), .twiceMonthly), span(2028, 2, 16, 2028, 2, 29), "twice a month: leap-year February ends on the 29th")
+check(period(at(2026, 11, 19), .monthly), span(2026, 11, 1, 2026, 11, 30), "monthly: the calendar month")
+check(period(at(2026, 12, 31, 23, 59), .monthly), span(2026, 12, 1, 2026, 12, 31), "monthly: late on the last day is still that month")
+
+let novPeriod = span(2026, 11, 9, 2026, 11, 22)
+check(InvoiceScheduleMath.hasEnded(novPeriod, now: at(2026, 11, 22, 18, 0), calendar: calendar), false, "a period hasn't ended during its last day")
+check(InvoiceScheduleMath.hasEnded(novPeriod, now: at(2026, 11, 23, 0, 1), calendar: calendar), true, "a period has ended the next day")
+check(InvoiceScheduleMath.firstInvoiceReminderDay(after: novPeriod, calendar: calendar), at(2026, 11, 23), "invoice reminders start the day after the period ends")
+check(InvoiceScheduleMath.firstUnpaidReminderDay(issuedOn: at(2026, 11, 23, 16, 0), dueOn: at(2026, 12, 15), calendar: calendar), at(2026, 12, 15), "unpaid reminders start on the due date")
+check(InvoiceScheduleMath.firstUnpaidReminderDay(issuedOn: at(2026, 11, 23, 16, 0), dueOn: nil, calendar: calendar), at(2026, 11, 30), "without a due date, unpaid reminders start a week after the invoice date")
+
+func reminders(from day: Date, after now: Date, limit: Int = 3) -> [Date] {
+    InvoiceScheduleMath.weeklyReminders(startingOn: day, hour: 9, after: now, limit: limit, calendar: calendar)
+}
+check(reminders(from: at(2026, 11, 23), after: at(2026, 11, 19, 12, 0)), [at(2026, 11, 23, 9), at(2026, 11, 30, 9), at(2026, 12, 7, 9)], "reminders at 9 AM, then weekly")
+check(reminders(from: at(2026, 11, 23), after: at(2026, 11, 23, 8, 59)), [at(2026, 11, 23, 9), at(2026, 11, 30, 9), at(2026, 12, 7, 9)], "a reminder later the same morning is kept")
+check(reminders(from: at(2026, 11, 23), after: at(2026, 11, 23, 10, 0)), [at(2026, 11, 30, 9), at(2026, 12, 7, 9), at(2026, 12, 14, 9)], "a reminder already past is skipped")
+check(reminders(from: at(2026, 1, 1), after: at(2026, 11, 19, 12, 0), limit: 1), [at(2026, 11, 26, 9)], "long-overdue reminders stay on the same weekday")
+check(reminders(from: at(2026, 11, 23), after: at(2026, 11, 19), limit: 0), [], "no reminders when none are wanted")
+
+check(InvoiceScheduleMath.isOverdue(dueOn: at(2026, 12, 15), paidOn: nil, now: at(2026, 12, 16, 8, 0), calendar: calendar), true, "unpaid after the due date is overdue")
+check(InvoiceScheduleMath.isOverdue(dueOn: at(2026, 12, 15), paidOn: nil, now: at(2026, 12, 15, 20, 0), calendar: calendar), false, "the due date itself isn't overdue")
+check(InvoiceScheduleMath.isOverdue(dueOn: at(2026, 12, 15), paidOn: at(2026, 12, 20), now: at(2027, 1, 5), calendar: calendar), false, "a paid invoice is never overdue")
+check(InvoiceScheduleMath.isOverdue(dueOn: nil, paidOn: nil, now: at(2027, 1, 5), calendar: calendar), false, "without a due date nothing is overdue")
+check(InvoiceCadence.allCases.map(\.rawValue), ["weekly", "everyTwoWeeks", "twiceMonthly", "monthly", "payPeriod"], "saved schedule names never change")
 
 if failures > 0 {
     print("\n\(failures) pay-math test(s) failed.")

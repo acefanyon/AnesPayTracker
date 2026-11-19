@@ -48,6 +48,13 @@ struct SettingsView: View {
                     Text("Employers")
                 }
                 
+                // Invoices
+                Section("Invoices") {
+                    NavigationLink("Reminders & Payments") {
+                        InvoiceSettingsView()
+                    }
+                }
+
                 // Calendar
                 Section("Calendar") {
                     NavigationLink("Calendar Sync") {

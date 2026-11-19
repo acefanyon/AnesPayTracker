@@ -8,25 +8,36 @@ import SwiftData
 struct InvoiceDetailView: View {
     private let document: InvoiceDocument?
     private let number: String
+    private let dueOn: Date?
+    private let onSetPaid: (Date?) -> Void
     private let onDelete: () -> Void
 
     @Query private var shifts: [Shift]
+    @AppStorage(InvoiceSettingsKey.tracksPayments) private var tracksPayments = false
 
+    @State private var paidOn: Date?
     @State private var previewItem: PDFPreviewItem?
     @State private var showDeleteConfirm = false
     @State private var showPDFError = false
 
     /// Copies what it needs out of the invoice up front, so the screen never
     /// reads a record that has just been deleted.
-    init(invoice: Invoice, onDelete: @escaping () -> Void) {
+    init(invoice: Invoice, onSetPaid: @escaping (Date?) -> Void, onDelete: @escaping () -> Void) {
         self.document = InvoiceDocument(invoice: invoice)
         self.number = invoice.number
+        self.dueOn = invoice.dueOn
+        self.onSetPaid = onSetPaid
         self.onDelete = onDelete
+        _paidOn = State(initialValue: invoice.paidOn)
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if tracksPayments {
+                    paymentCard
+                }
+
                 if let document {
                     content(document)
                 } else {
@@ -63,6 +74,41 @@ struct InvoiceDetailView: View {
         } message: {
             Text("Please try again.")
         }
+    }
+
+    // MARK: Payment
+
+    private var paymentCard: some View {
+        InfoCard(title: "Payment") {
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(isOn: Binding(
+                    get: { paidOn != nil },
+                    set: { isPaid in
+                        paidOn = isPaid ? Calendar.current.startOfDay(for: Date()) : nil
+                        onSetPaid(paidOn)
+                    }
+                )) {
+                    InvoicePaymentBadge(dueOn: dueOn, paidOn: paidOn)
+                }
+                .frame(minHeight: 44)
+
+                if let current = paidOn {
+                    DatePicker("Paid on", selection: Binding(
+                        get: { current },
+                        set: { newDate in
+                            paidOn = Calendar.current.startOfDay(for: newDate)
+                            onSetPaid(paidOn)
+                        }
+                    ), displayedComponents: .date)
+                } else {
+                    Text(dueOn.map { "Due \(InvoiceFormat.day($0)). Reminders go out weekly until it's marked paid." }
+                         ?? "Reminders go out weekly, starting a week after the invoice date, until it's marked paid.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Content

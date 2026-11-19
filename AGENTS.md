@@ -99,6 +99,7 @@ Many existing screens predate this rule. When you change a screen, bring the par
 - Monthly pay cadence with both anchors keeps the anchor pairing month to month: period ending Oct 31 paid Nov 15 means period ending Nov 30 is paid Dec 15 (`PaycheckDateMath`).
 - Case-time sites (employer "paid for case time only"): each case counts whole minutes from start to stop, a running case counts nothing, the day's minutes are summed and raised to the employer's daily minimum if set (on by default, can be switched off on a single shift), and base pay is rate × minutes ÷ 60 rounded to the nearest cent. Example: 7 h 31 m at $400/hr = $3,006.67. A shift keeps its saved cases, rate and minimum.
 - Invoices: one per employer for a date range, across all of its sites; each day names its site. The number is the two-character employer code and the invoice date as MMDDYY (`EN-041326`), with `-2`, `-3` … when taken. A created invoice is a frozen copy in whole cents; later shift edits never change it, and deleting an invoice never touches shifts. Streak bonuses are not invoiced. A shift is on at most one invoice.
+- Invoice reminders: per employer, off by default. A finished period with worked, billable shifts not on an invoice is due; Home shows it and a notification goes out at 9 AM the next day, then weekly until an invoice exists. Reminders cover shifts from the period containing the reminders' start date. Payment tracking is one app-wide switch, off by default; unpaid invoices are reminded weekly from the due date, or a week after the invoice date. Notifications never show amounts, and only the app's own `invoice-reminder.` notifications are replaced.
 - Monthly aggregation payout defaults to the last day/check of the following month.
 - Quarterly aggregation payout defaults to the last day/check of the month after the quarter ends: Q1 → Apr 30, Q2 → Jul 31, Q3 → Oct 31, Q4 → Jan 31.
 
@@ -112,13 +113,14 @@ for f in scripts/verify_*.py; do python3 "$f"; done
 
 These run on any platform with Python 3. Add or update a verifier with every behavior change.
 
-Run the real Swift pay math (case time, monthly paydays) outside the app; needs a Swift toolchain, and CI runs it on every push:
+Run the real Swift pay math (case time, monthly paydays, invoices, invoice schedules) outside the app; needs a Swift toolchain, and CI runs it on every push:
 
 ```bash
 swiftc -o /tmp/pay_math_tests \
   AnesPayTracker/Engine/CaseTimeCalculator.swift \
   AnesPayTracker/Engine/PaycheckDateMath.swift \
   AnesPayTracker/Engine/InvoiceMath.swift \
+  AnesPayTracker/Engine/InvoiceScheduleMath.swift \
   scripts/swift_tests/pay_math/main.swift && /tmp/pay_math_tests
 ```
 
@@ -186,6 +188,8 @@ Remaining before a public App Store release: privacy policy page, App Privacy qu
 - `AnesPayTracker/Engine/PaycheckDateMath.swift` — monthly payday math (Foundation only)
 - `AnesPayTracker/Engine/InvoiceMath.swift` — invoice numbering, cents and frozen invoice content (Foundation only)
 - `AnesPayTracker/Engine/InvoiceBuilder.swift` — turns saved shifts into invoice days
+- `AnesPayTracker/Engine/InvoiceScheduleMath.swift` — invoice periods and reminder dates (Foundation only)
+- `AnesPayTracker/Engine/InvoiceReminders.swift` — which invoices are due or unpaid; local notification scheduling
 - `AnesPayTracker/Engine/CalendarSync.swift` — EventKit and `.ics` export
 - `AnesPayTracker/Views/Entry/AddShiftView.swift` — shift entry, custom bonuses, clock-in/out rounding UI
 - `AnesPayTracker/Views/Entry/CaseTimeEntry.swift` — case list editor inside Add/Edit Shift
@@ -197,7 +201,7 @@ Remaining before a public App Store release: privacy policy page, App Privacy qu
 - `AnesPayTracker/Views/Report/ReportView.swift` — earnings, bonus payout, paycheck estimator UI
 - `AnesPayTracker/Views/Report/PDFReportGenerator.swift` — report PDF generation
 - `AnesPayTracker/Views/Report/InvoicePDFGenerator.swift` — invoice PDF layout
-- `AnesPayTracker/Views/Invoices/` — invoice list, new-invoice form and invoice detail (opened from Report)
+- `AnesPayTracker/Views/Invoices/` — invoice list, new-invoice form, invoice detail (opened from Report), Home invoice cards, and Settings → Invoices (reminders and payment tracking)
 - `AnesPayTracker/Views/Setup/EmployerSetupWizard.swift` — initial employer/pay/bonus/streak/paycheck setup
 - `AnesPayTracker/Views/Settings/SettingsView.swift` — editing employers/sites/rules and calendar settings
 

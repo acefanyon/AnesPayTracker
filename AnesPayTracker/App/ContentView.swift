@@ -3,6 +3,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var employers: [Employer]
     
     @State private var showSetupWizard = false
@@ -27,6 +28,12 @@ struct ContentView: View {
             if employers.isEmpty {
                 showSetupWizard = true
             }
+        }
+        // Invoice reminders are local notifications planned from the data,
+        // so rebuild them whenever the app opens or is left.
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active || phase == .background else { return }
+            Task { await InvoiceNotificationScheduler.reschedule(context: modelContext) }
         }
     }
     

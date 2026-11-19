@@ -37,7 +37,14 @@ private struct AddressFields: View {
 
 /// Creates an invoice from an employer's logged shifts, across all of its sites.
 struct InvoiceEditorView: View {
+    /// Employer and dates to start with, when opened from an invoice reminder.
+    let prefill: InvoicePrefill?
     let onCreated: (Invoice) -> Void
+
+    init(prefill: InvoicePrefill? = nil, onCreated: @escaping (Invoice) -> Void) {
+        self.prefill = prefill
+        self.onCreated = onCreated
+    }
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -352,6 +359,13 @@ struct InvoiceEditorView: View {
 
     private func selectDefaultEmployerIfNeeded() {
         guard employerID == nil else { return }
+        if let prefill, let employer = employers.first(where: { $0.id == prefill.employerID }) {
+            select(employer: employer)
+            periodStart = prefill.period.start
+            periodEnd = prefill.period.end
+            updateDueDate(for: employer)
+            return
+        }
         if let first = employers.first(where: { !$0.caseTimeSites.isEmpty }) ?? employers.first {
             select(employer: first)
         }

@@ -33,6 +33,7 @@ jobs:
             AnesPayTracker/Engine/CaseTimeCalculator.swift \
             AnesPayTracker/Engine/PaycheckDateMath.swift \
             AnesPayTracker/Engine/InvoiceMath.swift \
+            AnesPayTracker/Engine/InvoiceScheduleMath.swift \
             scripts/swift_tests/pay_math/main.swift
           "$RUNNER_TEMP/pay_math_tests"
 

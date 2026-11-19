@@ -55,9 +55,31 @@ Code: `Engine/InvoiceMath.swift` (numbering, cents, frozen content; Foundation o
 
 Open questions: payment-terms wording; whether the app should suggest the two-week invoice period automatically (today it defaults to everything not yet invoiced since the start of last month).
 
-## Phase 3 — invoice tracking
+## Phase 3 — invoice reminders and payment tracking (built, not yet tested)
 
-Draft / sent / paid, paid date, "next invoice due" on Home. Pay cadence and invoice frequency are separate settings.
+Asked for 2026-11-19. The primary user needs a reminder to produce each invoice; she won't use the app to track payments, but others may, so that part is optional.
+
+Where: Settings → Invoices → **Reminders & Payments**; Home; the invoice list and invoice screen.
+
+Invoice reminders (per employer, off by default):
+- Schedule: every week or every 2 weeks (from one known period end date), twice a month (1st–15th, 16th–end), every month, or the employer's own pay periods (offered only when those are real dates). Invoice schedule and pay cadence are separate settings: the primary user's case-time employer pays monthly but is invoiced every 2 weeks.
+- A finished period with worked shifts that have something to bill and aren't on an invoice is **due**. Home shows an "Invoice due" card with **Create**, which opens the new-invoice form with that employer and those dates filled in.
+- Notification at 9 AM the day after the period ends, then weekly until an invoice is created.
+- Reminders cover shifts from the period containing "Remind about shifts from" (set to the day reminders are turned on), so they don't flag work invoiced elsewhere before.
+
+Payment tracking (one app-wide switch, off by default):
+- Each invoice gets a **Paid** switch and paid date; the list shows Paid, Unpaid or Overdue (past its due date). Home shows a card when invoices are unpaid.
+- Unpaid invoices are reminded weekly at 9 AM, starting on the due date, or a week after the invoice date if there isn't one.
+- Turning tracking on with existing invoices offers to mark them paid today, so old invoices don't start sending reminders.
+
+Notifications:
+- Local notifications only. They can't check anything when they fire, so the app rebuilds its pending set whenever it opens or goes to the background, and after reminder or payment changes. At most 6 per item and 60 in total (iOS allows 64). If the app isn't opened for about six weeks, reminders stop until it is.
+- Permission is asked only when a reminder or payment tracking is turned on. If notifications are off, Settings says so and Home still shows what's due.
+- Notifications name the employer or invoice number and the dates, never amounts, because they appear on the Lock Screen.
+
+Code: `Engine/InvoiceScheduleMath.swift` (periods and reminder dates; Foundation only, run by `scripts/swift_tests/pay_math`), `Engine/InvoiceReminders.swift` (what's due; notification scheduling), `Views/Invoices/InvoiceSettingsView.swift`, `Views/Invoices/InvoiceHomeCards.swift`. Verifier: `scripts/verify_invoice_reminders.py`. Manual tests: section C14 of `docs/QA_TEST_PLAN.md`.
+
+Possible later: sent status, partial payments, an accounts-receivable summary, a choice of reminder time.
 
 ## Phase 4 — reports and year-end
 

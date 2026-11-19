@@ -2,6 +2,11 @@
 
 Last updated: 2026-11-15
 
+## 2026-11-19 update (phase 3, not yet tested)
+
+- Phase 3 built on `claude/app-ui-ux-review-pt0vu6`: per-employer invoice reminders (Home "Invoice due" card and weekly notifications until the invoice is created) and optional app-wide payment tracking (Paid switch, weekly reminders for unpaid invoices). New optional fields `Employer.invoiceCadence`, `invoicePeriodEndAnchor`, `invoiceRemindersStartDate` and `Invoice.paidOn` (lightweight-migration safe). Details in the plan; verifier `scripts/verify_invoice_reminders.py`.
+- Not yet tested in the simulator. Run section C14 of `docs/QA_TEST_PLAN.md` before the next upload. Source build number is now 8 (7 is uploaded).
+
 ## 2026-11-16 update
 
 - Interface work now follows Apple's current Human Interface Guidelines and App Store Review Guidelines (`AGENTS.md`). The next major version is a UI overhaul built to those guidelines; see "App structure" in `docs/CASE_TIME_AND_INVOICING_PLAN.md`.

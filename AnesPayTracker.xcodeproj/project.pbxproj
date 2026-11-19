@@ -36,6 +36,10 @@
 		B027 /* Views/Invoices/InvoiceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A027 /* Views/Invoices/InvoiceListView.swift */; };
 		B028 /* Views/Invoices/InvoiceEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A028 /* Views/Invoices/InvoiceEditorView.swift */; };
 		B029 /* Views/Invoices/InvoiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A029 /* Views/Invoices/InvoiceDetailView.swift */; };
+		B030 /* Engine/InvoiceScheduleMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030 /* Engine/InvoiceScheduleMath.swift */; };
+		B031 /* Engine/InvoiceReminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A031 /* Engine/InvoiceReminders.swift */; };
+		B032 /* Views/Invoices/InvoiceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A032 /* Views/Invoices/InvoiceSettingsView.swift */; };
+		B033 /* Views/Invoices/InvoiceHomeCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = A033 /* Views/Invoices/InvoiceHomeCards.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +72,10 @@
 		A027 /* Views/Invoices/InvoiceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceListView.swift; sourceTree = "<group>"; };
 		A028 /* Views/Invoices/InvoiceEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceEditorView.swift; sourceTree = "<group>"; };
 		A029 /* Views/Invoices/InvoiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceDetailView.swift; sourceTree = "<group>"; };
+		A030 /* Engine/InvoiceScheduleMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/InvoiceScheduleMath.swift; sourceTree = "<group>"; };
+		A031 /* Engine/InvoiceReminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/InvoiceReminders.swift; sourceTree = "<group>"; };
+		A032 /* Views/Invoices/InvoiceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceSettingsView.swift; sourceTree = "<group>"; };
+		A033 /* Views/Invoices/InvoiceHomeCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceHomeCards.swift; sourceTree = "<group>"; };
 		PROD1 /* AnesPayTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AnesPayTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -122,6 +130,8 @@
 				A021 /* Engine/PaycheckDateMath.swift */,
 				A024 /* Engine/InvoiceMath.swift */,
 				A025 /* Engine/InvoiceBuilder.swift */,
+				A030 /* Engine/InvoiceScheduleMath.swift */,
+				A031 /* Engine/InvoiceReminders.swift */,
 			);
 			name = Engine;
 			sourceTree = "<group>";
@@ -150,6 +160,8 @@
 				A027 /* Views/Invoices/InvoiceListView.swift */,
 				A028 /* Views/Invoices/InvoiceEditorView.swift */,
 				A029 /* Views/Invoices/InvoiceDetailView.swift */,
+				A032 /* Views/Invoices/InvoiceSettingsView.swift */,
+				A033 /* Views/Invoices/InvoiceHomeCards.swift */,
 			);
 			name = Invoices;
 			sourceTree = "<group>";
@@ -323,6 +335,10 @@
 				B027 /* Views/Invoices/InvoiceListView.swift in Sources */,
 				B028 /* Views/Invoices/InvoiceEditorView.swift in Sources */,
 				B029 /* Views/Invoices/InvoiceDetailView.swift in Sources */,
+				B030 /* Engine/InvoiceScheduleMath.swift in Sources */,
+				B031 /* Engine/InvoiceReminders.swift in Sources */,
+				B032 /* Views/Invoices/InvoiceSettingsView.swift in Sources */,
+				B033 /* Views/Invoices/InvoiceHomeCards.swift in Sources */,
 				B014 /* Views/Report/ReportView.swift in Sources */,
 				B015 /* Views/Report/PDFReportGenerator.swift in Sources */,
 				B016 /* Views/Settings/SettingsView.swift in Sources */,
@@ -465,7 +481,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = UUYQH2JFZT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -492,7 +508,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = UUYQH2JFZT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;

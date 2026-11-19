@@ -40,6 +40,9 @@ struct HomeView: View {
                         CaseTrackerCard(sites: caseTimeSites, onOpenShift: { selectedShift = $0 })
                     }
 
+                    // Invoices due or unpaid; empty when there's nothing to do.
+                    InvoiceHomeCards()
+
                     ForEach(employers) { employer in
                         EmployerPayOverview(
                             employer: employer,

@@ -211,6 +211,25 @@ Uses the **Case Group** employer and the 7 h 31 m shift with Recovery from C12 (
 - [ ] Delete an invoice (confirmation appears): it leaves the list, its shifts are untouched and can be selected on a new invoice.
 - [ ] An invoice covering 20 or more days produces a multi-page PDF with a page number on each page and no row cut in half.
 
+**C14. Invoice reminders and payment tracking (phase 3)**
+
+Uses **Case Group** from C12 and C13. Notifications can be tested in the Simulator: to see one quickly, set the Mac's clock or wait for 9 AM, or check Settings → Notifications → AnesPay shows the app.
+
+- [ ] Settings shows **Invoices → Reminders & Payments**. Every employer is listed as **Off**; **Track invoice payments** is off.
+- [ ] Open Case Group, set **Remind me to invoice** to **Every 2 weeks**. iOS asks to allow notifications; allow. **A period ends on** and **Remind about shifts from** (today) appear, with the current period's dates.
+- [ ] Set **A period ends on** to the Saturday before last and **Remind about shifts from** to four weeks ago. Make sure Case Group has a shift in the last finished two-week period that isn't on an invoice (add one if needed).
+- [ ] Home shows an orange **Invoice due** card for Case Group with that period, the shift count and total. Tap **Create**: the form opens with Case Group and exactly those dates. Create the invoice: it opens in the invoice list, and the Home card is gone.
+- [ ] Set the schedule to **Twice a month**, then **Every month**: the current period updates. **Each pay period** appears only for employers whose pay dates are set up.
+- [ ] Set **Remind about shifts from** to today: the due card disappears (older shifts are left out).
+- [ ] Turn **Remind me to invoice** off: no Home card, and no Case Group reminders.
+- [ ] Turn **Track invoice payments** on with invoices already made: it asks **Mark existing invoices as paid?** Choose **Leave Them Unpaid**. The invoice list shows **Unpaid** (or **Overdue** past its due date) under each invoice; Home shows "N invoices not paid yet" with the total, which opens the list.
+- [ ] Open an invoice: a **Payment** card with a **Paid** switch. Switch it on: it shows **Paid** with today's date and a **Paid on** date you can change. Back in the list it shows **Paid** with that date. Stop and rerun the app: still paid.
+- [ ] Switch **Paid** off again: back to Unpaid.
+- [ ] Turn tracking off: the badges, the Payment card and the Home unpaid card all disappear; paid dates are kept and come back when it's turned on again.
+- [ ] Turn tracking on again and choose **Mark N as Paid Today**: every invoice shows Paid.
+- [ ] In the iPhone's Settings → Notifications → AnesPay, turn notifications off. Back in the app's Reminders & Payments: a note says notifications are off, with **Open Notification Settings**. Home still shows due invoices. Turn notifications back on.
+- [ ] Existing data: shifts, pay periods, reports and invoices from before look exactly as they did.
+
 ---
 
 ## Fixed issues (found while writing this plan, fixed 2026-10-01 for build 5)

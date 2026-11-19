@@ -24,6 +24,13 @@ final class Employer {
     /// Name and address printed under "Invoice for". nil = use `name`.
     var billingName: String?
     var billingAddress: String?
+    /// How often to remind the user to invoice this employer. nil = never.
+    var invoiceCadence: InvoiceCadence?
+    /// A known last day of an invoice period, for weekly schedules.
+    var invoicePeriodEndAnchor: Date?
+    /// Invoice reminders cover shifts from the period containing this date on,
+    /// so turning reminders on doesn't flag months of history.
+    var invoiceRemindersStartDate: Date?
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Site.employer)
@@ -390,6 +397,8 @@ final class Invoice {
     var totalCents: Int
     var notes: String?
     var snapshotData: Data
+    /// When payment arrived, if the user tracks payments. nil = not paid.
+    var paidOn: Date?
     var createdAt: Date
 
     init(
