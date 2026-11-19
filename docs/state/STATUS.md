@@ -2,6 +2,10 @@
 
 Last updated: 2026-11-15
 
+## 2026-11-19 update (Xcode versions)
+
+- An upload archived with Xcode 26.5 got App Store Connect's outdated-SDK warning. The MacBook Pro now has Xcode 27.2 and is the Mac to archive on; the Mac mini stays on Xcode 26.5 until its macOS is updated. The shared `AnesPayTracker` scheme is now committed, which Xcode Cloud's workflow needs.
+
 ## 2026-11-19 update (automated UI tests)
 
 - Added automated UI tests: a UI test target (`AnesPayTrackerUITests`), a shared scheme, a Debug-only test launch mode with made-up data (`App/UITestSupport.swift`), and the **UI Tests** GitHub workflow, which uploads a summary and screenshots. The first suite covers QA section C14. See "Automated UI tests" in `AGENTS.md`.

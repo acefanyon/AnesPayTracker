@@ -185,6 +185,7 @@ Already prepared:
 - App icon, App Store Connect app record and TestFlight distribution are in place; 1.1 (6) is installed on the testers' phones and build 7 was uploaded on 2026-11-15 (see `docs/state/STATUS.md`).
 - Build numbers: Xcode Organizer can auto-assign the next unused build number on upload, so App Store Connect can be ahead of the source. Check App Store Connect's TestFlight build list before choosing the next number.
 - Archiving and uploading need Xcode on a Mac signed in to the Apple developer account (Xcode → Settings → Accounts) on that Mac.
+- Archive with the current Xcode: App Store Connect warns about (and from Apple's yearly deadline rejects) builds made with an older SDK. As of 2026-11 that is Xcode 27.x, installed on the MacBook Pro; the Mac mini is on Xcode 26.5 until its macOS is updated. Check `xcodebuild -version` before archiving.
 
 Remaining before a public App Store release: privacy policy page, App Privacy questionnaire, age rating, review submission.
 
