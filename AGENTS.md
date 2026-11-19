@@ -142,7 +142,7 @@ xcodebuild -project AnesPayTracker.xcodeproj -target AnesPayTracker \
   CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" ARCHS=arm64
 ```
 
-The `-scheme` commands below need a scheme; on a fresh clone, open the project in Xcode once if `xcodebuild` reports that the scheme is missing.
+The `-scheme` commands below use the shared `AnesPayTracker` scheme (`AnesPayTracker.xcodeproj/xcshareddata/xcschemes/`), which Xcode Cloud also needs. Keep it committed; don't rename it.
 
 Build iOS Simulator:
 

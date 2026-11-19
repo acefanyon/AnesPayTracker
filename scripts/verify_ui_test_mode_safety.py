@@ -59,6 +59,9 @@ checks = {
     "The shared scheme tests that target in Debug": (
         'BlueprintIdentifier = "TARGET2"' in SCHEME and '<TestAction\n      buildConfiguration = "Debug"' in SCHEME
     ),
+    "The app's own shared scheme exists (Xcode Cloud builds from it)": (
+        (ROOT / "AnesPayTracker.xcodeproj" / "xcshareddata" / "xcschemes" / "AnesPayTracker.xcscheme").exists()
+    ),
     "The workflow runs that scheme and keeps the screenshots": (
         "-scheme AnesPayTrackerUITests" in WORKFLOW
         and "xcresulttool export attachments" in WORKFLOW
