@@ -11,6 +11,21 @@ struct AnesPayTrackerApp: App {
     let startupError: String?
 
     init() {
+        #if DEBUG
+        // Automated UI tests only: a separate made-up store. Never reached in
+        // TestFlight/App Store builds, and never opens the real store.
+        if UITestSupport.isActive {
+            do {
+                modelContainer = try UITestSupport.makeContainer(schema: Self.schema)
+                startupError = nil
+            } catch {
+                modelContainer = nil
+                startupError = String(describing: error)
+            }
+            return
+        }
+        #endif
+
         StoreSafety.backUpStoreIfNeeded()
         do {
             let container = try Self.makeContainer()
@@ -27,16 +42,17 @@ struct AnesPayTrackerApp: App {
         }
     }
 
+    static let schema = Schema([
+        Employer.self,
+        Site.self,
+        Shift.self,
+        StreakRule.self,
+        CustomBonusType.self,
+        ContactPerson.self,
+        Invoice.self,
+    ])
+
     private static func makeContainer() throws -> ModelContainer {
-        let schema = Schema([
-            Employer.self,
-            Site.self,
-            Shift.self,
-            StreakRule.self,
-            CustomBonusType.self,
-            ContactPerson.self,
-            Invoice.self,
-        ])
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,

@@ -126,6 +126,14 @@ swiftc -o /tmp/pay_math_tests \
 
 Keep pay math in Foundation-only files like these so it can be tested this way.
 
+### Automated UI tests
+
+`AnesPayTrackerUITests` taps through the app in an iPhone simulator and saves screenshots. The app runs in a test-only mode (`App/UITestSupport.swift`): Debug builds only, switched on only by the tests' `-UITestScenario` launch argument, with its own store of made-up data that never touches the real store (`scripts/verify_ui_test_mode_safety.py`).
+
+- On GitHub: the **UI Tests** workflow (`.github/workflows/ui-tests.yml`). It starts by hand (Actions → UI Tests → Run workflow, or the API) and on agent-branch pushes that change the tests. It uploads a `ui-test-report` artifact with a pass/fail summary and named screenshots. Mac minutes are limited, so run it before an upload rather than on every change.
+- On a Mac: `xcodebuild test -project AnesPayTracker.xcodeproj -scheme AnesPayTrackerUITests -destination 'platform=iOS Simulator,name=iPhone 17'`, or the scheme's Test action in Xcode.
+- Workflow: when a QA plan section can be automated, add UI tests for it; an agent runs them, reviews the screenshots and sends Jason a report. Jason's own check on his phone stays the final step before upload.
+
 Build for the iOS Simulator exactly as CI does (works on a fresh clone; macOS only):
 
 ```bash
@@ -204,6 +212,8 @@ Remaining before a public App Store release: privacy policy page, App Privacy qu
 - `AnesPayTracker/Views/Invoices/` — invoice list, new-invoice form, invoice detail (opened from Report), Home invoice cards, and Settings → Invoices (reminders and payment tracking)
 - `AnesPayTracker/Views/Setup/EmployerSetupWizard.swift` — initial employer/pay/bonus/streak/paycheck setup
 - `AnesPayTracker/Views/Settings/SettingsView.swift` — editing employers/sites/rules and calendar settings
+- `AnesPayTracker/App/UITestSupport.swift` — Debug-only launch mode and made-up data for the UI tests
+- `AnesPayTrackerUITests/` — automated UI tests (one file per QA plan area)
 
 ## Commit guidance
 

@@ -1,0 +1,76 @@
+name: UI Tests
+
+# Runs the automated UI tests (AnesPayTrackerUITests) in an iPhone simulator
+# and keeps the screenshots. Started by hand (Actions tab > UI Tests > Run
+# workflow) or by an agent, usually before a TestFlight upload, because Mac
+# minutes are limited. The app runs in its test-only mode with made-up data.
+
+on:
+  workflow_dispatch:
+  # Also when the tests themselves change on an agent branch, so they can be
+  # fixed without a hand start (workflow_dispatch needs the file on main).
+  push:
+    branches:
+      - "claude/**"
+      - "hermes/**"
+    paths:
+      - "AnesPayTrackerUITests/**"
+      - "AnesPayTracker/App/UITestSupport.swift"
+      - ".github/workflows/ui-tests.yml"
+
+jobs:
+  ui-tests:
+    name: UI tests (iOS Simulator)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Pick the newest iPhone simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          phones = [(runtime, d) for runtime, items in devices.items() if ".iOS-" in runtime for d in items if d["name"].startswith("iPhone")]
+          def version(runtime):
+              return [int(part) for part in runtime.split(".iOS-")[1].split("-") if part.isdigit()]
+          phones.sort(key=lambda pair: (version(pair[0]), pair[1]["name"]))
+          print(phones[-1][1]["udid"])
+          ')
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices available | grep "$UDID"
+
+      - name: Run UI tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project AnesPayTracker.xcodeproj \
+            -scheme AnesPayTrackerUITests \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath "$RUNNER_TEMP/UITests.xcresult" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            2>&1 | tail -n 300
+
+      - name: Summarise results and collect screenshots
+        if: always()
+        run: |
+          mkdir -p ui-test-report/screenshots
+          if [ -d "$RUNNER_TEMP/UITests.xcresult" ]; then
+            xcrun xcresulttool get test-results tests --path "$RUNNER_TEMP/UITests.xcresult" > ui-test-report/tests.json || true
+            xcrun xcresulttool export attachments --path "$RUNNER_TEMP/UITests.xcresult" --output-path ui-test-report/screenshots || true
+          fi
+          python3 scripts/ui_test_summary.py ui-test-report | tee ui-test-report/summary.md
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-report
+          path: ui-test-report
+          retention-days: 14

@@ -40,7 +40,20 @@
 		B031 /* Engine/InvoiceReminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A031 /* Engine/InvoiceReminders.swift */; };
 		B032 /* Views/Invoices/InvoiceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A032 /* Views/Invoices/InvoiceSettingsView.swift */; };
 		B033 /* Views/Invoices/InvoiceHomeCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = A033 /* Views/Invoices/InvoiceHomeCards.swift */; };
+		B034 /* App/UITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A034 /* App/UITestSupport.swift */; };
+		V001 /* InvoiceRemindersUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = U001 /* InvoiceRemindersUITests.swift */; };
+		V002 /* UITestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = U002 /* UITestHelpers.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		PROXY01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJECT /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = TARGET1;
+			remoteInfo = AnesPayTracker;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A001 /* App/AnesPayTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AnesPayTrackerApp.swift; sourceTree = "<group>"; };
@@ -76,11 +89,22 @@
 		A031 /* Engine/InvoiceReminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine/InvoiceReminders.swift; sourceTree = "<group>"; };
 		A032 /* Views/Invoices/InvoiceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceSettingsView.swift; sourceTree = "<group>"; };
 		A033 /* Views/Invoices/InvoiceHomeCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Invoices/InvoiceHomeCards.swift; sourceTree = "<group>"; };
+		A034 /* App/UITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/UITestSupport.swift; sourceTree = "<group>"; };
 		PROD1 /* AnesPayTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AnesPayTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		PROD2 /* AnesPayTrackerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AnesPayTrackerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		U001 /* InvoiceRemindersUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvoiceRemindersUITests.swift; sourceTree = "<group>"; };
+		U002 /* UITestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestHelpers.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		FW01 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FW02 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -96,6 +120,7 @@
 				A001 /* App/AnesPayTrackerApp.swift */,
 				A002 /* App/ContentView.swift */,
 				A003 /* App/Theme.swift */,
+				A034 /* App/UITestSupport.swift */,
 			);
 			name = App;
 			sourceTree = "<group>";
@@ -178,6 +203,7 @@
 			isa = PBXGroup;
 			children = (
 				PROD1 /* AnesPayTracker.app */,
+				PROD2 /* AnesPayTrackerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -207,6 +233,7 @@
 			isa = PBXGroup;
 			children = (
 				APPGRP /* AnesPayTracker */,
+				UITESTGRP /* AnesPayTrackerUITests */,
 				PRODGRP /* Products */,
 			);
 			sourceTree = "<group>";
@@ -225,6 +252,15 @@
 				A008 /* Views/Setup/EmployerSetupWizard.swift */,
 			);
 			name = Setup;
+			sourceTree = "<group>";
+		};
+		UITESTGRP /* AnesPayTrackerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				U001 /* InvoiceRemindersUITests.swift */,
+				U002 /* UITestHelpers.swift */,
+			);
+			path = AnesPayTrackerUITests;
 			sourceTree = "<group>";
 		};
 		VIEWSGRP /* Views */ = {
@@ -262,6 +298,24 @@
 			productReference = PROD1 /* AnesPayTracker.app */;
 			productType = "com.apple.product-type.application";
 		};
+		TARGET2 /* AnesPayTrackerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = UITCFGLIST /* Build configuration list for PBXNativeTarget "AnesPayTrackerUITests" */;
+			buildPhases = (
+				SRC02 /* Sources */,
+				FW02 /* Frameworks */,
+				RES02 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DEP01 /* PBXTargetDependency */,
+			);
+			name = AnesPayTrackerUITests;
+			productName = AnesPayTrackerUITests;
+			productReference = PROD2 /* AnesPayTrackerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -274,6 +328,10 @@
 				TargetAttributes = {
 					TARGET1 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					TARGET2 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = TARGET1;
 					};
 				};
 			};
@@ -291,6 +349,7 @@
 			projectRoot = "";
 			targets = (
 				TARGET1 /* AnesPayTracker */,
+				TARGET2 /* AnesPayTrackerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -301,6 +360,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				B018 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		RES02 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,6 +405,7 @@
 				B031 /* Engine/InvoiceReminders.swift in Sources */,
 				B032 /* Views/Invoices/InvoiceSettingsView.swift in Sources */,
 				B033 /* Views/Invoices/InvoiceHomeCards.swift in Sources */,
+				B034 /* App/UITestSupport.swift in Sources */,
 				B014 /* Views/Report/ReportView.swift in Sources */,
 				B015 /* Views/Report/PDFReportGenerator.swift in Sources */,
 				B016 /* Views/Settings/SettingsView.swift in Sources */,
@@ -346,7 +413,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		SRC02 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				V001 /* InvoiceRemindersUITests.swift in Sources */,
+				V002 /* UITestHelpers.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DEP01 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = TARGET1 /* AnesPayTracker */;
+			targetProxy = PROXY01 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CFG_DEBUG /* Debug */ = {
@@ -530,6 +614,36 @@
 			};
 			name = Release;
 		};
+		UITCFG_DEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anespay.tracker.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AnesPayTracker;
+			};
+			name = Debug;
+		};
+		UITCFG_RELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anespay.tracker.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AnesPayTracker;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -547,6 +661,15 @@
 			buildConfigurations = (
 				CFG_DEBUG /* Debug */,
 				CFG_RELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		UITCFGLIST /* Build configuration list for PBXNativeTarget "AnesPayTrackerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				UITCFG_DEBUG /* Debug */,
+				UITCFG_RELEASE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -1097,6 +1097,7 @@ struct InvoicesLinkCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens your invoices")
+        .accessibilityIdentifier("report.invoicesLink")
     }
 }
 

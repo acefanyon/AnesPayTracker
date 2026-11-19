@@ -91,6 +91,7 @@ struct InvoiceDetailView: View {
                     InvoicePaymentBadge(dueOn: dueOn, paidOn: paidOn)
                 }
                 .frame(minHeight: 44)
+                .accessibilityIdentifier("invoice.paidToggle")
 
                 if let current = paidOn {
                     DatePicker("Paid on", selection: Binding(

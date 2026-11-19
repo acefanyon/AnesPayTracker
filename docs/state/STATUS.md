@@ -2,6 +2,10 @@
 
 Last updated: 2026-11-15
 
+## 2026-11-19 update (automated UI tests)
+
+- Added automated UI tests: a UI test target (`AnesPayTrackerUITests`), a shared scheme, a Debug-only test launch mode with made-up data (`App/UITestSupport.swift`), and the **UI Tests** GitHub workflow, which uploads a summary and screenshots. The first suite covers QA section C14. See "Automated UI tests" in `AGENTS.md`.
+
 ## 2026-11-19 update (phase 3, not yet tested)
 
 - Phase 3 built on `claude/app-ui-ux-review-pt0vu6`: per-employer invoice reminders (Home "Invoice due" card and weekly notifications until the invoice is created) and optional app-wide payment tracking (Paid switch, weekly reminders for unpaid invoices). New optional fields `Employer.invoiceCadence`, `invoicePeriodEndAnchor`, `invoiceRemindersStartDate` and `Invoice.paidOn` (lightweight-migration safe). Details in the plan; verifier `scripts/verify_invoice_reminders.py`.

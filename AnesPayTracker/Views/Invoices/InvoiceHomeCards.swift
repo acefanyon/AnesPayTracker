@@ -69,6 +69,7 @@ private struct InvoicesDueCard: View {
                         .controlSize(.small)
                         .frame(minHeight: 44)
                         .accessibilityLabel("Create invoice for \(entry.employer.name), \(InvoiceReminders.periodLabel(entry.period))")
+                        .accessibilityIdentifier("invoiceDue.create")
                 }
             }
         }
@@ -115,6 +116,7 @@ private struct UnpaidInvoicesCard: View {
             .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("invoices.unpaidCard")
     }
 
     private var subtitle: String {

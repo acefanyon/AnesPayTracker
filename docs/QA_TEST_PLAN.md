@@ -213,6 +213,8 @@ Uses the **Case Group** employer and the 7 h 31 m shift with Recovery from C12 (
 
 **C14. Invoice reminders and payment tracking (phase 3)**
 
+Automated: `AnesPayTrackerUITests/InvoiceRemindersUITests.swift` covers the Home due card and prefilled invoice, the schedule options and turning reminders off, payment tracking (Unpaid/Overdue, marking paid, still paid after reopening) and that every tab opens. Its made-up data differs from the steps below; the items it can't check (notification prompts and delivery, the notifications-off note) still need a manual pass.
+
 Uses **Case Group** from C12 and C13. Notifications can be tested in the Simulator: to see one quickly, set the Mac's clock or wait for 9 AM, or check Settings → Notifications → AnesPay shows the app.
 
 - [ ] Settings shows **Invoices → Reminders & Payments**. Every employer is listed as **Off**; **Track invoice payments** is off.
