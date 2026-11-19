@@ -2,6 +2,12 @@
 
 Last updated: 2026-11-15
 
+## 2026-11-19 update (build 11 uploaded)
+
+- `main` (phase 3 invoice reminders and payment tracking, the UI tests, the shared scheme) was archived from source build 8 with Xcode 27.2 and uploaded as **1.1 (11)**: Organizer renumbered it because App Store Connect already had build 10, an earlier upload of the same code archived with Xcode 26.5 (outdated-SDK warning). Use 11 on the phones; 10 can be expired.
+- Source build number is now 12, the next upload's number.
+- Not yet confirmed on the phones: install on Jason's phone first and check existing data, then the primary tester's after a backup.
+
 ## 2026-11-19 update (Xcode versions)
 
 - An upload archived with Xcode 26.5 got App Store Connect's outdated-SDK warning. The MacBook Pro now has Xcode 27.2 and is the Mac to archive on; the Mac mini stays on Xcode 26.5 until its macOS is updated. The shared `AnesPayTracker` scheme is now committed, which Xcode Cloud's workflow needs.

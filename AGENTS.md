@@ -182,7 +182,7 @@ Already prepared:
 - Current bundle ID observed in builds: `com.anespay.tracker` for iOS, `maccatalyst.com.anespay.tracker` for Catalyst
 - Signing team is set in the project (`DEVELOPMENT_TEAM`); provisioning can still fail from the command line if profiles are absent
 
-- App icon, App Store Connect app record and TestFlight distribution are in place; 1.1 (6) is installed on the testers' phones and build 7 was uploaded on 2026-11-15 (see `docs/state/STATUS.md`).
+- App icon, App Store Connect app record and TestFlight distribution are in place; the current TestFlight build is 1.1 (11), uploaded 2026-11-19 (see `docs/state/STATUS.md`).
 - Build numbers: Xcode Organizer can auto-assign the next unused build number on upload, so App Store Connect can be ahead of the source. Check App Store Connect's TestFlight build list before choosing the next number.
 - Archiving and uploading need Xcode on a Mac signed in to the Apple developer account (Xcode → Settings → Accounts) on that Mac.
 - Archive with the current Xcode: App Store Connect warns about (and from Apple's yearly deadline rejects) builds made with an older SDK. As of 2026-11 that is Xcode 27.x, installed on the MacBook Pro; the Mac mini is on Xcode 26.5 until its macOS is updated. Check `xcodebuild -version` before archiving.
